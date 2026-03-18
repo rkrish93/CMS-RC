@@ -31,6 +31,7 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
+        // dd ($request->all());
     $request->validate([
         'fname' => 'required',
         'lname' => 'required',
@@ -47,7 +48,7 @@ class UserController extends Controller
 
         $imageName = time().'.'.$request->image->extension();
 
-        $request->image->move(public_path('users'), $imageName);
+        $request->image->move(public_path('assets/images/profiles'), $imageName);
     }
 
     // insert user
@@ -76,7 +77,8 @@ class UserController extends Controller
      */
     public function edit(string $id)
     {
-        //
+        $user = User::findOrFail($id);
+        return view('admin.users.edit', compact('user'));
     }
 
     /**
@@ -84,7 +86,40 @@ class UserController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $user = User::findOrFail($id);
+
+    $request->validate([
+        'fname' => 'required',
+        'lname' => 'required',
+        'email' => 'required|email|unique:users,email,'.$id,
+        'phone' => 'required|unique:users,phone,'.$id,
+    ]);
+
+    if($request->password)
+    {
+        $user->password = bcrypt($request->password);
+    }
+
+    if ($request->hasFile('image'))
+    {
+        if ($user->image && file_exists(public_path('assets/images/profiles/'.$user->image))) {
+            unlink(public_path('assets/images/profiles/'.$user->image));
+        }
+
+        $imageName = time().'.'.$request->image->extension();
+        $request->image->move(public_path('assets/images/profiles'), $imageName);
+        $user->image = $imageName;
+    }
+
+    $user->fname = $request->fname;
+    $user->lname = $request->lname;
+    $user->email = $request->email;
+    $user->phone = $request->phone;
+
+    $user->save();
+
+    return redirect()->route('users.index')
+            ->with('success','User Updated Successfully');
     }
 
     /**
@@ -92,6 +127,15 @@ class UserController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $user = User::findOrFail($id);
+
+    // delete image
+    if ($user->image && file_exists(public_path('assets/images/profiles/'.$user->image))) {
+        unlink(public_path('assets/images/profiles/'.$user->image));
+    }
+
+    $user->delete();
+
+    return redirect()->route('users.index');
     }
 }

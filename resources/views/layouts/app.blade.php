@@ -3,7 +3,13 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Purple Admin</title>
+    <title>
+        @hasSection('title')
+        @yield('title') | CMS-RC
+        @else
+        CMS-RC
+        @endif
+    </title>
 
     <!-- plugins css -->
     <link rel="stylesheet" href="{{ asset('assets/vendors/mdi/css/materialdesignicons.min.css') }}">
@@ -48,14 +54,14 @@
                 </li>
 
                 <!-- USERS MENU -->
-<li class="nav-item">
-              <a class="nav-link" data-bs-toggle="collapse" href="#ui-basic" aria-expanded="false" aria-controls="ui-basic">
-                <span class="menu-title">user</span>
-                <i class="menu-arrow"></i>
-                <i class="mdi mdi-crosshairs-gps menu-icon"></i>
-              </a>
-              <div class="collapse" id="ui-basic">
-                <ul class="nav flex-column sub-menu">
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="collapse" href="#ui-basic" aria-expanded="false" aria-controls="ui-basic">
+                        <span class="menu-title">user</span>
+                    <i class="menu-arrow"></i>
+                    <i class="mdi mdi-crosshairs-gps menu-icon"></i>
+                </a>
+                    <div class="collapse" id="ui-basic">
+                    <ul class="nav flex-column sub-menu">
 
                   <li class="nav-item">
                 <a class="nav-link" href="{{ route('users.index') }}">
@@ -65,6 +71,54 @@
                   <li class="nav-item">
                 <a class="nav-link" href="{{ route('users.create') }}">
                     Create User
+                </a>
+            </li>
+                </ul>
+              </div>
+            </li>
+
+            <!-- Patient MENU -->
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="collapse" href="#ui-basic" aria-expanded="false" aria-controls="ui-basic">
+                        <span class="menu-title">Petient</span>
+                    <i class="menu-arrow"></i>
+                    <i class="mdi mdi-crosshairs-gps menu-icon"></i>
+                </a>
+                    <div class="collapse" id="ui-basic">
+                    <ul class="nav flex-column sub-menu">
+
+                  <li class="nav-item">
+                <a class="nav-link" href="{{ route('patients.index') }}">
+                    Patients List
+                </a>
+            </li>
+                  <li class="nav-item">
+                <a class="nav-link" href="{{ route('patients.create') }}">
+                    Create Patient
+                </a>
+            </li>
+                </ul>
+              </div>
+            </li>
+
+                           <!-- UNIT MENU -->
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="collapse" href="#ui-basic" aria-expanded="false" aria-controls="ui-basic">
+                        <span class="menu-title">Units</span>
+                    <i class="menu-arrow"></i>
+                    <i class="mdi mdi-crosshairs-gps menu-icon"></i>
+                </a>
+                    <div class="collapse" id="ui-basic">
+                    <ul class="nav flex-column sub-menu">
+
+                  <li class="nav-item">
+                <a class="nav-link" href="{{ route('units.index') }}">
+                    Units List
+                </a>
+            </li>
+                  <li class="nav-item">
+                <a class="nav-link" href="{{ route('units.create') }}">
+                    Create Unit
                 </a>
             </li>
                 </ul>
@@ -83,7 +137,7 @@
             </div>
 
             <footer class="footer text-center">
-                © {{ date('Y') }} CMS
+                © {{ date('Y') }} CMS-RC
             </footer>
 
         </div>
@@ -91,6 +145,8 @@
     </div>
 
 </div>
+
+@yield('scripts')
 
 <!-- plugins js -->
 <script src="{{ asset('assets/vendors/js/vendor.bundle.base.js') }}"></script>

@@ -7,11 +7,11 @@
         <span class="page-title-icon bg-gradient-primary text-white me-2">
             <i class="mdi mdi-account-multiple"></i>
         </span>
-        User List
+        Units List
     </h3>
 
-    <a href="{{ route('users.create') }}" class="btn btn-gradient-primary btn-sm">
-        + Add User
+    <a href="{{ route('units.create') }}" class="btn btn-gradient-primary btn-sm">
+        + Add Unit
     </a>
 </div>
 
@@ -27,50 +27,44 @@
         <div class="card">
             <div class="card-body">
 
-                <h4 class="card-title">All Users</h4>
+                <h4 class="card-title">All Units</h4>
 
                 <div class="table-responsive">
                     <table class="table table-bordered">
 
                         <thead>
                             <tr>
-                                <th> Image </th>
-                                <th> Name </th>
-                                <th> Email </th>
-                                <th> Phone </th>
+                                <th> Unit Name </th>
+                                <th> Description </th>
+                                <th> In-Charge officer </th>
+                                <th> Status </th>
                                 <th width="150"> Action </th>
                             </tr>
                         </thead>
 
                         <tbody>
-                            @foreach($users as $user)
+                            @foreach($units as $unit)
                             <tr>
-
+                                <td>{{ $unit->unit_name }}</td>
+                                <td>{{ $unit->description }}</td>
+                                <td>{{ $unit->incharge }}</td>
                                 <td>
-                                    @if($user->image)
-                                        <img src="{{ asset('assets/images/profiles/'.$user->image) }}"
-                                             width="50" height="50"
-                                             style="border-radius:50%">
+                                    @if($unit->status == 1)
+                                        <span class="badge bg-success">Active</span>
                                     @else
-                                        <img src="{{ asset('assets/images/faces/face1.jpg') }}"
-                                             width="50" height="50"
-                                             style="border-radius:50%">
+                                        <span class="badge bg-danger">Inactive</span>
                                     @endif
                                 </td>
 
-                                <td>{{ $user->fname }} {{ $user->lname }}</td>
-                                <td>{{ $user->email }}</td>
-                                <td>{{ $user->phone }}</td>
-
                                 <td>
 
-                                    <a href="{{ route('users.edit',$user->id) }}"
+                                    <a href="{{ route('units.edit',$unit->id) }}"
                                        class="btn btn-sm btn-gradient-info">
                                         Edit
                                     </a>
 
-                                    <form id="delete-form-{{ $user->id }}"
-                                          action="{{ route('users.destroy',$user->id) }}"
+                                    <form id="delete-form-{{ $unit->id }}"
+                                          action="{{ route('units.destroy',$unit->id) }}"
                                           method="POST"
                                           style="display:inline">
 
@@ -79,7 +73,7 @@
 
                                         <button type="button"
                                                 class="btn btn-sm btn-gradient-danger"
-                                                onclick="confirmDelete({{ $user->id }})">
+                                                onclick="confirmDelete({{ $unit->id }})">
                                             Delete
                                         </button>
 

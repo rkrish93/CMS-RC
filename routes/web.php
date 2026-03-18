@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\PatientController;
+use App\Http\Controllers\Admin\UnitController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,7 +24,7 @@ Route::get('/login', function () {
 });
 Route::resource('users', UserController::class);
 
-Route::get('/test', function () {
-    return 'working';
-});
+Route::resource('patients', PatientController::class);
+
+Route::resource('units', UnitController::class);
 
