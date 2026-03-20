@@ -53,11 +53,10 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>In-Charge</label>
-                                <select name="incharge_name" class="form-control" required>
-                                    <option value="">Select Status</option>
-                                    <option value="1">Active</option>
-                                    <option value="0">Inactive</option>
-                                </select>
+                                <input type="email"
+                                       name="incharge_name"
+                                       class="form-control"
+                                       {{-- placeholder="" --}}>
                             </div>
                         </div>
 

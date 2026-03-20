@@ -53,31 +53,7 @@
                     </a>
                 </li>
 
-                <!-- USERS MENU -->
-                <li class="nav-item">
-                    <a class="nav-link" data-bs-toggle="collapse" href="#ui-basic" aria-expanded="false" aria-controls="ui-basic">
-                        <span class="menu-title">user</span>
-                    <i class="menu-arrow"></i>
-                    <i class="mdi mdi-crosshairs-gps menu-icon"></i>
-                </a>
-                    <div class="collapse" id="ui-basic">
-                    <ul class="nav flex-column sub-menu">
-
-                  <li class="nav-item">
-                <a class="nav-link" href="{{ route('users.index') }}">
-                    User List
-                </a>
-            </li>
-                  <li class="nav-item">
-                <a class="nav-link" href="{{ route('users.create') }}">
-                    Create User
-                </a>
-            </li>
-                </ul>
-              </div>
-            </li>
-
-            <!-- Patient MENU -->
+                            <!-- Patient MENU -->
                 <li class="nav-item">
                     <a class="nav-link" data-bs-toggle="collapse" href="#ui-basic" aria-expanded="false" aria-controls="ui-basic">
                         <span class="menu-title">Petient</span>
@@ -100,6 +76,38 @@
                 </ul>
               </div>
             </li>
+
+            <!-- APPOINTMENT MENU -->
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('appointments.index') }}">
+                    <span class="menu-title">Appointment</span>
+                    <i class="mdi mdi-calendar-check menu-icon"></i>
+                </a>
+            </li>
+            <!-- USERS MENU -->
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="collapse" href="#ui-basic" aria-expanded="false" aria-controls="ui-basic">
+                    <span class="menu-title">user</span>
+                <i class="menu-arrow"></i>
+                <i class="mdi mdi-crosshairs-gps menu-icon"></i>
+                </a>
+                    <div class="collapse" id="ui-basic">
+                    <ul class="nav flex-column sub-menu">
+
+                    <li class="nav-item">
+                <a class="nav-link" href="{{ route('users.index') }}">
+                    User List
+                </a>
+            </li>
+                  <li class="nav-item">
+                <a class="nav-link" href="{{ route('users.create') }}">
+                    Create User
+                </a>
+            </li>
+                </ul>
+              </div>
+            </li>
+
 
                            <!-- UNIT MENU -->
                 <li class="nav-item">
@@ -164,6 +172,8 @@
 
 <!-- custom js -->
 <script src="{{ asset('assets/js/dashboard.js') }}"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>

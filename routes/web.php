@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\PatientController;
 use App\Http\Controllers\Admin\UnitController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\AppointmentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -27,4 +28,6 @@ Route::resource('users', UserController::class);
 Route::resource('patients', PatientController::class);
 
 Route::resource('units', UnitController::class);
+
+Route::resource('appointments', AppointmentController::class);
 

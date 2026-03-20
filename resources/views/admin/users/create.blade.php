@@ -71,7 +71,63 @@
                                        required>
                             </div>
                         </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>NIC</label>
+                                <input type="text"
+                                       name="nic"
+                                       class="form-control"
+                                       placeholder="Enter NIC"
+                                       required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Designation</label>
+                                <select name="designation" class="form-control" required>
+                                <option value="">Select</option>
+                                <option>Doctor</option>
+                                <option>Nurse</option>
+                                <option>Receptionist</option>
+                                <option>Mid wife</option>
+                                <option>PHI</option>
+                                <option>Pharmesist</option>
+                                </select>
+                            </div>
+                        </div>
 
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Unit</label>
+                                <select name="unit_id" class="form-control" required>
+                                <option value="">Select Unit</option>
+                                @foreach($units as $unit)
+                                    <option value="{{ $unit->id }}">
+                                        {{ $unit->unit_name }}
+                                    </option>
+                                @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Joining Date</label>
+                                <input type="date"
+                                    name="join_date"
+                                    class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label">Status</label>
+                                <select name="status" class="form-control" required>
+                                    <option value="">Select Status</option>
+                                    <option value="1">Active</option>
+                                    <option value="0">Inactive</option>
+                                </select>
+                            </div>
+                        </div>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>Password</label>
@@ -96,7 +152,7 @@
 
                     <button type="submit"
                             class="btn btn-gradient-primary me-2">
-                        Save User
+                        Create User
                     </button>
 
                     <a href="{{ route('users.index') }}"
@@ -113,3 +169,26 @@
 </div>
 
 @endsection
+<style>
+.form-control,
+.form-select {
+    height: 45px;
+    border-radius: 6px;
+}
+
+textarea.form-control {
+    height: 45px !important;
+    resize: none;
+}
+
+label {
+    /* font-weight: 600; */
+    margin-bottom: 5px;
+    margin-top: 10px;
+}
+
+.card-body h5 {
+    border-left: 4px solid #750281;
+    padding-left: 10px;
+}
+</style>

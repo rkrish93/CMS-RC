@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Unit;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -14,7 +15,7 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $users = User::latest()->get();
+        $users = User::with('unit')->latest()->get();
         return view('admin.users.index', compact('users'));
     }
 
@@ -23,7 +24,8 @@ class UserController extends Controller
      */
     public function create()
     {
-        return view('admin.users.create');
+        $units = Unit::all();
+        return view('admin.users.create',compact('units'));
     }
 
     /**
@@ -35,8 +37,13 @@ class UserController extends Controller
     $request->validate([
         'fname' => 'required',
         'lname' => 'required',
-        'email' => 'required|email|unique:users',
-        'phone' => 'required|unique:users',
+        'email' => 'required|email|unique:users,email',
+        'phone' => 'required|unique:users,phone',
+        'nic' => 'required|string|max:12|unique:users,nic',
+        'designation' => 'required',
+        'unit_id' => 'required',
+        'join_date' => 'required|date',
+        'status'=> 'required|in:0,1',
         'password' => 'required|min:5',
         'image' => 'nullable|image|mimes:jpg,jpeg,png'
     ]);
@@ -57,6 +64,11 @@ class UserController extends Controller
         'lname' => $request->lname,
         'email' => $request->email,
         'phone' => $request->phone,
+        'nic' => $request->nic,
+        'designation' => $request->designation,
+        'unit_id' => $request->unit_id,
+        'join_date' => $request->join_date,
+        'status' => $request->status,
         'image' => $imageName,
         'password' => Hash::make($request->password),
     ]);
@@ -78,7 +90,8 @@ class UserController extends Controller
     public function edit(string $id)
     {
         $user = User::findOrFail($id);
-        return view('admin.users.edit', compact('user'));
+        $units=Unit::all();
+        return view('admin.users.edit', compact('user','units'));
     }
 
     /**
@@ -93,6 +106,11 @@ class UserController extends Controller
         'lname' => 'required',
         'email' => 'required|email|unique:users,email,'.$id,
         'phone' => 'required|unique:users,phone,'.$id,
+        'nic' => 'required|max:12|unique:users,nic,'.$id,
+        'designation' => 'required',
+        'unit_id' => 'required',
+        'join_date' => 'required|date',
+        'status'=> 'required|in:0,1',
     ]);
 
     if($request->password)
@@ -115,6 +133,11 @@ class UserController extends Controller
     $user->lname = $request->lname;
     $user->email = $request->email;
     $user->phone = $request->phone;
+    $user->nic = $request->nic;
+    $user->designation = $request->designation;
+    $user->join_date = $request->join_date;
+    $user->unit_id = $request->unit_id;
+    $user->status = $request->status;
 
     $user->save();
 

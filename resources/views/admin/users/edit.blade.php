@@ -18,7 +18,13 @@
             <div class="card-body">
 
                 <h4 class="card-title">Update User Information</h4>
-
+                @if ($errors->any())
+                <div class="alert alert-danger">
+                    @foreach ($errors->all() as $error)
+                        <div>{{ $error }}</div>
+                    @endforeach
+                </div>
+                @endif
                 <form method="POST"
                       action="{{ route('users.update',$user->id) }}"
                       enctype="multipart/form-data">
@@ -74,6 +80,70 @@
 
                         <div class="col-md-6">
                             <div class="form-group">
+                                <label>NIC</label>
+                                <input type="text"
+                                       name="nic"
+                                       class="form-control"
+                                       value="{{ $user->nic }}"
+                                       required>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Designation</label>
+                                <select name="designation" class="form-control" required>
+                                <option value="">Select</option>
+                                @foreach(['Doctor','Nurse','Receptionist','Mid wife','PHI','Pharmacist'] as $d)
+                                    <option value="{{ $d }}" {{ ($user->designation ?? '') == $d ? 'selected' : '' }}>
+                                        {{ $d }}
+                                    </option>
+                                @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Unit</label>
+                                <select name="unit_id" class="form-control">
+                                    <option value="">Select Unit</option>
+                                    @foreach($units as $unit)
+                                        <option value="{{ $unit->id }}"
+                                            {{ ($user->unit_id ?? '') == $unit->id ? 'selected' : '' }}>
+                                            {{ $unit->unit_name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Join Date</label>
+                                <input type="date" name="join_date"
+                                    id="join_date"
+                                    value="{{ $user->join_date }}"
+                                    class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Status</label>
+                                <select name="status" class="form-control" required>
+                                    <option value="1" {{ $user->status==1?'selected':'' }}>
+                                        Active
+                                    </option>
+                                    <option value="0" {{ $user->status==0?'selected':'' }}>
+                                        Inactive
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-group">
                                 <label>New Password (optional)</label>
                                 <input type="password"
                                        name="password"
@@ -120,3 +190,26 @@
 </div>
 
 @endsection
+<style>
+.form-control,
+.form-select {
+    height: 45px;
+    border-radius: 6px;
+}
+
+textarea.form-control {
+    height: 45px !important;
+    resize: none;
+}
+
+label {
+    /* font-weight: 600; */
+    margin-bottom: 5px;
+    margin-top: 10px;
+}
+
+.card-body h5 {
+    border-left: 4px solid #750281;
+    padding-left: 10px;
+}
+</style>

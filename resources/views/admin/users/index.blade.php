@@ -36,8 +36,13 @@
                             <tr>
                                 <th> Image </th>
                                 <th> Name </th>
+                                <th> Designation </th>
+                                <th> Unit </th>
                                 <th> Email </th>
                                 <th> Phone </th>
+                                <th> NIC </th>
+                                <th> Joining Date </th>
+                                <th> Status </th>
                                 <th width="150"> Action </th>
                             </tr>
                         </thead>
@@ -59,8 +64,19 @@
                                 </td>
 
                                 <td>{{ $user->fname }} {{ $user->lname }}</td>
+                                <td>{{ $user->designation }}</td>
+                                <td>{{ $user->unit->unit_name ?? '' }}</td>
                                 <td>{{ $user->email }}</td>
                                 <td>{{ $user->phone }}</td>
+                                <td>{{ $user->nic }}</td>
+                                <td>{{ $user->join_date }}</td>
+                                <td>
+                                    @if($user->status == 1)
+                                        <span class="badge bg-success">Active</span>
+                                    @else
+                                        <span class="badge bg-danger">Inactive</span>
+                                    @endif
+                                </td>
 
                                 <td>
 
