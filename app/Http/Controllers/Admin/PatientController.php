@@ -12,10 +12,19 @@ class PatientController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $patients = Patient::latest()->get();
-        return view('admin.patients.index', compact('patients'));
+        $search = $request->search;
+
+        $patients = Patient::when($search, function ($query, $search) {
+            $query->where('patient_code', 'like', "%{$search}%")
+              ->orWhere('first_name', 'like', "%{$search}%")
+              ->orWhere('last_name', 'like', "%{$search}%")
+              ->orWhere('nic', 'like', "%{$search}%")
+              ->orWhere('phone', 'like', "%{$search}%");
+
+        })->latest()->get();
+        return view('admin.patients.index', compact('patients','search'));
     }
 
     /**
@@ -192,4 +201,20 @@ class PatientController extends Controller
 
         return redirect()->route('patients.index');
     }
+
+    public function ajaxSearch(Request $request)
+{
+    $search = $request->search;
+
+    $patients = Patient::where('patient_code','like',"%{$search}%")
+        ->orWhere('first_name','like',"%{$search}%")
+        ->orWhere('last_name','like',"%{$search}%")
+        ->orWhere('nic','like',"%{$search}%")
+        ->orWhere('phone','like',"%{$search}%")
+        ->latest()
+        ->limit(20)
+        ->get();
+
+    return response()->json($patients);
+}
 }

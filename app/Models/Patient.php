@@ -32,4 +32,9 @@ class Patient extends Model
     'chronic_conditions',
 
     ];
+
+    public function consultations()
+    {
+        return $this->hasMany(Consultation::class);
+    }
 }

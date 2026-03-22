@@ -23,9 +23,12 @@ return new class extends Migration
         Schema::create($tableNames['permissions'], static function (Blueprint $table) {
             // $table->engine('InnoDB');
             $table->bigIncrements('id'); // permission id
+            $table->unsignedBigInteger('group_id');
             $table->string('name',125);       // For MyISAM use string('name', 225); // (or 166 for InnoDB with Redundant/Compact row format)
             $table->string('guard_name',125); // For MyISAM use string('guard_name', 25);
             $table->timestamps();
+
+            $table->foreign('group_id')->references('id')->on('permission_groups')->cascadeOnDelete();
 
             $table->unique(['name', 'guard_name']);
         });

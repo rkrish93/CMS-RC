@@ -30,4 +30,9 @@ class Appointment extends Model
     {
         return $this->belongsTo(Unit::class);
     }
+
+    public function consultation()
+    {
+        return $this->hasOne(Consultation::class);
+    }
 }
