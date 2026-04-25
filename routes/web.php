@@ -41,8 +41,13 @@ Route::resource('permission-groups',PermissionGroupController::class);
 Route::resource('permissions',PermissionController::class);
 Route::resource('roles',RoleController::class);
 
+
 Route::get('consultation/{appointment}', [ConsultationController::class,'create'])
         ->name('consultations.create');
-
 Route::post('consultation-store', [ConsultationController::class,'store'])
         ->name('consultations.store');
+Route::get('/consultations', [ConsultationController::class, 'index'])
+    ->name('consultations.index');
+
+Route::get('/doctor/queue', [AppointmentController::class, 'todayQueue'])
+    ->name('appointments.today');

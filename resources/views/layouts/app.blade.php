@@ -32,13 +32,19 @@
 <div class="container-scroller">
 
     <!-- NAVBAR -->
-    <nav class="navbar default-layout-navbar fixed-top d-flex flex-row">
-        <div class="navbar-brand-wrapper d-flex align-items-center">
-            <a class="navbar-brand brand-logo" href="#">
-                <img src="{{ asset('assets/images/logo.svg') }}">
-            </a>
-        </div>
-    </nav>
+<nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+    <div class="container-fluid">
+
+        <!-- Brand -->
+        <a class="navbar-brand d-flex align-items-center" href="#">
+            <img src="{{ asset('assets/images/cms-rc-logo1.png') }}"
+                 alt="CMS-RC Logo"
+                 style="height:45px; width:auto;">
+            <span class="ms-2 fw-bold">CMS-RC</span>
+        </a>
+
+    </div>
+</nav>
 
     <div class="container-fluid page-body-wrapper">
 
@@ -78,9 +84,35 @@
             </li>
 
             <!-- APPOINTMENT MENU -->
+
             <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="collapse" href="#ui-basic" aria-expanded="false" aria-controls="ui-basic">
+                        <span class="menu-title">Appointment</span>
+                    <i class="menu-arrow"></i>
+                    <i class="mdi mdi-crosshairs-gps menu-icon"></i>
+                </a>
+                    <div class="collapse" id="ui-basic">
+                    <ul class="nav flex-column sub-menu">
+
+                  <li class="nav-item">
                 <a class="nav-link" href="{{ route('appointments.index') }}">
-                    <span class="menu-title">Appointment</span>
+                    Appointment List
+                </a>
+            </li>
+                  <li class="nav-item">
+                <a class="nav-link" href="{{ route('appointments.today') }}">
+                    Today Queue
+                </a>
+            </li>
+                </ul>
+              </div>
+            </li>
+
+             <!-- Consultation MENU -->
+
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('consultations.index') }}">
+                    <span class="menu-title">Consultation</span>
                     <i class="mdi mdi-calendar-check menu-icon"></i>
                 </a>
             </li>

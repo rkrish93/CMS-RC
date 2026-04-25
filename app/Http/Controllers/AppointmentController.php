@@ -39,14 +39,14 @@ class AppointmentController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-        'patient_id'=>'required',
-        'unit_id'=>'required',
-        'appointment_date'=>'required',
-        'appointment_time'=>'required',
+    Appointment::create([
+    'patient_id' => $request->patient_id,
+    'unit_id' => $request->unit_id,
+    'appointment_date' => $request->appointment_date,
+    'appointment_time' => $request->appointment_time,
+    'token_no' => Appointment::whereDate('appointment_date',$request->appointment_date)->count() + 1,
+    'status' => 'pending'
     ]);
-
-    Appointment::create($request->all());
 
     return redirect()->route('appointments.index')
             ->with('success','Appointment Created');
@@ -82,5 +82,17 @@ class AppointmentController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    public function todayQueue()
+    {
+    $today = now()->toDateString();
+
+    $appointments = Appointment::with('patient')
+        ->whereDate('appointment_date', $today)
+        ->orderBy('token_no')
+        ->get();
+
+    return view('appointments.today', compact('appointments'));
     }
 }

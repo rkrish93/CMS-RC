@@ -53,13 +53,13 @@
     <td>{{ $app->token_no }}</td>
 
     <td>
-        @if($app->status == 'Pending')
+        @if($app->status == 'pending')
             <span class="badge badge-warning">Pending</span>
 
-        @elseif($app->status == 'Confirmed')
+        @elseif($app->status == 'confirmed')
             <span class="badge badge-primary">Confirmed</span>
 
-        @elseif($app->status == 'Completed')
+        @elseif($app->status == 'completed')
             <span class="badge badge-success">Completed</span>
 
         @else
@@ -106,7 +106,7 @@
 
 </table>
 
-<!-- ================= PROFESSIONAL APPOINTMENT MODAL ================= -->
+<!-- ================= PROFESSIONAL APPOINTMENT CREATE MODAL ================= -->
 
 <div class="modal fade" id="appointmentModal" tabindex="-1">
 <div class="modal-dialog modal-dialog-centered appointment-modal">
@@ -166,7 +166,7 @@
         <input type="time" name="appointment_time"
                class="form-control shadow-sm" required>
     </div>
-    <div class="col-md-6">
+    {{-- <div class="col-md-6">
         <label class="form-label fw-semibold">Token</label>
         <input type="text" name="token"
                class="form-control shadow-sm" required>
@@ -178,7 +178,7 @@
             <option value="Pending">Pending</option>
             <option value="Confirmed">Confirmed</option>
         </select>
-    </div>
+    </div> --}}
 
     <div class="col-12">
         <label class="form-label fw-semibold">Notes</label>

@@ -13,7 +13,7 @@ class ConsultationController extends Controller
      */
     public function index()
     {
-        //
+        return redirect()->route('appointments.today');
     }
 
     /**
@@ -22,6 +22,11 @@ class ConsultationController extends Controller
     public function create($appointment_id)
     {
          $appointment = Appointment::with('patient')->findOrFail($appointment_id);
+
+         if($appointment->status == 'pending'){
+        $appointment->update(['status' => 'in_progress']);
+        }
+
 
         $history = Consultation::where('patient_id',$appointment->patient_id)
                     ->latest()
