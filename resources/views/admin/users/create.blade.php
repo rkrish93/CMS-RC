@@ -128,7 +128,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        {{-- <div class="col-md-6">
                             <div class="form-group">
                                 <label>Password</label>
                                 <input type="password"
@@ -137,7 +137,7 @@
                                        placeholder="Enter password"
                                        required>
                             </div>
-                        </div>
+                        </div> --}}
 
                         <div class="col-md-6">
                             <div class="form-group">

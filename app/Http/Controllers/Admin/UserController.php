@@ -44,7 +44,7 @@ class UserController extends Controller
         'unit_id' => 'required',
         'join_date' => 'required|date',
         'status'=> 'required|in:0,1',
-        'password' => 'required|min:5',
+        // 'password' => 'required|min:5',
         'image' => 'nullable|image|mimes:jpg,jpeg,png'
     ]);
 
@@ -70,7 +70,7 @@ class UserController extends Controller
         'join_date' => $request->join_date,
         'status' => $request->status,
         'image' => $imageName,
-        'password' => Hash::make($request->password),
+        'password' => Hash::make('cms@123'),
     ]);
 
         return redirect()->route('users.index')

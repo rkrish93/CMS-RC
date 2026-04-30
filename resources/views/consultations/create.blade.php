@@ -34,31 +34,39 @@
 
     <!-- Patient Info -->
     <div class="card border-0 shadow-sm rounded-4 mb-3">
-        <div class="card-body">
+    <div class="card-body">
 
-            <h6 class="fw-bold text-primary mb-3">
-                <i class="mdi mdi-account"></i> Patient Details
-            </h6>
+        <h6 class="fw-bold text-primary mb-3">
+            <i class="mdi mdi-account"></i> Patient Details
+        </h6>
 
-            <p class="mb-1"><strong>Name:</strong>
-                {{ $appointment->patient->first_name }}
-                {{ $appointment->patient->last_name }}
-            </p>
+        <p class="mb-1"><strong>Name:</strong>
+            {{ $appointment->patient->first_name }}
+            {{ $appointment->patient->last_name }}
+        </p>
 
-            <p class="mb-1"><strong>Age:</strong>
-                {{ $appointment->patient->age ?? '-' }}
-            </p>
+        <p class="mb-1"><strong>Age:</strong>
+            {{ $appointment->patient->age ?? '-' }}
+        </p>
 
-            <p class="mb-1"><strong>Gender:</strong>
-                {{ $appointment->patient->gender ?? '-' }}
-            </p>
+        <p class="mb-1"><strong>Gender:</strong>
+            {{ $appointment->patient->gender ?? '-' }}
+        </p>
 
-            <p class="mb-0"><strong>Contact:</strong>
-                {{ $appointment->patient->phone ?? '-' }}
-            </p>
+        <p class="mb-0"><strong>Contact:</strong>
+            {{ $appointment->patient->phone ?? '-' }}
+        </p>
 
+        <!-- BUTTON -->
+        <div class="mt-3 text-end">
+            <a href="{{ route('patients.show', $appointment->patient->id) }}"
+               class="btn btn-sm btn-outline-primary">
+                <i class="mdi mdi-eye"></i> View Full Details
+            </a>
         </div>
+
     </div>
+</div>
 
     <!-- Appointment Info -->
     <div class="card border-0 shadow-sm rounded-4">
@@ -98,19 +106,24 @@
 
             <div class="row g-3">
 
-                <div class="col-md-4">
-                    <label class="form-label">Blood Pressure</label>
-                    <input type="text" name="bp" class="form-control">
+                <div class="col-md-3">
+                    <label>Blood Pressure</label>
+                    <input type="text" name="bp" class="form-control" placeholder="120/80">
                 </div>
 
-                <div class="col-md-4">
-                    <label class="form-label">Temperature</label>
-                    <input type="text" name="temperature" class="form-control">
+                <div class="col-md-3">
+                    <label>Temperature (°C)</label>
+                    <input type="text" name="temp" class="form-control" placeholder="37.0">
                 </div>
 
-                <div class="col-md-4">
-                    <label class="form-label">Pulse</label>
-                    <input type="text" name="pulse" class="form-control">
+                <div class="col-md-3">
+                    <label>Diabetes (mg/dL)</label>
+                    <input type="text" name="sugar" class="form-control" placeholder="100">
+                </div>
+
+                <div class="col-md-3">
+                    <label>Pulse</label>
+                    <input type="text" name="pulse" class="form-control" placeholder="72">
                 </div>
 
             </div>

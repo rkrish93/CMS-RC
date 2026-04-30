@@ -24,7 +24,7 @@
 
                 <td><strong>{{ $appt->token_no ?? '-' }}</strong></td>
 
-                <td>{{ optional($appt->patient)->name ?? 'No Patient' }}</td>
+                <td>{{ optional($appt->patient)->first_name . ' ' . optional($appt->patient)->last_name?? 'No Patient' }}</td>
 
                 <td>{{ $appt->appointment_time ?? '-' }}</td>
 
@@ -36,14 +36,16 @@
                     @elseif($appt->status == 'completed')
                         <span class="badge bg-success">Completed</span>
                     @else
-                        <span class="badge bg-secondary">Unknown</span>
+                        <span class="badge bg-secondary">Cancelled</span>
                     @endif
                 </td>
 
                 <td>
                     <a href="{{ route('consultations.create', $appt->id) }}"
-                    class="btn btn-sm btn-primary">
-                    Open
+                    class="btn btn-sm btn-primary
+                    {{ in_array($appt->status, ['completed','cancelled']) ? 'disabled' : '' }}"
+                    style="{{ in_array($appt->status, ['completed','cancelled']) ? 'pointer-events:none;opacity:0.6;' : '' }}">
+                        Open
                     </a>
                 </td>
 

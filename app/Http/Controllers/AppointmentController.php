@@ -88,6 +88,14 @@ class AppointmentController extends Controller
     {
     $today = now()->toDateString();
 
+    // Only run after 4:00 PM
+    if (now()->format('H:i') >= '16:00') {
+
+    Appointment::whereDate('appointment_date', $today)
+        ->where('status', 'pending')
+        ->update(['status' => 'cancelled']);
+    }
+    
     $appointments = Appointment::with('patient')
         ->whereDate('appointment_date', $today)
         ->orderBy('token_no')

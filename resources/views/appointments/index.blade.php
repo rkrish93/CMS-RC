@@ -56,8 +56,8 @@
         @if($app->status == 'pending')
             <span class="badge badge-warning">Pending</span>
 
-        @elseif($app->status == 'confirmed')
-            <span class="badge badge-primary">Confirmed</span>
+        @elseif($app->status == 'in_Progress')
+            <span class="badge badge-primary">In Progress</span>
 
         @elseif($app->status == 'completed')
             <span class="badge badge-success">Completed</span>

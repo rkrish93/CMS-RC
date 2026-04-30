@@ -51,12 +51,11 @@ class ConsultationController extends Controller
             'doctor_id' => auth()->id(),
 
             'vitals' => [
-                'temp' => $request->temp,
-                'bp' => $request->bp,
-                'pulse' => $request->pulse,
-                'weight' => $request->weight,
-                'spo2' => $request->spo2,
-            ],
+            'bp' => $request->bp,
+            'temp' => $request->temp,
+            'sugar' => $request->sugar,
+            'pulse' => $request->pulse,
+        ],
 
             'symptoms' => $request->symptoms,
             'clinical_notes' => $request->clinical_notes,
