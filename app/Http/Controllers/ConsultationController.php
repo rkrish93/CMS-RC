@@ -33,7 +33,7 @@ class ConsultationController extends Controller
                     ->take(10)
                     ->get();
 
-        return view('consultations.create', compact('appointment','history'));
+        return view('consultations.index', compact('appointment','history'));
     }
 
     /**
@@ -41,35 +41,92 @@ class ConsultationController extends Controller
      */
     public function store(Request $request)
     {
+        $appointment = Appointment::findOrFail($request->appointment_id);
+
         $request->validate([
             'diagnosis' => 'required'
         ]);
 
         Consultation::create([
-            'appointment_id' => $request->appointment_id,
-            'patient_id' => $request->patient_id,
+            'appointment_id' => $appointment->id,
+            'patient_id' => $appointment->patient_id,
             'doctor_id' => auth()->id(),
-
-            'vitals' => [
-            'bp' => $request->bp,
-            'temp' => $request->temp,
-            'sugar' => $request->sugar,
-            'pulse' => $request->pulse,
-        ],
-
-            'symptoms' => $request->symptoms,
-            'clinical_notes' => $request->clinical_notes,
-            'icd_code' => $request->icd_code,
             'diagnosis' => $request->diagnosis,
-            'treatment_plan' => $request->treatment_plan,
+
+        //     'vitals' => [
+        //     'bp' => $request->bp,
+        //     'temp' => $request->temp,
+        //     'sugar' => $request->sugar,
+        //     'pulse' => $request->pulse,
+        // ],
+
+            // 'symptoms' => $request->symptoms,
+            // 'clinical_notes' => $request->clinical_notes,
+            // 'icd_code' => $request->icd_code,
+            // 'diagnosis' => $request->diagnosis,
+            // 'treatment_plan' => $request->treatment_plan,
             'next_visit' => $request->next_visit,
         ]);
 
-        Appointment::where('id',$request->appointment_id)
-            ->update(['status'=>'completed']);
+        // Appointment::where('id',$request->appointment_id)
+        //     ->update(['status'=>'completed']);
 
-        return redirect()->route('appointments.today')
-            ->with('success','Consultation Completed');
+        // Appointment::create([
+        //     'patient_id' => $request->patient_id,
+        //     // 'unit_id' => $request->unit_id,
+        //     'appointment_date' => $request->appointment_date,
+        //     'appointment_time' => $request->appointment_time,
+        //     'token_no' => Appointment::whereDate('appointment_date',$request->appointment_date)->count() + 1,
+        //     'status' => 'pending'
+        //     ]);
+
+
+        //  GET CURRENT APPOINTMENT
+        $oldAppointment = Appointment::find($request->appointment_id);
+
+        //  AUTO CREATE NEXT APPOINTMENT
+        if ($request->next_visit) {
+
+            //  AUTO TIME (if not given → default 9:00 AM)
+            $lastTime = Appointment::where('unit_id', $oldAppointment->unit_id)
+                            ->where('appointment_date', $request->next_visit)
+                            ->orderByDesc('appointment_time')
+                            ->value('appointment_time');
+
+            $time = $lastTime
+                    ? date('H:i:s', strtotime($lastTime . ' +15 minutes'))
+                    : '09:00:00';
+
+            //  AUTO TOKEN (Unit + Date wise)
+            $lastToken = Appointment::where('unit_id', $oldAppointment->unit_id)
+                            ->where('appointment_date', $request->next_visit_date)
+                            ->max('token_no');
+
+            $nextToken = $lastToken ? $lastToken + 1 : 1;
+
+            Appointment::create([
+                'patient_id' => $oldAppointment->patient_id,
+                'unit_id' => $oldAppointment->unit_id,
+                'appointment_date' => $request->next_visit,
+                'appointment_time' => $time,
+                'token_no' => $nextToken,
+                'status' => 'pending',
+                'notes' => 'Follow-up visit',
+            ]);
+        }
+
+        //  MARK CURRENT APPOINTMENT COMPLETED
+        $oldAppointment->update(['status' => 'completed']);
+
+         //  get fully booked dates (example: 20 per day)
+        $bookedDates = Appointment::selectRaw('appointment_date, COUNT(*) as total')
+            ->groupBy('appointment_date')
+            ->having('total', '>=', 20)
+            ->pluck('appointment_date')
+            ->toArray(); // IMPORTANT
+
+        return redirect()->route('appointments.today', compact('bookedDates'))
+            ->with('success','Consultation saved & next appointment created');
 
     }
 

@@ -31,7 +31,7 @@
     <th>Time</th>
     <th>Token</th>
     <th>Status</th>
-    <th width="180">Action</th>
+    {{-- <th width="180">Action</th> --}}
 </tr>
 </thead>
 
@@ -67,7 +67,7 @@
         @endif
     </td>
 
-    <td>
+    {{-- <td>
 
         <a href="{{ route('appointments.edit',$app->id) }}"
             class="btn btn-sm btn-gradient-info">
@@ -88,7 +88,7 @@
 
         </form>
 
-    </td>
+    </td> --}}
 
 </tr>
 
