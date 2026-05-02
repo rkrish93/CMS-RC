@@ -1,239 +1,221 @@
 @extends('layouts.app')
 
-@section('content')
+@section('title', 'Permissions')
 
-<div class="page-header">
-    <h3 class="page-title">
-        <span class="page-title-icon bg-gradient-primary text-white me-2">
-            <i class="mdi mdi-lock"></i>
-        </span>
-        Permission List
-    </h3>
-
+@section('page-actions')
     <button class="btn btn-gradient-primary shadow-sm"
+            type="button"
             data-bs-toggle="modal"
             data-bs-target="#permissionModal">
-        <i class="mdi mdi-plus"></i> Add Permission
+        <i class="mdi mdi-plus me-1"></i> Add Permission
     </button>
+@endsection
+
+@section('content')
+
+@php
+    $groupsById = $groups->keyBy('id');
+@endphp
+
+@if ($errors->any())
+    <div class="alert alert-danger">
+        @foreach ($errors->all() as $error)
+            <div>{{ $error }}</div>
+        @endforeach
+    </div>
+@endif
+
+<div class="card admin-table-card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+            <div>
+                <h4 class="card-title mb-1">Permission Directory</h4>
+                <p class="text-muted mb-0">Organize access rules by permission group.</p>
+            </div>
+            <span class="badge bg-primary-subtle text-primary">{{ $permissions->count() }} Permissions</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle admin-table">
+                <thead>
+                    <tr>
+                        <th width="80">#</th>
+                        <th>Permission</th>
+                        <th>Group</th>
+                        <th width="150" class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($permissions as $permission)
+                        @php
+                            $groupName = $groupsById->get($permission->group_id)->group_name ?? 'Ungrouped';
+                        @endphp
+                        <tr>
+                            <td class="text-muted">{{ $loop->iteration }}</td>
+                            <td>
+                                <div class="fw-bold text-dark">{{ $permission->name }}</div>
+                                <small class="text-muted">Guard: {{ $permission->guard_name }}</small>
+                            </td>
+                            <td>
+                                <span class="soft-badge">{{ $groupName }}</span>
+                            </td>
+                            <td class="text-end">
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-info"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#editPermissionModal{{ $permission->id }}">
+                                    <i class="mdi mdi-pencil"></i>
+                                </button>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#deletePermissionModal{{ $permission->id }}">
+                                    <i class="mdi mdi-delete"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-5">No permissions found.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
-<div class="card">
-<div class="card-body">
+@foreach($permissions as $permission)
+    <div class="modal fade" id="editPermissionModal{{ $permission->id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form action="{{ route('permissions.update', $permission->id) }}" method="POST">
+                    @csrf
+                    @method('PUT')
 
-<table class="table table-bordered table-striped">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Permission</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
 
-<thead class="bg-dark text-white">
-<tr>
-    <th width="80">#</th>
-    <th>Permission Name</th>
-    <th>Group</th>
-    <th width="200">Action</th>
-</tr>
-</thead>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Permission Name</label>
+                            <input type="text"
+                                   name="name"
+                                   value="{{ $permission->name }}"
+                                   class="form-control"
+                                   required>
+                        </div>
 
-<tbody>
+                        <div>
+                            <label class="form-label">Group</label>
+                            <select name="group_id" class="form-select" required>
+                                @foreach($groups as $group)
+                                    <option value="{{ $group->id }}" {{ $permission->group_id == $group->id ? 'selected' : '' }}>
+                                        {{ $group->group_name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
 
-@forelse($permissions as $key => $permission)
-
-<tr>
-    <td>{{ $key + 1 }}</td>
-
-    <td>
-        <span class="badge badge-success px-3 py-2">
-            {{ $permission->name }}
-        </span>
-    </td>
-
-    <td>
-        <span class="badge badge-primary">
-            {{ $permission->group->group_name ?? '' }}
-        </span>
-    </td>
-
-    <td>
-
-        <!-- EDIT BUTTON -->
-        <button type="button"
-                class="btn btn-sm btn-gradient-info"
-                data-bs-toggle="modal"
-                data-bs-target="#editPermissionModal{{ $permission->id }}">
-            Edit
-        </button>
-
-        <!-- DELETE BUTTON -->
-        <button type="button"
-                class="btn btn-sm btn-gradient-danger"
-                data-bs-toggle="modal"
-                data-bs-target="#deletePermissionModal{{ $permission->id }}">
-            Delete
-        </button>
-
-    </td>
-
-</tr>
-
-
-<!-- ===== EDIT MODAL ===== -->
-<div class="modal fade" id="editPermissionModal{{ $permission->id }}" tabindex="-1">
-<div class="modal-dialog modal-dialog-centered">
-<div class="modal-content">
-
-<form action="{{ route('permissions.update',$permission->id) }}" method="POST">
-@csrf
-@method('PUT')
-
-<div class="modal-header bg-info text-white">
-    <h5>Edit Permission</h5>
-    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-</div>
-
-<div class="modal-body">
-
-    <div class="mb-2">
-        <label>Permission Name</label>
-        <input type="text"
-               name="name"
-               value="{{ $permission->name }}"
-               class="form-control"
-               required>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button class="btn btn-gradient-primary">Update Permission</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
-    <div>
-        <label>Group</label>
-        <select name="group_id" class="form-control" required>
-            @foreach($groups as $group)
-                <option value="{{ $group->id }}"
-                    {{ $permission->group_id == $group->id ? 'selected' : '' }}>
-                    {{ $group->group_name }}
-                </option>
-            @endforeach
-        </select>
+    <div class="modal fade" id="deletePermissionModal{{ $permission->id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form action="{{ route('permissions.destroy', $permission->id) }}" method="POST">
+                    @csrf
+                    @method('DELETE')
+
+                    <div class="modal-header">
+                        <h5 class="modal-title">Delete Permission</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-1">This will remove the permission:</p>
+                        <h5 class="mb-0">{{ $permission->name }}</h5>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button class="btn btn-danger">Delete Permission</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
+@endforeach
 
-</div>
+<div class="modal fade" id="permissionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="{{ route('permissions.store') }}" method="POST">
+                @csrf
 
-<div class="modal-footer">
-    <button class="btn btn-info">Update</button>
-</div>
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Permission</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
 
-</form>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Permission Name</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
 
-</div>
-</div>
-</div>
+                    <div>
+                        <label class="form-label">Group</label>
+                        <select name="group_id" class="form-select" required>
+                            <option value="">Select Group</option>
+                            @foreach($groups as $group)
+                                <option value="{{ $group->id }}">{{ $group->group_name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
 
-
-<!-- ===== DELETE MODAL ===== -->
-<div class="modal fade" id="deletePermissionModal{{ $permission->id }}" tabindex="-1">
-<div class="modal-dialog modal-dialog-centered">
-<div class="modal-content">
-
-<form action="{{ route('permissions.destroy',$permission->id) }}" method="POST">
-@csrf
-@method('DELETE')
-
-<div class="modal-header bg-danger text-white">
-    <h5>Delete Permission</h5>
-    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-</div>
-
-<div class="modal-body text-center">
-    <p>Are you sure delete</p>
-    <h5>{{ $permission->name }}</h5>
-</div>
-
-<div class="modal-footer justify-content-center">
-
-    <button type="button"
-            class="btn btn-secondary"
-            data-bs-dismiss="modal">
-        Cancel
-    </button>
-
-    <button class="btn btn-danger">
-        Yes Delete
-    </button>
-
-</div>
-
-</form>
-
-</div>
-</div>
-</div>
-
-
-@empty
-
-<tr>
-    <td colspan="4" class="text-center">
-        No Permissions Found
-    </td>
-</tr>
-
-@endforelse
-
-</tbody>
-
-</table>
-
-</div>
-</div>
-
-
-<!-- ===== ADD MODAL ===== -->
-<div class="modal fade" id="permissionModal" tabindex="-1">
-<div class="modal-dialog modal-dialog-centered">
-<div class="modal-content">
-
-<form action="{{ route('permissions.store') }}" method="POST">
-@csrf
-
-<div class="modal-header bg-primary text-white">
-    <h5>Add Permission</h5>
-    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-</div>
-
-<div class="modal-body">
-
-    <div class="mb-2">
-        <label>Permission Name</label>
-        <input type="text"
-               name="name"
-               class="form-control"
-               required>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-gradient-primary">Save Permission</button>
+                </div>
+            </form>
+        </div>
     </div>
-
-    <div>
-        <label>Group</label>
-        <select name="group_id" class="form-control" required>
-            <option value="">Select Group</option>
-            @foreach($groups as $group)
-                <option value="{{ $group->id }}">
-                    {{ $group->group_name }}
-                </option>
-            @endforeach
-        </select>
-    </div>
-
-</div>
-
-<div class="modal-footer">
-    <button class="btn btn-primary">Save</button>
-</div>
-
-</form>
-
-</div>
-</div>
 </div>
 
 @endsection
 
+@push('styles')
 <style>
-.form-control,
-.form-select {
-    height: 45px;
-    border-radius: 6px;
-}
+    .admin-table-card .card-title {
+        font-size: 17px;
+    }
+
+    .admin-table thead th {
+        background: #f8fafc;
+        border-bottom: 1px solid #e5e7eb;
+        color: #475467;
+    }
+
+    .soft-badge {
+        display: inline-flex;
+        min-height: 28px;
+        align-items: center;
+        padding: 5px 10px;
+        border: 1px solid #ccfbf1;
+        border-radius: 999px;
+        background: #f0fdfa;
+        color: #0f766e;
+        font-size: 12px;
+        font-weight: 800;
+    }
 </style>
+@endpush

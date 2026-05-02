@@ -28,6 +28,7 @@ class User extends Authenticatable
         'nic',
         'designation',
         'unit_id',
+        'role_id',
         'join_date',
         'status',
         'image',

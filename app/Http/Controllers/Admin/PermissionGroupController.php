@@ -13,7 +13,7 @@ class PermissionGroupController extends Controller
      */
     public function index()
     {
-        $groups = PermissionGroup::latest()->get();
+        $groups = PermissionGroup::withCount('permissions')->latest()->get();
         return view('admin.permission_groups.index', compact('groups'));
     }
 

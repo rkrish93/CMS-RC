@@ -15,6 +15,8 @@ class AppointmentController extends Controller
      */
     public function index()
     {
+        abort_unless(auth()->user()?->can('appointments-view'), 403);
+
         $appointments = Appointment::with(['patient','unit'])
                     ->latest()
                     ->paginate(10);
@@ -29,6 +31,8 @@ class AppointmentController extends Controller
      */
     public function create()
     {
+        abort_unless(auth()->user()?->can('appointments-create'), 403);
+
         // $patients = Patient::all();
         // $units = Unit::all();
         // return view('appointments.create', compact('patients','units'));
@@ -39,6 +43,8 @@ class AppointmentController extends Controller
      */
     public function store(Request $request)
     {
+    abort_unless($request->user()?->can('appointments-create'), 403);
+
     Appointment::create([
     'patient_id' => $request->patient_id,
     'unit_id' => $request->unit_id,
@@ -65,6 +71,8 @@ class AppointmentController extends Controller
      */
     public function edit(string $id)
     {
+        abort_unless(auth()->user()?->can('appointments-edit'), 403);
+
         //
     }
 
@@ -73,6 +81,8 @@ class AppointmentController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        abort_unless($request->user()?->can('appointments-edit'), 403);
+
         //
     }
 
@@ -81,11 +91,15 @@ class AppointmentController extends Controller
      */
     public function destroy(string $id)
     {
+        abort_unless(auth()->user()?->can('appointments-delete'), 403);
+
         //
     }
 
     public function todayQueue()
     {
+    abort_unless(auth()->user()?->can('appointments-view'), 403);
+
     $today = now()->toDateString();
 
     // Only run after 4:00 PM

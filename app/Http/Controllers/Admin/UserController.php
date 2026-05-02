@@ -19,6 +19,8 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
+        abort_unless(auth()->user()?->can('users-view'), 403);
+
         $users = User::with('unit')->latest()->get();
         return view('admin.users.index', compact('users'));
     }
@@ -28,6 +30,8 @@ class UserController extends Controller
      */
     public function create()
     {
+        abort_unless(auth()->user()?->can('users-create'), 403);
+
         $units = Unit::all();
         $roles = Role::all();
         return view('admin.users.create',compact('units','roles'));
@@ -38,6 +42,8 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
+        abort_unless($request->user()?->can('users-create'), 403);
+
         // dd ($request->all());
     $request->validate([
         'fname' => 'required',
@@ -87,6 +93,11 @@ class UserController extends Controller
         'force_password_change' => 1,
     ]);
 
+    $role = Role::find($request->role_id);
+    if ($role) {
+        $user->syncRoles($role->name);
+    }
+
     try {
         Mail::to($user->email)->send(new UserCreatedMail($user, $plainPassword));
 
@@ -106,6 +117,8 @@ class UserController extends Controller
      */
     public function show(string $id)
     {
+        abort_unless((int) $id === auth()->id() || auth()->user()?->can('users-view'), 403);
+
         $user = User::with('unit')->findOrFail($id);
         return view('admin.users.show', compact('user'));
     }
@@ -115,6 +128,8 @@ class UserController extends Controller
      */
     public function edit(string $id)
     {
+        abort_unless(auth()->user()?->can('users-edit'), 403);
+
         $user = User::findOrFail($id);
         $units=Unit::all();
         $roles=Role::all();
@@ -126,6 +141,8 @@ class UserController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        abort_unless($request->user()?->can('users-edit'), 403);
+
         $user = User::findOrFail($id);
 
     $request->validate([
@@ -188,6 +205,8 @@ class UserController extends Controller
      */
     public function destroy(string $id)
     {
+        abort_unless(auth()->user()?->can('users-delete'), 403);
+
         $user = User::findOrFail($id);
 
         // delete image

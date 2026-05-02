@@ -1,58 +1,42 @@
-
-
 @extends('layouts.app')
 
 @php
-$hideSidebar = true;
+    $hideSidebar = true;
 @endphp
 
-@section('title','Change Password')
+@section('title', 'Change Password')
 
 @section('content')
 
-<div class="page-header">
-    <h3 class="page-title">
-        <span class="page-title-icon bg-gradient-primary text-white me-2">
-            <i class="mdi mdi-lock-reset"></i>
-        </span>
-        Change Password
-    </h3>
-</div>
-
 <div class="row justify-content-center">
-    <div class="col-md-6 grid-margin stretch-card">
-
+    <div class="col-md-7 col-lg-5 grid-margin stretch-card">
         <div class="card">
             <div class="card-body">
+                <div class="text-center mb-4">
+                    <span class="password-icon">
+                        <i class="mdi mdi-lock-reset"></i>
+                    </span>
+                    <h4 class="card-title mt-3 mb-1">Update Your Password</h4>
+                    <p class="text-muted mb-0">For security reasons, please choose a new password.</p>
+                </div>
 
-                <h4 class="card-title">Update Your Password</h4>
-                <p class="card-description">
-                    For security reasons, please change your password.
-                </p>
-
-                {{-- Success Message --}}
                 @if(session('success'))
-                    <div class="alert alert-success">
-                        {{ session('success') }}
-                    </div>
+                    <div class="alert alert-success">{{ session('success') }}</div>
                 @endif
 
-                {{-- Validation Errors --}}
                 @if ($errors->any())
                     <div class="alert alert-danger">
-                        <ul class="mb-0">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
+                        @foreach ($errors->all() as $error)
+                            <div>{{ $error }}</div>
+                        @endforeach
                     </div>
                 @endif
 
                 <form method="POST" action="{{ route('update.password') }}">
                     @csrf
 
-                    <div class="form-group">
-                        <label>New Password</label>
+                    <div class="mb-3">
+                        <label class="form-label">New Password</label>
                         <input type="password"
                                name="password"
                                class="form-control"
@@ -60,8 +44,8 @@ $hideSidebar = true;
                                required>
                     </div>
 
-                    <div class="form-group">
-                        <label>Confirm Password</label>
+                    <div class="mb-4">
+                        <label class="form-label">Confirm Password</label>
                         <input type="password"
                                name="password_confirmation"
                                class="form-control"
@@ -69,10 +53,8 @@ $hideSidebar = true;
                                required>
                     </div>
 
-                    <div class="d-flex justify-content-between mt-3">
-
-                        <button type="submit"
-                                class="btn btn-gradient-primary">
+                    <div class="d-flex justify-content-between gap-2">
+                        <button type="submit" class="btn btn-gradient-primary">
                             Update Password
                         </button>
 
@@ -81,35 +63,31 @@ $hideSidebar = true;
                            class="btn btn-light">
                             Logout
                         </a>
-
                     </div>
-
                 </form>
 
                 <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
                     @csrf
                 </form>
-
             </div>
         </div>
-
     </div>
 </div>
 
 @endsection
 
-
+@push('styles')
 <style>
-.form-control {
-    height: 45px;
-    border-radius: 6px;
-}
-
-label {
-    margin-bottom: 5px;
-    margin-top: 10px;
-}
-.w-100 {
-    width: 100% !important;
-}
+    .password-icon {
+        width: 64px;
+        height: 64px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 18px;
+        background: #eff6ff;
+        color: #2563eb;
+        font-size: 34px;
+    }
 </style>
+@endpush

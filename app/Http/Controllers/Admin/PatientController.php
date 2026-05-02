@@ -14,6 +14,8 @@ class PatientController extends Controller
      */
     public function index(Request $request)
     {
+        abort_unless($request->user()?->can('patients-view'), 403);
+
         $search = $request->search;
 
         $patients = Patient::when($search, function ($query, $search) {
@@ -32,6 +34,8 @@ class PatientController extends Controller
      */
     public function create()
     {
+        abort_unless(auth()->user()?->can('patients-create'), 403);
+
         return view('admin.patients.create');
     }
 
@@ -40,6 +44,8 @@ class PatientController extends Controller
      */
     public function store(Request $request)
     {
+        abort_unless($request->user()?->can('patients-create'), 403);
+
         try {
         // VALIDATION (Clinic Standard)
         $request->validate([
@@ -130,6 +136,8 @@ class PatientController extends Controller
      */
     public function show(string $id)
     {
+        abort_unless(auth()->user()?->can('patients-view'), 403);
+
         $patient = Patient::findOrFail($id);
     return view('admin.patients.view', compact('patient'));
     }
@@ -139,6 +147,8 @@ class PatientController extends Controller
      */
     public function edit(string $id)
     {
+        abort_unless(auth()->user()?->can('patients-edit'), 403);
+
         $patient = Patient::findOrFail($id);
         return view('admin.patients.edit', compact('patient'));
     }
@@ -148,6 +158,8 @@ class PatientController extends Controller
      */
     public function update(Request $request, string $id)
     {
+         abort_unless($request->user()?->can('patients-edit'), 403);
+
          $patient = Patient::findOrFail($id);
 
     $request->validate([
@@ -196,6 +208,8 @@ class PatientController extends Controller
      */
     public function destroy(string $id)
     {
+        abort_unless(auth()->user()?->can('patients-delete'), 403);
+
         $patient = Patient::findOrFail($id);
         $patient->delete();
 
@@ -204,6 +218,8 @@ class PatientController extends Controller
 
     public function ajaxSearch(Request $request)
 {
+    abort_unless($request->user()?->can('patients-view'), 403);
+
     $search = $request->search;
 
     $patients = Patient::where('patient_code','like',"%{$search}%")

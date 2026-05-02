@@ -4,111 +4,95 @@
 
 @section('content')
 
+@php
+    $stats = [
+        ['label' => 'Total Patients', 'value' => $patients ?? 0, 'icon' => 'mdi-account-multiple', 'tone' => 'primary'],
+        ['label' => 'Today Appointments', 'value' => $todayAppointments ?? 0, 'icon' => 'mdi-calendar-check', 'tone' => 'success'],
+        ['label' => 'Waiting Queue', 'value' => $waiting ?? 0, 'icon' => 'mdi-timer-sand', 'tone' => 'warning'],
+        ['label' => 'Completed Today', 'value' => $completed ?? 0, 'icon' => 'mdi-check-circle', 'tone' => 'info'],
+    ];
+@endphp
+
 <div class="row">
-
-    <!-- Total Patients -->
-    <div class="col-md-3 grid-margin stretch-card">
-        <div class="card p-3">
-            <div class="d-flex justify-content-between">
-                <div>
-                    <h6>Total Patients</h6>
-                    <h2>{{ $patients }}</h2>
+    @foreach($stats as $stat)
+        <div class="col-md-6 col-xl-3 grid-margin stretch-card">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div>
+                        <p class="stat-label">{{ $stat['label'] }}</p>
+                        <h2 class="stat-value">{{ $stat['value'] }}</h2>
+                    </div>
+                    <span class="stat-icon text-{{ $stat['tone'] }}">
+                        <i class="mdi {{ $stat['icon'] }}"></i>
+                    </span>
                 </div>
-                <i class="mdi mdi-account-multiple text-primary" style="font-size:40px;"></i>
             </div>
         </div>
-    </div>
-
-    <!-- Today Appointments -->
-    <div class="col-md-3 grid-margin stretch-card">
-        <div class="card p-3">
-            <div class="d-flex justify-content-between">
-                <div>
-                    <h6>Today Appointments</h6>
-                    <h2>{{ $todayAppointments }}</h2>
-                </div>
-                <i class="mdi mdi-calendar-check text-success" style="font-size:40px;"></i>
-            </div>
-        </div>
-    </div>
-
-    <!-- Waiting Queue -->
-    <div class="col-md-3 grid-margin stretch-card">
-        <div class="card p-3">
-            <div class="d-flex justify-content-between">
-                <div>
-                    <h6>Waiting Queue</h6>
-                    <h2>{{ $waiting }}</h2>
-                </div>
-                <i class="mdi mdi-timer-sand text-warning" style="font-size:40px;"></i>
-            </div>
-        </div>
-    </div>
-
-    <!-- Completed -->
-    <div class="col-md-3 grid-margin stretch-card">
-        <div class="card p-3">
-            <div class="d-flex justify-content-between">
-                <div>
-                    <h6>Completed Today</h6>
-                    <h2>{{ $completed }}</h2>
-                </div>
-                <i class="mdi mdi-check-circle text-info" style="font-size:40px;"></i>
-            </div>
-        </div>
-    </div>
-
+    @endforeach
 </div>
 
-<!-- CHART + QUEUE -->
-<div class="row mt-4">
-
-    <!-- Chart -->
-    <div class="col-md-7">
-        <div class="card p-3">
-            <h5>Weekly Appointments</h5>
-            <canvas id="appointmentChart"></canvas>
+<div class="row">
+    <div class="col-lg-7 grid-margin stretch-card">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h4 class="card-title mb-1">Weekly Appointments</h4>
+                        <p class="text-muted mb-0">Appointment activity across the week.</p>
+                    </div>
+                </div>
+                <canvas id="appointmentChart" height="120"></canvas>
+            </div>
         </div>
     </div>
 
-    <!-- Today Queue -->
-    <div class="col-md-5">
-        <div class="card p-3">
-            <h5>Today's Queue</h5>
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Patient</th>
-                        <th>Time</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($todayQueue as $q)
-                    <tr>
-                        <td>{{ $q->patient->first_name }}</td>
-                        <td>{{ $q->appointment_time }}</td>
-                        <td>
-                            <span class="badge
-                                @if($q->status=='pending') bg-warning
-                                @elseif($q->status=='completed') bg-success
-                                @else bg-danger @endif">
-                                {{ ucfirst($q->status) }}
-                            </span>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
+    <div class="col-lg-5 grid-margin stretch-card">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h4 class="card-title mb-1">Today's Queue</h4>
+                        <p class="text-muted mb-0">Current appointment flow.</p>
+                    </div>
+                    <a href="{{ route('appointments.today') }}" class="btn btn-sm btn-light">Open Queue</a>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Patient</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($todayQueue as $q)
+                                <tr>
+                                    <td class="fw-semibold">{{ $q->patient->first_name ?? 'N/A' }}</td>
+                                    <td>{{ $q->appointment_time ?? 'N/A' }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ $q->status === 'completed' ? 'success' : ($q->status === 'pending' ? 'warning' : 'secondary') }}">
+                                            {{ ucfirst(str_replace('_', ' ', $q->status ?? 'pending')) }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-4">No appointments in queue.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
-
 </div>
 
 @endsection
 
 @section('scripts')
-
 <script>
 const ctx = document.getElementById('appointmentChart');
 
@@ -119,21 +103,71 @@ new Chart(ctx, {
         datasets: [{
             label: 'Appointments',
             data: {!! json_encode($chartData ?? [10,20,15,30,25,18]) !!},
-            borderWidth: 2,
-            tension: 0.3
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37, 99, 235, 0.12)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.35,
+            pointRadius: 4,
+            pointBackgroundColor: '#2563eb'
         }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: '#eef2f7'
+                }
+            },
+            x: {
+                grid: {
+                    display: false
+                }
+            }
+        }
     }
 });
 </script>
-
 @endsection
 
+@push('styles')
 <style>
-    .card h2 {
-    font-weight: 700;
+    .stat-card .card-body {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
     }
 
-    .table td {
-        vertical-align: middle;
+    .stat-label {
+        margin-bottom: 6px;
+        color: #667085;
+        font-size: 13px;
+        font-weight: 800;
+    }
+
+    .stat-value {
+        margin: 0;
+        color: #152033;
+        font-weight: 900;
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        background: #f8fafc;
+        font-size: 28px;
     }
 </style>
+@endpush

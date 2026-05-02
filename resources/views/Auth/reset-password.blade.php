@@ -1,110 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Reset Password</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reset Password | CMS-RC</title>
 
-<link rel="stylesheet" href="{{ asset('assets/vendors/mdi/css/materialdesignicons.min.css') }}">
-<link rel="stylesheet" href="{{ asset('assets/vendors/ti-icons/css/themify-icons.css') }}">
-<link rel="stylesheet" href="{{ asset('assets/vendors/css/vendor.bundle.base.css') }}">
-<link rel="stylesheet" href="{{ asset('assets/vendors/font-awesome/css/font-awesome.min.css') }}">
-<link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/vendors/mdi/css/materialdesignicons.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/vendors/css/vendor.bundle.base.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
+
+    <style>
+        body {
+            min-height: 100vh;
+            background: #f6f8fb;
+            font-family: "Segoe UI", Arial, sans-serif;
+        }
+
+        .auth-shell {
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 28px;
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 460px;
+            padding: 34px;
+            border: 1px solid #e4e9f0;
+            border-radius: 18px;
+            background: #ffffff;
+            box-shadow: 0 24px 70px rgba(21, 32, 51, 0.12);
+        }
+
+        .auth-card .form-control,
+        .auth-card .btn {
+            min-height: 48px;
+            border-radius: 10px;
+        }
+    </style>
 </head>
-
 <body>
-<div class="container-scroller">
-<div class="container-fluid page-body-wrapper full-page-wrapper">
-<div class="content-wrapper d-flex align-items-center auth">
-<div class="row flex-grow">
-<div class="col-lg-4 mx-auto">
+<main class="auth-shell">
+    <section class="auth-card">
+        <div class="text-center mb-4">
+            <img src="{{ asset('assets/images/cms-rc-logo1.png') }}" alt="CMS-RC" style="width:72px">
+            <h4 class="fw-bold mt-3 mb-1">Reset Password</h4>
+            <p class="text-muted mb-0">Choose a new password for your account.</p>
+        </div>
 
-<div class="auth-form-light text-left p-5">
+        @if(session('success'))
+            <div class="alert alert-success">{{ session('success') }}</div>
+        @endif
 
-<!-- Logo -->
-<div class="text-center mb-4">
-    <img src="{{ asset('assets/images/cms-rc-logo1.png') }}"
-         style="width:100px">
-    <h4 class="font-weight-bold mt-2">CMS-RC</h4>
-    <p class="text-muted small">Set your new password</p>
-</div>
+        @if($errors->any())
+            <div class="alert alert-danger">
+                @foreach($errors->all() as $error)
+                    <div>{{ $error }}</div>
+                @endforeach
+            </div>
+        @endif
 
-<h4 class="mb-3">Reset Password</h4>
+        <form method="POST" action="{{ route('password.update') }}">
+            @csrf
+            <input type="hidden" name="token" value="{{ $token }}">
 
-<!-- Success / Errors -->
-@if(session('success'))
-<div class="alert alert-success">
-    {{ session('success') }}
-</div>
-@endif
+            <div class="mb-3">
+                <label class="form-label">Email Address</label>
+                <input type="email" name="email" value="{{ $email }}" class="form-control" required>
+            </div>
 
-@if($errors->any())
-<div class="alert alert-danger">
-    <ul class="mb-0">
-        @foreach($errors->all() as $error)
-            <li>{{ $error }}</li>
-        @endforeach
-    </ul>
-</div>
-@endif
+            <div class="mb-3">
+                <label class="form-label">New Password</label>
+                <input type="password" name="password" class="form-control" required>
+            </div>
 
-<!-- Form -->
-<form method="POST" action="{{ route('password.update') }}">
-@csrf
+            <div class="mb-4">
+                <label class="form-label">Confirm Password</label>
+                <input type="password" name="password_confirmation" class="form-control" required>
+            </div>
 
-<input type="hidden" name="token" value="{{ $token }}">
+            <button type="submit" class="btn btn-gradient-primary w-100">Reset Password</button>
 
-<div class="form-group mb-3">
-    <input type="email"
-           name="email"
-           value="{{ $email }}"
-           class="form-control form-control-lg"
-           placeholder="Email"
-           required>
-</div>
-
-<div class="form-group mb-3">
-    <input type="password"
-           name="password"
-           class="form-control form-control-lg"
-           placeholder="New Password"
-           required>
-</div>
-
-<div class="form-group mb-3">
-    <input type="password"
-           name="password_confirmation"
-           class="form-control form-control-lg"
-           placeholder="Confirm Password"
-           required>
-</div>
-
-<div class="mt-3 d-grid gap-2">
-    <button type="submit"
-        class="btn btn-gradient-primary btn-lg">
-        Reset Password
-    </button>
-</div>
-
-<div class="text-center mt-3">
-    <a href="{{ route('login') }}" class="text-primary">
-        Back to Login
-    </a>
-</div>
-
-</form>
-
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
+            <div class="text-center mt-3">
+                <a href="{{ route('login') }}" class="text-primary">Back to Login</a>
+            </div>
+        </form>
+    </section>
+</main>
 
 <script src="{{ asset('assets/vendors/js/vendor.bundle.base.js') }}"></script>
-<script src="{{ asset('assets/js/off-canvas.js') }}"></script>
-<script src="{{ asset('assets/js/misc.js') }}"></script>
-
 </body>
 </html>

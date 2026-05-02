@@ -1,126 +1,112 @@
 @extends('layouts.app')
 
+@section('title', 'Units')
+
+@section('page-actions')
+    <a href="{{ route('units.create') }}" class="btn btn-gradient-primary shadow-sm">
+        <i class="mdi mdi-plus me-1"></i> Add Unit
+    </a>
+@endsection
+
 @section('content')
 
-<div class="page-header">
-    <h3 class="page-title">
-        <span class="page-title-icon bg-gradient-primary text-white me-2">
-            <i class="mdi mdi-account-multiple"></i>
-        </span>
-        Units List
-    </h3>
-
-    <a href="{{ route('units.create') }}" class="btn btn-gradient-primary btn-sm">
-        + Add Unit
-    </a>
-</div>
-
 @if(session('success'))
-<div class="alert alert-success">
-    {{ session('success') }}
-</div>
+    <div class="alert alert-success">{{ session('success') }}</div>
 @endif
 
-<div class="row">
-    <div class="col-lg-12 grid-margin stretch-card">
-
-        <div class="card">
-            <div class="card-body">
-
-                <h4 class="card-title">All Units</h4>
-
-                <div class="table-responsive">
-                    <table class="table table-bordered">
-
-                        <thead>
-                            <tr>
-                                <th> Unit Name </th>
-                                <th> Description </th>
-                                <th> In-Charge officer </th>
-                                <th> Status </th>
-                                <th width="150"> Action </th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            @foreach($units as $unit)
-                            <tr>
-                                <td>{{ $unit->unit_name }}</td>
-                                <td>{{ $unit->description }}</td>
-                                <td>{{ $unit->incharge }}</td>
-                                <td>
-                                    @if($unit->status == 1)
-                                        <span class="badge bg-success">Active</span>
-                                    @else
-                                        <span class="badge bg-danger">Inactive</span>
-                                    @endif
-                                </td>
-
-                                <td>
-
-                                    <a href="{{ route('units.edit',$unit->id) }}"
-                                       class="btn btn-sm btn-gradient-info">
-                                        Edit
-                                    </a>
-
-                                    <form id="delete-form-{{ $unit->id }}"
-                                          action="{{ route('units.destroy',$unit->id) }}"
-                                          method="POST"
-                                          style="display:inline">
-
-                                        @csrf
-                                        @method('DELETE')
-
-                                        <button type="button"
-                                                class="btn btn-sm btn-gradient-danger"
-                                                onclick="confirmDelete({{ $unit->id }})">
-                                            Delete
-                                        </button>
-
-                                    </form>
-
-                                </td>
-
-                            </tr>
-                            @endforeach
-                        </tbody>
-
-                    </table>
-                </div>
-
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+            <div>
+                <h4 class="card-title mb-1">Clinic Units</h4>
+                <p class="text-muted mb-0">Manage departments and responsible officers.</p>
             </div>
+            <span class="badge bg-primary">{{ $units->count() }} Units</span>
         </div>
 
+        <div class="table-responsive">
+            <table class="table table-hover align-middle admin-table">
+                <thead>
+                    <tr>
+                        <th>Unit Name</th>
+                        <th>Description</th>
+                        <th>In-Charge Officer</th>
+                        <th>Status</th>
+                        <th width="150" class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($units as $unit)
+                        <tr>
+                            <td class="fw-bold text-dark">{{ $unit->unit_name }}</td>
+                            <td>{{ $unit->description ?: 'N/A' }}</td>
+                            <td>{{ $unit->incharge_name ?: 'N/A' }}</td>
+                            <td>
+                                <span class="badge bg-{{ $unit->status == 1 ? 'success' : 'danger' }}">
+                                    {{ $unit->status == 1 ? 'Active' : 'Inactive' }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <a href="{{ route('units.edit', $unit->id) }}" class="btn btn-sm btn-outline-info" title="Edit">
+                                    <i class="mdi mdi-pencil"></i>
+                                </a>
+
+                                <form id="delete-form-{{ $unit->id }}"
+                                      action="{{ route('units.destroy', $unit->id) }}"
+                                      method="POST"
+                                      class="d-inline">
+                                    @csrf
+                                    @method('DELETE')
+
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger"
+                                            title="Delete"
+                                            onclick="confirmDelete({{ $unit->id }})">
+                                        <i class="mdi mdi-delete"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-5">No units found.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 @endsection
 
-
 @section('scripts')
-
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 <script>
-function confirmDelete(id)
-{
+function confirmDelete(id) {
     Swal.fire({
-        title: 'Are you sure?',
-        text: "User will be deleted!",
+        title: 'Delete unit?',
+        text: 'This action cannot be undone.',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#d33',
-        confirmButtonText: 'Yes Delete',
+        confirmButtonColor: '#dc2626',
+        confirmButtonText: 'Delete',
         cancelButtonText: 'Cancel'
     }).then((result) => {
-
-        if(result.isConfirmed)
-        {
-            document.getElementById('delete-form-'+id).submit();
+        if (result.isConfirmed) {
+            document.getElementById('delete-form-' + id).submit();
         }
-
     });
 }
 </script>
-
 @endsection
+
+@push('styles')
+<style>
+    .admin-table thead th {
+        background: #f8fafc;
+        border-bottom: 1px solid #e5e7eb;
+        color: #475467;
+    }
+</style>
+@endpush

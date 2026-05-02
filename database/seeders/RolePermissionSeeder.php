@@ -163,15 +163,14 @@ class RolePermissionSeeder extends Seeder
 
         // Assign specific permissions to Receptionist
         $receptionistPermissions = Permission::whereIn('name', [
-            'dashboard-view',
             'menu-patients',
             'menu-appointments',
             'patients-view',
             'patients-create',
             'patients-edit',
+            'patients-delete',
             'appointments-view',
             'appointments-create',
-            'appointments-edit',
         ])->get();
         $receptionist->syncPermissions($receptionistPermissions);
 

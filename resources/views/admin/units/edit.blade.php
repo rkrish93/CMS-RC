@@ -1,119 +1,75 @@
 @extends('layouts.app')
 
+@section('title', 'Edit Unit')
+
+@section('page-actions')
+    <a href="{{ route('units.index') }}" class="btn btn-light">
+        <i class="mdi mdi-arrow-left me-1"></i> Back
+    </a>
+@endsection
+
 @section('content')
 
-<div class="page-header">
-    <h3 class="page-title">
-        <span class="page-title-icon bg-gradient-primary text-white me-2">
-            <i class="mdi mdi-account-edit"></i>
-        </span>
-        Edit Unit
-    </h3>
-</div>
+@if ($errors->any())
+    <div class="alert alert-danger">
+        @foreach ($errors->all() as $error)
+            <div>{{ $error }}</div>
+        @endforeach
+    </div>
+@endif
 
-<div class="row">
-    <div class="col-md-12 grid-margin stretch-card">
+<div class="card">
+    <div class="card-body">
+        <h4 class="card-title mb-1">{{ $unit->unit_name }}</h4>
+        <p class="text-muted mb-4">Update unit details and status.</p>
 
-        <div class="card">
-            <div class="card-body">
+        <form method="POST" action="{{ route('units.update', $unit->id) }}">
+            @csrf
+            @method('PUT')
 
-                <h4 class="card-title">Unit Information</h4>
-                <p class="card-description">Update Unit details</p>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Unit Name <span class="text-danger">*</span></label>
+                    <input type="text"
+                           name="unit_name"
+                           value="{{ old('unit_name', $unit->unit_name) }}"
+                           class="form-control"
+                           required>
+                </div>
 
-                <form method="POST"
-                      action="{{ route('units.update',$unit->id) }}">
+                <div class="col-md-6">
+                    <label class="form-label">In-Charge Officer</label>
+                    <input type="text"
+                           name="incharge_name"
+                           value="{{ old('incharge_name', $unit->incharge_name) }}"
+                           class="form-control">
+                </div>
 
-                    @csrf
-                    @method('PUT')
+                <div class="col-md-8">
+                    <label class="form-label">Description</label>
+                    <input type="text"
+                           name="description"
+                           value="{{ old('description', $unit->description) }}"
+                           class="form-control">
+                </div>
 
-                    <div class="row">
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Unit Name</label>
-                                <input type="text"
-                                       name="unit_name"
-                                       value="{{ $unit->unit_name }}"
-                                       class="form-control"
-                                       required>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Description</label>
-                                <input type="text"
-                                       name="description"
-                                       value="{{ $unit->description }}"
-                                       class="form-control">
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label>In-Charge</label>
-                                <input type="text"
-                                       name="incharge_name"
-                                       value="{{ $unit->incharge_name }}"
-                                       class="form-control">
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Status</label>
-                                <select name="status" class="form-control" required>
-                                    <option value="1" {{ $unit->status==1?'selected':'' }}>
-                                        Active
-                                    </option>
-                                    <option value="0" {{ $unit->status==0?'selected':'' }}>
-                                        Inactive
-                                    </option>
-                                </select>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <button type="submit"
-                            class="btn btn-gradient-primary me-2">
-                        Update Unit
-                    </button>
-
-                    <a href="{{ route('units.index') }}"
-                       class="btn btn-light">
-                        Cancel
-                    </a>
-
-                </form>
-
+                <div class="col-md-4">
+                    <label class="form-label">Status <span class="text-danger">*</span></label>
+                    <select name="status" class="form-select" required>
+                        <option value="1" @selected((string) old('status', $unit->status) === '1')>Active</option>
+                        <option value="0" @selected((string) old('status', $unit->status) === '0')>Inactive</option>
+                    </select>
+                </div>
             </div>
-        </div>
 
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <a href="{{ route('units.index') }}" class="btn btn-light">Cancel</a>
+                <button type="submit" class="btn btn-gradient-primary">
+                    <i class="mdi mdi-content-save me-1"></i> Update Unit
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
 @endsection
-<style>
-.form-control,
-.form-select {
-    height: 45px;
-    border-radius: 6px;
-}
-
-textarea.form-control {
-    height: 45px !important;
-    resize: none;
-}
-
-label {
-    /* font-weight: 600; */
-    margin-bottom: 5px;
-    margin-top: 10px;
-}
-
-.card-body h5 {
-    border-left: 4px solid #750281;
-    padding-left: 10px;
-}
-</style>

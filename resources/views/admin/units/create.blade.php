@@ -1,117 +1,78 @@
 @extends('layouts.app')
 
+@section('title', 'Create Unit')
+
+@section('page-actions')
+    <a href="{{ route('units.index') }}" class="btn btn-light">
+        <i class="mdi mdi-arrow-left me-1"></i> Back
+    </a>
+@endsection
+
 @section('content')
 
-<div class="page-header">
-    <h3 class="page-title">
-        <span class="page-title-icon bg-gradient-primary text-white me-2">
-            <i class="mdi mdi-account-plus"></i>
-        </span>
-        Create Unit
-    </h3>
-</div>
+@if ($errors->any())
+    <div class="alert alert-danger">
+        @foreach ($errors->all() as $error)
+            <div>{{ $error }}</div>
+        @endforeach
+    </div>
+@endif
 
-<div class="row">
-    <div class="col-md-12 grid-margin stretch-card">
+<div class="card">
+    <div class="card-body">
+        <h4 class="card-title mb-1">Unit Information</h4>
+        <p class="text-muted mb-4">Create a clinic unit or department record.</p>
 
-        <div class="card">
-            <div class="card-body">
+        <form method="POST" action="{{ route('units.store') }}">
+            @csrf
 
-                <h4 class="card-title">Unit Information</h4>
-                <p class="card-description">Enter Unit details</p>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Unit Name <span class="text-danger">*</span></label>
+                    <input type="text"
+                           name="unit_name"
+                           value="{{ old('unit_name') }}"
+                           class="form-control"
+                           placeholder="Enter unit name"
+                           required>
+                </div>
 
-                <form method="POST"
-                      action="{{ route('units.store') }}"
-                      enctype="multipart/form-data">
+                <div class="col-md-6">
+                    <label class="form-label">In-Charge Officer</label>
+                    <input type="text"
+                           name="incharge_name"
+                           value="{{ old('incharge_name') }}"
+                           class="form-control"
+                           placeholder="Enter officer name">
+                </div>
 
-                    @csrf
+                <div class="col-md-8">
+                    <label class="form-label">Description</label>
+                    <input type="text"
+                           name="description"
+                           value="{{ old('description') }}"
+                           class="form-control"
+                           placeholder="Short description">
+                </div>
 
-                    <div class="row">
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Unit Name</label>
-                                <input type="text"
-                                       name="unit_name"
-                                       class="form-control"
-                                       placeholder="Enter Unit Name"
-                                       required>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Description</label>
-                                <input type="text"
-                                       name="description"
-                                       class="form-control"
-                                       placeholder="Enter Description"
-                                       required>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label>In-Charge</label>
-                                <input type="email"
-                                       name="incharge_name"
-                                       class="form-control"
-                                       {{-- placeholder="" --}}>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">Status</label>
-                                <select name="status" class="form-control" required>
-                                    <option value="">Select Status</option>
-                                    <option value="1">Active</option>
-                                    <option value="0">Inactive</option>
-                                </select>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <button type="submit"
-                            class="btn btn-gradient-primary me-2">
-                        Save Unit
-                    </button>
-
-                    <a href="{{ route('units.index') }}"
-                       class="btn btn-light">
-                        Cancel
-                    </a>
-
-                </form>
-
+                <div class="col-md-4">
+                    <label class="form-label">Status <span class="text-danger">*</span></label>
+                    <select name="status" class="form-select" required>
+                        <option value="">Select Status</option>
+                        <option value="1" @selected(old('status') === '1')>Active</option>
+                        <option value="0" @selected(old('status') === '0')>Inactive</option>
+                    </select>
+                </div>
             </div>
-        </div>
 
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <a href="{{ route('units.index') }}" class="btn btn-light">Cancel</a>
+                <button type="submit" class="btn btn-gradient-primary">
+                    <i class="mdi mdi-content-save me-1"></i> Save Unit
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
 @endsection
-<style>
-.form-control,
-.form-select {
-    height: 45px;
-    border-radius: 6px;
-}
-
-textarea.form-control {
-    height: 45px !important;
-    resize: none;
-}
-
-label {
-    /* font-weight: 600; */
-    margin-bottom: 5px;
-    margin-top: 10px;
-}
-
-.card-body h5 {
-    border-left: 4px solid #750281;
-    padding-left: 10px;
-}
-</style>

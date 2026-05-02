@@ -1,227 +1,171 @@
 @extends('layouts.app')
 
+@section('title', 'Appointments')
+
+@section('page-actions')
+    @can('appointments-create')
+        <button class="btn btn-gradient-primary shadow-sm"
+                type="button"
+                data-bs-toggle="modal"
+                data-bs-target="#appointmentModal">
+            <i class="mdi mdi-calendar-plus me-1"></i> Add Appointment
+        </button>
+    @endcan
+@endsection
+
 @section('content')
 
-<div class="page-header">
-    <h3 class="page-title">
-        <span class="page-title-icon bg-gradient-primary text-white me-2">
-            <i class="mdi mdi-calendar-check"></i>
-        </span>
-        Appointment List
-    </h3>
-
-    <button class="btn btn-gradient-primary shadow-sm"
-            data-bs-toggle="modal"
-            data-bs-target="#appointmentModal">
-        <i class="btn-gradient-primary btn-sm"></i> Add Appointment
-    </button>
-</div>
+@if(session('success'))
+    <div class="alert alert-success">{{ session('success') }}</div>
+@endif
 
 <div class="card">
-<div class="card-body">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+            <div>
+                <h4 class="card-title mb-1">Appointment Directory</h4>
+                <p class="text-muted mb-0">Track patient bookings and daily tokens.</p>
+            </div>
+            <a href="{{ route('appointments.today') }}" class="btn btn-light">
+                <i class="mdi mdi-format-list-numbered me-1"></i> Today Queue
+            </a>
+        </div>
 
-<table class="table table-bordered table-striped">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle admin-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Patient</th>
+                        <th>Unit</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Token</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($appointments as $key => $app)
+                        <tr>
+                            <td class="text-muted">{{ $appointments->firstItem() + $key }}</td>
+                            <td class="fw-semibold">{{ trim(($app->patient->first_name ?? '') . ' ' . ($app->patient->last_name ?? '')) ?: 'N/A' }}</td>
+                            <td>{{ $app->unit->unit_name ?? 'N/A' }}</td>
+                            <td>{{ $app->appointment_date ?? 'N/A' }}</td>
+                            <td>{{ $app->appointment_time ?? 'N/A' }}</td>
+                            <td><span class="code-pill">{{ $app->token_no ?? 'N/A' }}</span></td>
+                            <td>
+                                @php
+                                    $statusClass = match($app->status) {
+                                        'pending' => 'warning',
+                                        'in_progress', 'in_Progress' => 'primary',
+                                        'completed' => 'success',
+                                        default => 'secondary',
+                                    };
+                                @endphp
+                                <span class="badge bg-{{ $statusClass }}">
+                                    {{ ucfirst(str_replace('_', ' ', $app->status ?? 'pending')) }}
+                                </span>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-5">No appointments found.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
 
-<thead class="bg-dark text-white">
-<tr>
-    <th>#</th>
-    <th>Patient</th>
-    <th>Unit</th>
-    <th>Date</th>
-    <th>Time</th>
-    <th>Token</th>
-    <th>Status</th>
-    {{-- <th width="180">Action</th> --}}
-</tr>
-</thead>
-
-<tbody>
-
-@forelse($appointments as $key => $app)
-
-<tr>
-    <td>{{ $appointments->firstItem() + $key }}</td>
-
-    <td>{{ $app->patient->first_name ?? '' }}</td>
-
-    <td>{{ $app->Unit->unit_name ?? '' }}</td>
-
-    <td>{{ $app->appointment_date }}</td>
-
-    <td>{{ $app->appointment_time }}</td>
-
-    <td>{{ $app->token_no }}</td>
-
-    <td>
-        @if($app->status == 'pending')
-            <span class="badge badge-warning">Pending</span>
-
-        @elseif($app->status == 'in_Progress')
-            <span class="badge badge-primary">In Progress</span>
-
-        @elseif($app->status == 'completed')
-            <span class="badge badge-success">Completed</span>
-
-        @else
-            <span class="badge badge-danger">Cancelled</span>
-        @endif
-    </td>
-
-    {{-- <td>
-
-        <a href="{{ route('appointments.edit',$app->id) }}"
-            class="btn btn-sm btn-gradient-info">
-            Edit
-        </a>
-
-        <form action="{{ route('appointments.destroy',$app->id) }}"
-              method="POST"
-              style="display:inline">
-
-            @csrf
-            @method('DELETE')
-
-            <button class="btn btn-sm btn-gradient-danger"
-                    onclick="return confirm('Delete Appointment?')">
-                Delete
-            </button>
-
-        </form>
-
-    </td> --}}
-
-</tr>
-
-@empty
-
-<tr>
-    <td colspan="8" class="text-center">
-        No Appointments Found
-    </td>
-</tr>
-
-@endforelse
-
-</tbody>
-
-</table>
-
-<!-- ================= PROFESSIONAL APPOINTMENT CREATE MODAL ================= -->
-
-<div class="modal fade" id="appointmentModal" tabindex="-1">
-<div class="modal-dialog modal-dialog-centered appointment-modal">
-<div class="modal-content border-0 shadow-lg rounded-4">
-
-<!-- HEADER -->
-<div class="modal-header text-Primary rounded-top-4">
-    <h5 class="modal-title fw-semibold">
-        <i class="mdi mdi-calendar-plus"></i>
-        Schedule Appointment
-    </h5>
-
-    <button type="button" class="btn-close btn-close-primary"
-            data-bs-dismiss="modal"></button>
-</div>
-
-<form method="POST" action="{{ route('appointments.store') }}">
-@csrf
-
-<!-- BODY -->
-<div class="modal-body px-3 py-3 bg-light">
-
-<div class="row g-3">
-
-    <div class="col-md-6">
-        <label class="form-label fw-semibold">Patient</label>
-        <select name="patient_id" class="form-select shadow-sm" required>
-            <option value="">Select Patient</option>
-            @foreach($patients as $patient)
-                <option value="{{ $patient->id }}">
-                    {{ $patient->first_name }} {{ $patient->last_name }}
-                </option>
-            @endforeach
-        </select>
+        <div class="mt-3">
+            {{ $appointments->links() }}
+        </div>
     </div>
+</div>
 
-    <div class="col-md-6">
-        <label class="form-label fw-semibold">Clinical Unit</label>
-        <select name="unit_id" class="form-select shadow-sm" required>
-            <option value="">Select Unit</option>
-            @foreach($units as $unit)
-                <option value="{{ $unit->id }}">
-                    {{ $unit->unit_name }}
-                </option>
-            @endforeach
-        </select>
+@can('appointments-create')
+<div class="modal fade" id="appointmentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('appointments.store') }}">
+                @csrf
+
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title">Schedule Appointment</h5>
+                        <small class="text-muted">Create a pending appointment and token.</small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Patient</label>
+                            <select name="patient_id" class="form-select" required>
+                                <option value="">Select Patient</option>
+                                @foreach($patients as $patient)
+                                    <option value="{{ $patient->id }}">
+                                        {{ $patient->patient_code }} - {{ $patient->first_name }} {{ $patient->last_name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Clinical Unit</label>
+                            <select name="unit_id" class="form-select" required>
+                                <option value="">Select Unit</option>
+                                @foreach($units as $unit)
+                                    <option value="{{ $unit->id }}">{{ $unit->unit_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Date</label>
+                            <input type="date" name="appointment_date" class="form-control" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Time</label>
+                            <input type="time" name="appointment_time" class="form-control" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-gradient-primary">
+                        <i class="mdi mdi-check me-1"></i> Save Appointment
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
-
-    <div class="col-md-6">
-        <label class="form-label fw-semibold">Date</label>
-        <input type="date" name="appointment_date"
-               class="form-control shadow-sm" required>
-    </div>
-
-    <div class="col-md-6">
-        <label class="form-label fw-semibold">Time</label>
-        <input type="time" name="appointment_time"
-               class="form-control shadow-sm" required>
-    </div>
-    {{-- <div class="col-md-6">
-        <label class="form-label fw-semibold">Token</label>
-        <input type="text" name="token"
-               class="form-control shadow-sm" required>
-    </div>
-
-    <div class="col-md-6">
-        <label class="form-label fw-semibold">Status</label>
-        <select name="status" class="form-select shadow-sm">
-            <option value="Pending">Pending</option>
-            <option value="Confirmed">Confirmed</option>
-        </select>
-    </div> --}}
-
-    <div class="col-12">
-        <label class="form-label fw-semibold">Notes</label>
-        <textarea name="notes" rows="2"
-                  class="form-control shadow-sm"></textarea>
-    </div>
-
 </div>
-
-</div>
-
-<!-- FOOTER -->
-<div class="modal-footer bg-white rounded-bottom-4">
-    <button class="btn btn-gradient-primary px-4 shadow-sm">
-        <i class="mdi mdi-check"></i> Save Appointment
-    </button>
-
-    {{-- <button type="button"
-            class="btn btn-outline-secondary"
-            data-bs-dismiss="modal">
-        Cancel
-    </button> --}}
-</div>
-
-</form>
-
-</div>
-</div>
-</div>
-
-<br>
-
-
-
-</div>
-</div>
-
-
+@endcan
 
 @endsection
-<style>
-.bg-gradient-primary{
-    background: linear-gradient(45deg,#4e73df,#224abe);
-}
 
+@push('styles')
+<style>
+    .admin-table thead th {
+        background: #f8fafc;
+        border-bottom: 1px solid #e5e7eb;
+        color: #475467;
+    }
+
+    .code-pill {
+        display: inline-flex;
+        min-height: 28px;
+        align-items: center;
+        padding: 5px 10px;
+        border: 1px solid #dbeafe;
+        border-radius: 999px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        font-size: 12px;
+        font-weight: 800;
+    }
 </style>
+@endpush
