@@ -144,11 +144,16 @@
 
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label>New Password (optional)</label>
-                                <input type="password"
-                                       name="password"
-                                       class="form-control"
-                                       placeholder="Leave blank if no change">
+                                <label>Role</label>
+                                <select name="role_id" class="form-control" required>
+                                    <option value="">Select Role</option>
+                                    @foreach($roles as $role)
+                                        <option value="{{ $role->id }}"
+                                            {{ $user->role_id == $role->id ? 'selected' : '' }}>
+                                            {{ $role->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
 

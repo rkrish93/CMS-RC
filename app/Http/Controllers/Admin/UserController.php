@@ -3,10 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\UserCreatedMail;
 use App\Models\Unit;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
@@ -25,7 +29,8 @@ class UserController extends Controller
     public function create()
     {
         $units = Unit::all();
-        return view('admin.users.create',compact('units'));
+        $roles = Role::all();
+        return view('admin.users.create',compact('units','roles'));
     }
 
     /**
@@ -44,9 +49,16 @@ class UserController extends Controller
         'unit_id' => 'required',
         'join_date' => 'required|date',
         'status'=> 'required|in:0,1',
+        'role_id' => 'required',
         // 'password' => 'required|min:5',
         'image' => 'nullable|image|mimes:jpg,jpeg,png'
+
+    ],[
+    'email.unique' => 'This email is already registered.',
     ]);
+
+    //  NIC as password
+    $plainPassword = $request->nic;
 
     $imageName = null;
 
@@ -59,7 +71,7 @@ class UserController extends Controller
     }
 
     // insert user
-    User::create([
+    $user = User::create([
         'fname' => $request->fname,
         'lname' => $request->lname,
         'email' => $request->email,
@@ -70,18 +82,32 @@ class UserController extends Controller
         'join_date' => $request->join_date,
         'status' => $request->status,
         'image' => $imageName,
-        'password' => Hash::make('cms@123'),
+        'role_id' => $request->role_id,
+        'password' => Hash::make($plainPassword),
+        'force_password_change' => 1,
     ]);
 
+    try {
+        Mail::to($user->email)->send(new UserCreatedMail($user, $plainPassword));
+
         return redirect()->route('users.index')
-                     ->with('success','User Created Successfully');
+                     ->with('success','User created & email sent');
+    } catch (\Exception $e) {
+        \Log::error('User creation email failed', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+
+        return back()
+                     ->withInput()
+                     ->with('error','User created but welcome email could not be sent. Please check mail settings.');
+    }
+
     }
     /**
      * Display the specified resource.
      */
     public function show(string $id)
     {
-        //
+        $user = User::with('unit')->findOrFail($id);
+        return view('admin.users.show', compact('user'));
     }
 
     /**
@@ -91,7 +117,8 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
         $units=Unit::all();
-        return view('admin.users.edit', compact('user','units'));
+        $roles=Role::all();
+        return view('admin.users.edit', compact('user','units','roles'));
     }
 
     /**
@@ -111,6 +138,7 @@ class UserController extends Controller
         'unit_id' => 'required',
         'join_date' => 'required|date',
         'status'=> 'required|in:0,1',
+        'role_id' => 'required',
     ]);
 
     if($request->password)
@@ -138,6 +166,16 @@ class UserController extends Controller
     $user->join_date = $request->join_date;
     $user->unit_id = $request->unit_id;
     $user->status = $request->status;
+    $user->role_id = $request->role_id;
+
+    if ($request->role_id) {
+        $role = Role::find($request->role_id);
+        if ($role) {
+            $user->syncRoles($role->name);
+        }
+    } else {
+        $user->syncRoles([]);
+    }
 
     $user->save();
 
@@ -152,13 +190,42 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
 
-    // delete image
-    if ($user->image && file_exists(public_path('assets/images/profiles/'.$user->image))) {
-        unlink(public_path('assets/images/profiles/'.$user->image));
+        // delete image
+        if ($user->image && file_exists(public_path('assets/images/profiles/'.$user->image))) {
+            unlink(public_path('assets/images/profiles/'.$user->image));
+        }
+
+        $user->delete();
+
+        return redirect()->route('users.index');
     }
 
-    $user->delete();
+    public function changePassword()
+    {
+        return view('auth.change_password');
+    }
 
-    return redirect()->route('users.index');
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'password' => 'required|min:6|confirmed'
+        ]);
+
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        // update password
+        $user->password = Hash::make($request->password);
+
+        // remove force flag
+        $user->force_password_change = 0;
+
+        $user->save();
+
+        // logout user
+        Auth::logout();
+
+        return redirect()->route('login')
+                ->with('success','Password changed successfully. Please login again.');
     }
 }

@@ -21,6 +21,12 @@
 </div>
 @endif
 
+@if(session('error'))
+<div class="alert alert-danger">
+    {{ session('error') }}
+</div>
+@endif
+
 <div class="row">
     <div class="col-lg-12 grid-margin stretch-card">
 
@@ -80,8 +86,13 @@
 
                                 <td>
 
+                                    <a href="{{ route('users.show',$user->id) }}"
+                                       class="btn btn-sm btn-gradient-primary me-1">
+                                        View
+                                    </a>
+
                                     <a href="{{ route('users.edit',$user->id) }}"
-                                       class="btn btn-sm btn-gradient-info">
+                                       class="btn btn-sm btn-gradient-info me-1">
                                         Edit
                                     </a>
 

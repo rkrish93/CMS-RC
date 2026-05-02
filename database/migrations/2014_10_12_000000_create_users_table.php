@@ -26,6 +26,12 @@ return new class extends Migration
                   ->constrained('units')
                   ->nullOnDelete();
 
+            // ROLE
+            $table->foreignId('role_id')
+                ->nullable()
+                ->constrained('roles')
+                ->nullOnDelete();
+
             $table->string('designation')->nullable();
             $table->date('join_date')->nullable();
             $table->boolean('status')->default(1);

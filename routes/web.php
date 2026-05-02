@@ -34,35 +34,46 @@ Route::post('/forgot-password', [AuthController::class, 'sendReset'])->name('pas
 Route::get('/reset-password/{token}', [AuthController::class, 'showReset'])->name('password.reset');
 Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 
+
 Route::middleware(['auth'])->group(function () {
 
-    Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/change-password', [UserController::class,'changePassword'])
+        ->name('change.password');
 
-    Route::resource('users', UserController::class);
+    Route::post('/change-password', [UserController::class,'updatePassword'])
+        ->name('update.password');
 
-    Route::resource('patients', PatientController::class);
-    Route::get('patients-search', [PatientController::class,'ajaxSearch'])
-            ->name('patients.ajax.search');
+    Route::middleware(['auth','force.password'])->group(function () {
 
-    Route::resource('units', UnitController::class);
+        Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-    Route::resource('appointments', AppointmentController::class);
+        Route::resource('users', UserController::class);
 
-    Route::resource('permission-groups',PermissionGroupController::class);
-    Route::resource('permissions',PermissionController::class);
-    Route::resource('roles',RoleController::class);
+        Route::resource('patients', PatientController::class);
+        Route::get('patients-search', [PatientController::class,'ajaxSearch'])
+                ->name('patients.ajax.search');
+
+        Route::resource('units', UnitController::class);
+
+        Route::resource('appointments', AppointmentController::class);
+
+        Route::resource('permission-groups',PermissionGroupController::class);
+        Route::resource('permissions',PermissionController::class);
+        Route::resource('roles',RoleController::class);
 
 
-    Route::get('consultation/{appointment}', [ConsultationController::class,'create'])
-            ->name('consultations.create');
-    Route::post('consultation-store', [ConsultationController::class,'store'])
-            ->name('consultations.store');
-    Route::get('/consultations', [ConsultationController::class, 'index'])
-        ->name('consultations.index');
+        Route::get('consultation/{appointment}', [ConsultationController::class,'create'])
+                ->name('consultations.create');
+        Route::post('consultation-store', [ConsultationController::class,'store'])
+                ->name('consultations.store');
+        Route::get('/consultations', [ConsultationController::class, 'index'])
+            ->name('consultations.index');
 
-    Route::get('/doctor/queue', [AppointmentController::class, 'todayQueue'])
-        ->name('appointments.today');
+        Route::get('/doctor/queue', [AppointmentController::class, 'todayQueue'])
+            ->name('appointments.today');
+
+    });
 
 });

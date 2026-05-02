@@ -7,10 +7,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+
+    protected $guard_name = 'web';
 
     /**
      * The attributes that are mass assignable.
@@ -28,7 +31,8 @@ class User extends Authenticatable
         'join_date',
         'status',
         'image',
-        'password'
+        'password',
+        'force_password_change'
     ];
 
     /**
@@ -49,9 +53,16 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'force_password_change' => 'boolean'
     ];
+
+    public function getNameAttribute(): string
+    {
+        return trim("{$this->fname} {$this->lname}");
+    }
+
     public function unit()
-{
-    return $this->belongsTo(Unit::class);
-}
+    {
+        return $this->belongsTo(Unit::class);
+    }
 }

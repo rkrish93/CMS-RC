@@ -21,58 +21,47 @@
 
 
     <style>
+        /* =========================
+        GLOBAL SMOOTH UI
+        ========================= */
         * {
             transition: all 0.2s ease-in-out;
         }
 
         body {
             padding-top: 0;
+            background: #f9fafb;
+            font-family: 'Segoe UI', sans-serif;
         }
 
-        /* NAVBAR */
+        /* =========================
+        NAVBAR (Clean + Light)
+        ========================= */
         .navbar {
             background: #ffffff;
             border-bottom: 1px solid #e5e7eb;
             height: 60px;
-            padding: 0 20px;
+            padding: 0 18px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
         }
 
         .navbar-brand img {
-            height: 40px;
+            height: 45px;
         }
 
-        /* MAIN */
-        .main-panel {
-            margin-top: 0 !important;
-        }
-
-        .content-wrapper {
-            padding: 20px !important;
-            background: #f9fafb;
-        }
-
-        .page-header {
-            margin: 0;
-            padding: 10px 0;
-        }
-
-        /* CARD */
-        .card {
-            border: none;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-
-        /* SIDEBAR */
+        /* =========================
+        SIDEBAR (MODERN)
+        ========================= */
         .sidebar {
             background: #ffffff;
-            width: 240px;
+            width: 210px;
             height: 100vh;
-            overflow-y: auto;
             border-right: 1px solid #e5e7eb;
-            transition: 0.3s;
+            padding-top: 10px;
+            overflow-y: auto;
         }
 
+        /* COLLAPSED MODE */
         .sidebar-icon-only .sidebar {
             width: 70px;
         }
@@ -82,56 +71,155 @@
             display: none;
         }
 
+        /* =========================
+        NAV ITEMS
+        ========================= */
+        .sidebar .nav {
+            padding: 0;
+        }
+
+        .sidebar .nav-item {
+            list-style: none;
+        }
+
+        /* MAIN LINKS */
         .sidebar .nav-link {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 12px 18px;
-            border-radius: 10px;
-            margin: 5px 10px;
+            gap: 10px;
+            padding: 8px 14px;
+            margin: 3px 8px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #374151;
+            position: relative;
         }
 
+        /* ICON */
         .sidebar .nav-link i {
-            font-size: 20px;
+            font-size: 18px;
+            color: #6b7280;
         }
 
+        /* HOVER EFFECT (MODERN) */
         .sidebar .nav-link:hover {
-            background: #f3f4f6;
+            background: #f1f5f9;
+            color: #111827;
         }
 
+        /* ACTIVE ITEM (PRO LOOK) */
         .sidebar .nav-link.active {
-            background: #e0e7ff;
+            background: #eef2ff;
             color: #4f46e5;
             font-weight: 600;
         }
 
-        /* SIDEBAR LEFT BORDER EFFECT */
+        /* ACTIVE ICON */
+        .sidebar .nav-link.active i {
+            color: #4f46e5;
+        }
+
+        /* REMOVE OLD LEFT BORDER */
         .sidebar .nav-link::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            height: 100%;
-            width: 3px;
-            background: #4f46e5;
-            opacity: 0;
+            display: none;
         }
 
-        .sidebar .nav-link:hover::before,
-        .sidebar .nav-link.active::before {
-            opacity: 1;
-        }
-
-        /* SUB MENU */
+        /* =========================
+        SUB MENU
+        ========================= */
         .sub-menu {
-            padding-left: 40px;
+            padding-left: 26px;
         }
 
-        /* BADGE */
-        .badge {
-            font-size: 10px;
-            padding: 3px 6px;
+        /* SUB MENU LINKS */
+        .sub-menu .nav-link {
+            font-size: 13px;
+            padding: 6px 12px;
+            margin: 2px 6px;
             border-radius: 6px;
+        }
+
+        /* SUB MENU HOVER */
+        .sub-menu .nav-link:hover {
+            background: #f3f4f6;
+        }
+
+        /* =========================
+        BADGE (SMALL + CLEAN)
+        ========================= */
+        .badge {
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 5px;
+        }
+
+        /* =========================
+        MAIN CONTENT
+        ========================= */
+        .main-panel {
+            margin-top: 0 !important;
+        }
+
+        .content-wrapper {
+            padding: 18px !important;
+            background: #f9fafb;
+        }
+
+        /* =========================
+        CARD (SOFT SHADOW)
+        ========================= */
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+        }
+
+        /* =========================
+        PAGE HEADER
+        ========================= */
+        .page-header {
+            margin-bottom: 10px;
+        }
+
+        /* =========================
+        BUTTON POLISH
+        ========================= */
+        .btn {
+            border-radius: 8px;
+        }
+
+        /* =========================
+        SCROLLBAR (OPTIONAL NICE)
+        ========================= */
+        .sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 10px;
+        }
+
+        /* =========================
+        LOADER FIX
+        ========================= */
+        #loader {
+            background: #fff;
+        }
+
+        /* =========================
+        RESPONSIVE
+        ========================= */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                z-index: 999;
+                left: -22px;
+            }
+
+            .sidebar.active {
+                left: 0;
+            }
         }
     </style>
 </head>
@@ -161,11 +249,19 @@
                 </button>
 
                 <div class="dropdown">
-                    <button class="btn dropdown-toggle" data-bs-toggle="dropdown">
-                        {{ auth()->user()->name ?? 'Admin' }}
+                    <button class="btn dropdown-toggle d-flex align-items-center gap-2" data-bs-toggle="dropdown">
+                        @if(auth()->user() && auth()->user()->image)
+                            <img src="{{ asset('assets/images/profiles/' . auth()->user()->image) }}"
+                                 alt="{{ auth()->user()->name ?? 'User' }}"
+                                 class="rounded-circle"
+                                 style="width:32px; height:32px; object-fit:cover;">
+                        @else
+                            <i class="mdi mdi-account-circle" style="font-size:24px;"></i>
+                        @endif
+                        <span>{{ auth()->user()->name ?? 'Admin' }}</span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="#">Profile</a></li>
+                        <li><a class="dropdown-item" href="{{ route('users.show', auth()->id()) }}">Profile</a></li>
                         <li>
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
@@ -182,6 +278,7 @@
     <div class="container-fluid page-body-wrapper">
 
         <!-- SIDEBAR -->
+        @if(!isset($hideSidebar))
         <nav class="sidebar sidebar-offcanvas" id="sidebar">
             <ul class="nav">
 
@@ -189,13 +286,16 @@
                     <img src="{{ asset('assets/images/cms-rc-logo1.png') }}" style="height:35px;">
                 </li>
 
+                @can('dashboard-view')
                 <li class="nav-item">
                     <a class="nav-link {{ request()->is('/') ? 'active' : '' }}" href="/">
                         <i class="mdi mdi-view-dashboard-outline"></i>
                         <span class="menu-title">Dashboard</span>
                     </a>
                 </li>
+                @endcan
 
+                @can('menu-patients')
                 <li class="nav-item">
                     <a class="nav-link" data-bs-toggle="collapse" href="#patientsMenu">
                         <i class="mdi mdi-account-heart-outline"></i>
@@ -205,11 +305,15 @@
                     <div class="collapse" id="patientsMenu">
                         <ul class="nav sub-menu">
                             <li><a class="nav-link" href="{{ route('patients.index') }}">All</a></li>
+                            @can('patients-create')
                             <li><a class="nav-link" href="{{ route('patients.create') }}">Add</a></li>
+                            @endcan
                         </ul>
                     </div>
                 </li>
+                @endcan
 
+                @can('menu-appointments')
                 <li class="nav-item">
                     <a class="nav-link" data-bs-toggle="collapse" href="#appointmentsMenu">
                         <i class="mdi mdi-calendar-clock-outline"></i>
@@ -223,14 +327,18 @@
                         </ul>
                     </div>
                 </li>
+                @endcan
 
+                @can('menu-consultations')
                 <li class="nav-item">
                     <a class="nav-link" href="{{ route('consultations.index') }}">
                         <i class="mdi mdi-stethoscope"></i>
                         <span class="menu-title">Consultation</span>
                     </a>
                 </li>
+                @endcan
 
+                @can('menu-users')
                 <li class="nav-item">
                     <a class="nav-link" data-bs-toggle="collapse" href="#usersMenu">
                         <i class="mdi mdi-account-cog-outline"></i>
@@ -243,7 +351,9 @@
                         </ul>
                     </div>
                 </li>
+                @endcan
 
+                @can('menu-units')
                 <li class="nav-item">
                     <a class="nav-link" data-bs-toggle="collapse" href="#unitsMenu">
                         <i class="mdi mdi-hospital-building"></i>
@@ -256,7 +366,18 @@
                         </ul>
                     </div>
                 </li>
+                @endcan
 
+                @can('menu-reports')
+                <li class="nav-item">
+                    <a class="nav-link" href="/">
+                        <i class="mdi mdi-chart-line"></i>
+                        <span class="menu-title">Reports</span>
+                    </a>
+                </li>
+                @endcan
+
+                @can('menu-roles')
                 <li class="nav-item">
                     <a class="nav-link" data-bs-toggle="collapse" href="#settingsMenu">
                         <i class="mdi mdi-cog-outline"></i>
@@ -270,12 +391,14 @@
                         </ul>
                     </div>
                 </li>
+                @endcan
 
             </ul>
         </nav>
+        @endif
 
         <!-- MAIN -->
-        <div class="main-panel">
+        <div class="main-panel {{ isset($hideSidebar) ? 'w-100' : '' }}">
             <div class="content-wrapper">
 
                 <div class="page-header">
