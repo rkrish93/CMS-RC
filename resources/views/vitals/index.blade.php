@@ -25,27 +25,50 @@
                         <th>Recorded At</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @forelse($consultations as $c)
-                        @php $v = $c->vitals ?? []; @endphp
-                        <tr>
-                            <td>{{ optional($c->patient)->first_name }} {{ optional($c->patient)->last_name }}</td>
-                            <td>{{ $v['bp'] ?? '—' }}</td>
-                            <td>{{ $v['temp'] ?? '—' }}</td>
-                            <td>{{ $v['pulse'] ?? '—' }}</td>
-                            <td>{{ $c->created_at->format('Y-m-d H:i') }}</td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="5" class="text-center text-muted">No vitals recorded.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
+             <tbody>
+
+@forelse($vitals as $v)
+
+<tr>
+
+    <td>
+        {{ optional($v->patient)->first_name }}
+        {{ optional($v->patient)->last_name }}
+    </td>
+
+    <td>{{ $v->bp ?? '—' }}</td>
+
+    <td>{{ $v->temp ?? '—' }}</td>
+
+    <td>{{ $v->pulse ?? '—' }}</td>
+
+    <td>
+        {{ $v->created_at->format('Y-m-d H:i') }}
+    </td>
+
+</tr>
+
+@empty
+
+<tr>
+
+    <td colspan="5"
+        class="text-center text-muted">
+
+        No vitals recorded.
+
+    </td>
+
+</tr>
+
+@endforelse
+
+</tbody>
             </table>
         </div>
 
         <div class="mt-3">
-            {{ $consultations->links() }}
+{{ $vitals->links() }}
         </div>
     </div>
 </div>

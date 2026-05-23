@@ -163,7 +163,7 @@
                 </div>
             </div>
         </div>
-    @elseif($user->hasRole('Mid wife') || $user->hasRole('Admin'))
+    @elseif($user->hasRole('Mid wife') || $user->hasRole('Nurse') || $user->hasRole('Admin'))
         <div class="card mb-4">
             <div class="card-body">
                 <h4 class="card-title">Midwife Care</h4>

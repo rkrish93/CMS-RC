@@ -681,7 +681,7 @@
                         </li>
                     @endcan
 
-                    @can('vitals-view')
+                    @can('vitals-show')
                         <li class="nav-item {{ request()->routeIs('vitals.index') ? 'active' : '' }}">
                             <a class="nav-link" href="{{ route('vitals.index') }}">
                                 <i class="mdi mdi-heart-pulse"></i>
@@ -702,7 +702,9 @@
                             </a>
                             <div class="collapse {{ $appointmentsActive ? 'show' : '' }}" id="appointmentsMenu">
                                 <ul class="nav sub-menu">
+                                    @can('appointments-create')
                                     <li class="nav-item"><a class="nav-link {{ request()->routeIs('appointments.create') ? 'active' : '' }}" href="{{ route('appointments.create') }}">Add Appointment</a></li>
+                                    @endcan
                                     <li class="nav-item"><a class="nav-link {{ request()->routeIs('appointments.index') ? 'active' : '' }}" href="{{ route('appointments.index') }}">All Appointments</a></li>
                                     <li class="nav-item"><a class="nav-link {{ request()->routeIs('appointments.today') ? 'active' : '' }}" href="{{ route('appointments.today') }}">Today Queue</a></li>
                                 </ul>
@@ -720,7 +722,6 @@
                     @endcan
 
                     @canany(['menu-users', 'menu-units', 'menu-reports', 'menu-roles'])
-                        <li class="nav-item nav-section-label">Administration</li>
 
                         @can('menu-users')
                             <li class="nav-item {{ $usersActive ? 'active' : '' }}">

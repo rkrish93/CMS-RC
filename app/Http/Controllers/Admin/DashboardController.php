@@ -7,50 +7,66 @@ use App\Models\Appointment;
 use App\Models\Patient;
 use App\Models\Unit;
 use App\Models\Consultation;
+use App\Models\Vital;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        // Vitals summary (for Midwife / PHI)
-        $todayConsultations = Consultation::whereDate('created_at', today())
-                                ->whereNotNull('vitals')
-                                ->get();
+      $todayVitals = Vital::whereDate(
+        'created_at',
+        today()
+    )
+    ->get();
 
-        $tempValues = $todayConsultations->pluck('vitals')->map(function ($v) {
-            return isset($v['temp']) ? floatval($v['temp']) : null;
-        })->filter();
+$avgTemp = $todayVitals->count()
+    ? round($todayVitals->avg('temp'), 1)
+    : null;
 
-        $pulseValues = $todayConsultations->pluck('vitals')->map(function ($v) {
-            return isset($v['pulse']) ? intval($v['pulse']) : null;
-        })->filter();
+$avgPulse = $todayVitals->count()
+    ? round($todayVitals->avg('pulse'))
+    : null;
 
-        $avgTemp = $tempValues->count() ? round($tempValues->avg(), 1) : null;
-        $avgPulse = $pulseValues->count() ? round($pulseValues->avg()) : null;
+$alerts = $todayVitals
+    ->filter(function ($v) {
 
-        $alerts = $todayConsultations->filter(function ($c) {
-            $v = $c->vitals ?? [];
-            $temp = isset($v['temp']) ? floatval($v['temp']) : null;
-            $pulse = isset($v['pulse']) ? intval($v['pulse']) : null;
+        return (
+            $v->temp > 37.5 ||
+            $v->pulse > 100
+        );
 
-            return ($temp !== null && $temp > 37.5) || ($pulse !== null && $pulse > 100);
-        })->count();
+    })
+    ->count();
 
-        $latestVitals = Consultation::with('patient')
-            ->whereNotNull('vitals')
-            ->latest()
-            ->take(6)
-            ->get()
-            ->map(function ($c) {
-                return [
-                    'patient' => optional($c->patient)->first_name . ' ' . optional($c->patient)->last_name,
-                    'bp' => $c->vitals['bp'] ?? null,
-                    'temp' => $c->vitals['temp'] ?? null,
-                    'pulse' => $c->vitals['pulse'] ?? null,
-                    'time' => $c->created_at->format('Y-m-d H:i'),
-                ];
-            });
+
+$latestVitals = Vital::with('patient')
+
+    ->latest()
+
+    ->take(5)
+
+    ->get()
+
+    ->map(function ($v) {
+
+        return [
+
+            'patient' =>
+                optional($v->patient)->first_name . ' ' .
+                optional($v->patient)->last_name,
+
+            'bp' => $v->bp,
+
+            'temp' => $v->temp,
+
+            'pulse' => $v->pulse,
+
+            'time' => $v->created_at->format('Y-m-d H:i'),
+
+        ];
+
+    });
 
         return view('dashboard', [
             'patients' => Patient::count(),
@@ -91,7 +107,7 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
-        if (! $user->can('vitals-view') && ! $user->hasRole('Admin')) {
+        if (! $user->can('vitals-show') && ! $user->hasRole('Admin')) {
             abort(403);
         }
 

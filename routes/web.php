@@ -73,11 +73,13 @@ Route::middleware(['auth'])->group(function () {
                 ->name('consultations.store');
         Route::get('/consultations', [ConsultationController::class, 'index'])
             ->name('consultations.index');
-
+Route::post('/vitals/store', [ConsultationController::class, 'storeVitals'])
+    ->name('vitals.store');
+    });
+    Route::get('/vitals', [ConsultationController::class, 'indexVitals'])->name('vitals.index');
         Route::get('/doctor/queue', [AppointmentController::class, 'todayQueue'])
             ->name('appointments.today');
 
-    });
 
 });
 

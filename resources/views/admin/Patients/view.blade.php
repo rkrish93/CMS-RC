@@ -162,7 +162,115 @@
         </div>
     </div>
 </div>
+{{-- PATIENT HISTORY --}}
+<div class="card mt-4">
 
+    <div class="card-body">
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+
+            <div>
+
+                <h4 class="card-title mb-1">
+                    Patient Monthly History
+                </h4>
+
+                <p class="text-muted mb-0">
+                    Vitals and consultation records.
+                </p>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="table-responsive">
+
+            <table class="table table-hover align-middle">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Date</th>
+
+                        <th>Blood Pressure</th>
+
+                        <th>Temp</th>
+
+                        <th>Pulse</th>
+
+                        <th>Diagnosis</th>
+
+                        <th>Prescription</th>
+
+                        <th>Doctor</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    @forelse($patientHistory as $history)
+
+                    <tr>
+
+                        <td>
+                            {{ $history['date'] }}
+                        </td>
+
+                        <td>
+                            {{ $history['bp'] ?? '—' }}
+                        </td>
+
+                        <td>
+                            {{ $history['temp'] ?? '—' }}
+                        </td>
+
+                        <td>
+                            {{ $history['pulse'] ?? '—' }}
+                        </td>
+
+                        <td>
+                            {{ $history['diagnosis'] ?? '—' }}
+                        </td>
+
+                        <td>
+                            {{ $history['prescription'] ?? '—' }}
+                        </td>
+
+                        <td>
+                            {{ $history['doctor'] ?? '—' }}
+                        </td>
+
+                    </tr>
+
+                    @empty
+
+                    <tr>
+
+                        <td colspan="7"
+                            class="text-center text-muted py-4">
+
+                            No patient history available.
+
+                        </td>
+
+                    </tr>
+
+                    @endforelse
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
 @endsection
 
 @push('styles')

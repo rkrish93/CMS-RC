@@ -81,9 +81,21 @@
             </table>
         </div>
 
-        <div class="mt-3">
-            {{ $appointments->links() }}
-        </div>
+       <div class="d-flex justify-content-between align-items-center mt-3">
+
+    <small class="text-muted">
+        Showing
+        {{ $appointments->firstItem() ?? 0 }}
+        to
+        {{ $appointments->lastItem() ?? 0 }}
+        of
+        {{ $appointments->total() }}
+        results
+    </small>
+
+    {{ $appointments->links() }}
+
+</div>
     </div>
 </div>
 
@@ -172,5 +184,13 @@
         font-size: 12px;
         font-weight: 800;
     }
+    .pagination {
+    margin-bottom: 0 !important;
+}
+
+svg {
+    width: 20px;
+    height: 20px;
+}
 </style>
 @endpush

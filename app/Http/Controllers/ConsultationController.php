@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Appointment;
 use App\Models\Consultation;
+use App\Models\Vital;
 use Illuminate\Http\Request;
 
 class ConsultationController extends Controller
@@ -32,8 +33,10 @@ class ConsultationController extends Controller
                     ->latest()
                     ->take(10)
                     ->get();
-
-        return view('consultations.index', compact('appointment','history'));
+$latestVital = Vital::where('appointment_id', $appointment_id)
+                    ->latest()
+                    ->first();
+        return view('consultations.index', compact('appointment','history', 'latestVital'));
     }
 
     /**
@@ -42,30 +45,29 @@ class ConsultationController extends Controller
     public function store(Request $request)
     {
         $appointment = Appointment::findOrFail($request->appointment_id);
-        $request->validate([
-            'diagnosis' => 'required',
-            'bp' => 'nullable|string|max:20',
-            'temp' => 'nullable|numeric',
-            'sugar' => 'nullable|numeric',
-            'pulse' => 'nullable|integer',
-        ]);
+        // $request->validate([
+        //     'diagnosis' => 'required',
+        //     'bp' => 'nullable|string|max:20',
+        //     'temp' => 'nullable|numeric',
+        //     'sugar' => 'nullable|numeric',
+        //     'pulse' => 'nullable|integer',
+        // ]);
 
-        // Prepare vitals array only with provided values
-        $vitals = array_filter([
-            'bp' => $request->bp ?: null,
-            'temp' => $request->temp ?: null,
-            'sugar' => $request->sugar ?: null,
-            'pulse' => $request->pulse ?: null,
-        ], function ($v) {
-            return $v !== null && $v !== '';
-        });
+        // // Prepare vitals array only with provided values
+        // $vitals = array_filter([
+        //     'bp' => $request->bp ?: null,
+        //     'temp' => $request->temp ?: null,
+        //     'sugar' => $request->sugar ?: null,
+        //     'pulse' => $request->pulse ?: null,
+        // ], function ($v) {
+        //     return $v !== null && $v !== '';
+        // });
 
         Consultation::create([
             'appointment_id' => $appointment->id,
             'patient_id' => $appointment->patient_id,
             'doctor_id' => auth()->id(),
             'diagnosis' => $request->diagnosis,
-            'vitals' => $vitals,
             'next_visit' => $request->next_visit,
         ]);
 
@@ -162,4 +164,62 @@ class ConsultationController extends Controller
     {
         //
     }
+    public function storeVitals(Request $request)
+{
+    $request->validate([
+
+        'appointment_id' => 'required',
+
+        'bp' => 'nullable|string|max:20',
+
+        'temp' => 'nullable',
+
+        'sugar' => 'nullable',
+
+        'pulse' => 'nullable',
+
+    ]);
+
+
+    $appointment = Appointment::findOrFail($request->appointment_id);
+
+
+    Vital::create([
+
+        'appointment_id' => $appointment->id,
+
+        'patient_id' => $appointment->patient_id,
+
+        'bp' => $request->bp,
+
+        'temp' => $request->temp,
+
+        'sugar' => $request->sugar,
+
+        'pulse' => $request->pulse,
+
+        'created_by' => auth()->id(),
+
+    ]);
+
+
+    return redirect()
+            ->back()
+            ->with('success', 'Vitals saved successfully');
+}
+public function indexVitals()
+{
+    abort_unless(auth()->user()?->can('vitals-view'), 403);
+
+    $vitals = Vital::with(['patient'])
+
+        ->latest()
+
+        ->paginate(10);
+
+    return view(
+        'vitals.index',
+        compact('vitals')
+    );
+}
 }

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Consultation;
 use App\Models\Patient;
+use App\Models\Vital;
 use Exception;
 use Illuminate\Http\Request;
 
@@ -18,14 +20,53 @@ class PatientController extends Controller
 
         $search = $request->search;
 
-        $patients = Patient::when($search, function ($query, $search) {
-            $query->where('patient_code', 'like', "%{$search}%")
-              ->orWhere('first_name', 'like', "%{$search}%")
-              ->orWhere('last_name', 'like', "%{$search}%")
-              ->orWhere('nic', 'like', "%{$search}%")
-              ->orWhere('phone', 'like', "%{$search}%");
+        if(auth()->user()->hasRole('doctor')) {
 
-        })->latest()->get();
+        $patients = Patient::whereHas('appointments', function ($query) {
+
+                $query->where('unit_id', auth()->user()->unit_id);
+
+            })
+
+            ->when($search, function ($query, $search) {
+
+                $query->where(function ($q) use ($search) {
+
+                    $q->where('patient_code', 'like', "%{$search}%")
+                      ->orWhere('first_name', 'like', "%{$search}%")
+                      ->orWhere('last_name', 'like', "%{$search}%")
+                      ->orWhere('nic', 'like', "%{$search}%")
+                      ->orWhere('phone', 'like', "%{$search}%");
+
+                });
+
+            })
+
+            ->latest()
+
+            ->get();
+
+    } else {
+
+        $patients = Patient::when($search, function ($query, $search) {
+
+                $query->where(function ($q) use ($search) {
+
+                    $q->where('patient_code', 'like', "%{$search}%")
+                      ->orWhere('first_name', 'like', "%{$search}%")
+                      ->orWhere('last_name', 'like', "%{$search}%")
+                      ->orWhere('nic', 'like', "%{$search}%")
+                      ->orWhere('phone', 'like', "%{$search}%");
+
+                });
+
+            })
+
+            ->latest()
+
+            ->get();
+    }
+
         return view('admin.patients.index', compact('patients','search'));
     }
 
@@ -137,13 +178,72 @@ class PatientController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
-    {
-        abort_unless(auth()->user()?->can('patients-view'), 403);
+   public function show(string $id)
+{
+    abort_unless(
+        auth()->user()?->can('patients-view'),
+        403
+    );
 
-        $patient = Patient::findOrFail($id);
-    return view('admin.patients.view', compact('patient'));
-    }
+    $patient = Patient::findOrFail($id);
+
+
+    $vitals = Vital::where('patient_id', $patient->id)
+
+        ->latest()
+
+        ->get();
+
+
+    $consultations = Consultation::with('doctor')
+
+        ->where('patient_id', $patient->id)
+
+        ->latest()
+
+        ->get();
+
+
+
+    $patientHistory = $vitals->map(function ($v) use ($consultations) {
+
+        $consultation = $consultations
+
+            ->where('appointment_id', $v->appointment_id)
+
+            ->first();
+
+        return [
+
+            'date' => $v->created_at->format('Y-m-d'),
+
+            'bp' => $v->bp,
+
+            'temp' => $v->temp,
+
+            'pulse' => $v->pulse,
+
+            'diagnosis' => $consultation->diagnosis ?? null,
+
+            'prescription' => $consultation->prescription ?? null,
+
+            'doctor' => optional(
+                $consultation?->doctor
+            )->name,
+
+        ];
+
+    });
+
+
+    return view(
+        'admin.patients.view',
+        compact(
+            'patient',
+            'patientHistory'
+        )
+    );
+}
 
     /**
      * Show the form for editing the specified resource.

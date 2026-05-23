@@ -17,11 +17,20 @@ class AppointmentController extends Controller
      */
     public function index()
     {
-        abort_unless(auth()->user()?->can('appointments-view'), 403);
+          if(auth()->user()->hasRole('doctor')) {
 
-        $appointments = Appointment::with(['patient','unit'])
-                    ->latest()
-                    ->paginate(10);
+        $appointments = Appointment::with(['patient', 'unit'])
+            ->where('unit_id', auth()->user()->unit_id)
+            ->latest()
+            ->paginate(10);
+
+    } else {
+
+        $appointments = Appointment::with(['patient', 'unit'])
+            ->latest()
+            ->paginate(10);
+
+    }
         $patients = Patient::all();
         $units  = Unit::all();
 
@@ -60,9 +69,8 @@ class AppointmentController extends Controller
             $slotDuration = 15;
 
             // Get the last appointment for this date
-            $lastAppointment = Appointment::whereDate('appointment_date', $appointmentDate)
-                ->orderByDesc('appointment_time')
-                ->first();
+            $lastAppointment = Appointment::whereDate( 'appointment_date',$appointmentDate
+    )->where('unit_id', $validated['unit_id'])->orderByDesc('appointment_time')->first();
 
             if ($lastAppointment) {
                 $lastTime = Carbon::parse($lastAppointment->appointment_time);
@@ -153,27 +161,51 @@ class AppointmentController extends Controller
         //
     }
 
-    public function todayQueue()
-    {
+   public function todayQueue()
+{
     abort_unless(auth()->user()?->can('appointments-view'), 403);
 
     $today = now()->toDateString();
 
-    // Only run after 4:00 PM
+    // Auto cancel pending after 4 PM
     if (now()->format('H:i') >= '16:00') {
 
-    Appointment::whereDate('appointment_date', $today)
-        ->where('status', 'pending')
-        ->update(['status' => 'cancelled']);
+        Appointment::whereDate('appointment_date', $today)
+            ->where('status', 'pending')
+            ->update(['status' => 'cancelled']);
     }
 
-    $appointments = Appointment::with('patient')
-        ->whereDate('appointment_date', $today)
-        ->orderBy('token_no')
-        ->get();
 
-    return view('appointments.today', compact('appointments'));
+    // DOCTOR → ONLY OWN UNIT
+    if(auth()->user()->hasRole('doctor')) {
+
+        $appointments = Appointment::with(['patient', 'unit'])
+
+            ->where('unit_id', auth()->user()->unit_id)
+
+            ->whereDate('appointment_date', $today)
+
+            ->orderBy('token_no')
+
+            ->get();
+
+    } else {
+
+        // ADMIN / RECEPTIONIST → ALL
+        $appointments = Appointment::with(['patient', 'unit'])
+
+            ->whereDate('appointment_date', $today)
+
+            ->orderBy('token_no')
+
+            ->get();
     }
+
+    return view(
+        'appointments.today',
+        compact('appointments')
+    );
+}
 
     public function searchPatient(Request $request)
     {
