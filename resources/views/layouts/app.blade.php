@@ -654,14 +654,14 @@
                 <ul class="nav">
                     <li class="nav-item nav-section-label">Main</li>
 
-                    @can('dashboard-view')
+                    @if(auth()->user()->hasRole('Receptionist') || auth()->user()->can('dashboard-view'))
                         <li class="nav-item {{ $dashboardActive ? 'active' : '' }}">
                             <a class="nav-link {{ $dashboardActive ? 'active' : '' }}" href="{{ route('dashboard') }}">
                                 <i class="mdi mdi-view-dashboard-outline"></i>
                                 <span class="menu-title">Dashboard</span>
                             </a>
                         </li>
-                    @endcan
+                    @endif
 
                     @can('menu-patients')
                         <li class="nav-item {{ $patientsActive ? 'active' : '' }}">
@@ -681,6 +681,15 @@
                         </li>
                     @endcan
 
+                    @can('vitals-view')
+                        <li class="nav-item {{ request()->routeIs('vitals.index') ? 'active' : '' }}">
+                            <a class="nav-link" href="{{ route('vitals.index') }}">
+                                <i class="mdi mdi-heart-pulse"></i>
+                                <span class="menu-title">Vitals</span>
+                            </a>
+                        </li>
+                    @endcan
+
                     @can('menu-appointments')
                         <li class="nav-item {{ $appointmentsActive ? 'active' : '' }}">
                             <a class="nav-link" data-bs-toggle="collapse" href="#appointmentsMenu" role="button" aria-expanded="{{ $appointmentsActive ? 'true' : 'false' }}" aria-controls="appointmentsMenu">
@@ -693,6 +702,7 @@
                             </a>
                             <div class="collapse {{ $appointmentsActive ? 'show' : '' }}" id="appointmentsMenu">
                                 <ul class="nav sub-menu">
+                                    <li class="nav-item"><a class="nav-link {{ request()->routeIs('appointments.create') ? 'active' : '' }}" href="{{ route('appointments.create') }}">Add Appointment</a></li>
                                     <li class="nav-item"><a class="nav-link {{ request()->routeIs('appointments.index') ? 'active' : '' }}" href="{{ route('appointments.index') }}">All Appointments</a></li>
                                     <li class="nav-item"><a class="nav-link {{ request()->routeIs('appointments.today') ? 'active' : '' }}" href="{{ route('appointments.today') }}">Today Queue</a></li>
                                 </ul>

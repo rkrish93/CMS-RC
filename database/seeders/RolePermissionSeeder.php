@@ -79,6 +79,7 @@ class RolePermissionSeeder extends Seeder
         // Menu & Dashboard Permissions
         $menuDashboardPermissions = [
             'dashboard-view',
+            'vitals-view',
             'menu-users',
             'menu-patients',
             'menu-appointments',
@@ -87,6 +88,18 @@ class RolePermissionSeeder extends Seeder
             'menu-reports',
             'menu-roles',
             'menu-permissions',
+            'roles-view',
+            'roles-create',
+            'roles-edit',
+            'roles-delete',
+            'permissions-view',
+            'permissions-create',
+            'permissions-edit',
+            'permissions-delete',
+            'permission-groups-view',
+            'permission-groups-create',
+            'permission-groups-edit',
+            'permission-groups-delete',
         ];
 
         // Create all permissions

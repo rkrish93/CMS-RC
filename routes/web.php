@@ -48,6 +48,7 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['auth','force.password'])->group(function () {
 
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/vitals', [DashboardController::class, 'vitals'])->name('vitals.index');
 
         Route::resource('users', UserController::class);
 
@@ -58,6 +59,8 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('units', UnitController::class);
 
         Route::resource('appointments', AppointmentController::class);
+        Route::get('search-patient', [AppointmentController::class, 'searchPatient'])
+                ->name('search.patient');
 
         Route::resource('permission-groups',PermissionGroupController::class);
         Route::resource('permissions',PermissionController::class);
@@ -77,3 +80,13 @@ Route::middleware(['auth'])->group(function () {
     });
 
 });
+
+// Route::get('/test-sms', function () {
+
+//     $response = \App\Services\NotifyLKService::send(
+//         '94765349025',
+//         'Test SMS from CMS RC'
+//     );
+
+//     return $response->body();
+// });

@@ -97,6 +97,9 @@ class PatientController extends Controller
 
     $patientCode = 'CL-' . str_pad($num, 5, '0', STR_PAD_LEFT);
 
+    $phone = ltrim($request->phone, '0');
+    $phone = '94' . $phone;
+
     //  STORE DATA
     Patient::create([
 
@@ -109,7 +112,7 @@ class PatientController extends Controller
         'dob' => $request->dob,
         'age' => $request->age,
         'nic' => $request->nic,
-        'phone' => $request->phone,
+        'phone' => $phone,
         'blood_group' => $request->blood_group,
         'patient_type' => $request->patient_type,
         'address' => $request->address,

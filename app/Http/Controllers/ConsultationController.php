@@ -42,29 +42,30 @@ class ConsultationController extends Controller
     public function store(Request $request)
     {
         $appointment = Appointment::findOrFail($request->appointment_id);
-
         $request->validate([
-            'diagnosis' => 'required'
+            'diagnosis' => 'required',
+            'bp' => 'nullable|string|max:20',
+            'temp' => 'nullable|numeric',
+            'sugar' => 'nullable|numeric',
+            'pulse' => 'nullable|integer',
         ]);
+
+        // Prepare vitals array only with provided values
+        $vitals = array_filter([
+            'bp' => $request->bp ?: null,
+            'temp' => $request->temp ?: null,
+            'sugar' => $request->sugar ?: null,
+            'pulse' => $request->pulse ?: null,
+        ], function ($v) {
+            return $v !== null && $v !== '';
+        });
 
         Consultation::create([
             'appointment_id' => $appointment->id,
             'patient_id' => $appointment->patient_id,
             'doctor_id' => auth()->id(),
             'diagnosis' => $request->diagnosis,
-
-        //     'vitals' => [
-        //     'bp' => $request->bp,
-        //     'temp' => $request->temp,
-        //     'sugar' => $request->sugar,
-        //     'pulse' => $request->pulse,
-        // ],
-
-            // 'symptoms' => $request->symptoms,
-            // 'clinical_notes' => $request->clinical_notes,
-            // 'icd_code' => $request->icd_code,
-            // 'diagnosis' => $request->diagnosis,
-            // 'treatment_plan' => $request->treatment_plan,
+            'vitals' => $vitals,
             'next_visit' => $request->next_visit,
         ]);
 

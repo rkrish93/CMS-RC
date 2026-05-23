@@ -4,13 +4,18 @@
 
 @section('page-actions')
     @can('appointments-create')
-        <button class="btn btn-gradient-primary shadow-sm"
+        {{-- <button class="btn btn-gradient-primary shadow-sm"
                 type="button"
                 data-bs-toggle="modal"
                 data-bs-target="#appointmentModal">
             <i class="mdi mdi-calendar-plus me-1"></i> Add Appointment
-        </button>
+        </button> --}}
+
+        <a href="{{ route('appointments.create') }}" class="btn btn-gradient-primary shadow-sm">
+            <i class="mdi mdi-account-plus me-1"></i> Add Appointment
+        </a>
     @endcan
+
 @endsection
 
 @section('content')
@@ -82,7 +87,7 @@
     </div>
 </div>
 
-@can('appointments-create')
+{{-- @can('appointments-create')
 <div class="modal fade" id="appointmentModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
@@ -143,7 +148,7 @@
         </div>
     </div>
 </div>
-@endcan
+@endcan --}}
 
 @endsection
 

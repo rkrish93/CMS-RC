@@ -15,6 +15,8 @@ class RoleController extends Controller
      */
     public function index()
     {
+        abort_unless(auth()->user()?->can('roles-view'), 403);
+
         $roles = Role::latest()->get();
 
         $permissionGroups = PermissionGroup::with('permissions')->get();

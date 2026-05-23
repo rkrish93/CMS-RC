@@ -28,7 +28,9 @@
                         <th>Patient</th>
                         <th>Time</th>
                         <th>Status</th>
+                        @canany(['consultations-view', 'vitals-view'])
                         <th width="120" class="text-end">Action</th>
+                        @endcan
                     </tr>
                 </thead>
                 <tbody>
@@ -51,13 +53,18 @@
                                     {{ $appt->status === 'pending' ? 'Waiting' : ucfirst(str_replace('_', ' ', $appt->status ?? 'pending')) }}
                                 </span>
                             </td>
+                                                            @canany(['consultations-view', 'vitals-view'])
+
                             <td class="text-end">
-                                <a href="{{ route('consultations.create', $appt->id) }}"
-                                   class="btn btn-sm btn-gradient-primary {{ $disabled ? 'disabled' : '' }}"
-                                   @if($disabled) aria-disabled="true" tabindex="-1" @endif>
-                                    Open
-                                </a>
+                                    <a href="{{ route('consultations.create', $appt->id) }}"
+                                       class="btn btn-sm btn-gradient-primary {{ $disabled ? 'disabled' : '' }}"
+                                       @if($disabled) aria-disabled="true" tabindex="-1" @endif>
+                                        Open
+                                    </a>
+
                             </td>
+                                                            @endcanany
+
                         </tr>
                     @empty
                         <tr>

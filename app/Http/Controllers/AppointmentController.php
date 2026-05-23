@@ -6,6 +6,8 @@ use App\Models\Appointment;
 use App\Models\Patient;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\NotifyLKService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class AppointmentController extends Controller
@@ -33,9 +35,9 @@ class AppointmentController extends Controller
     {
         abort_unless(auth()->user()?->can('appointments-create'), 403);
 
-        // $patients = Patient::all();
-        // $units = Unit::all();
-        // return view('appointments.create', compact('patients','units'));
+        $patients = Patient::all();
+        $units = Unit::all();
+        return view('appointments.create', compact('patients','units'));
     }
 
     /**
@@ -43,19 +45,74 @@ class AppointmentController extends Controller
      */
     public function store(Request $request)
     {
-    abort_unless($request->user()?->can('appointments-create'), 403);
+        abort_unless($request->user()?->can('appointments-create'), 403);
 
-    Appointment::create([
-    'patient_id' => $request->patient_id,
-    'unit_id' => $request->unit_id,
-    'appointment_date' => $request->appointment_date,
-    'appointment_time' => $request->appointment_time,
-    'token_no' => Appointment::whereDate('appointment_date',$request->appointment_date)->count() + 1,
-    'status' => 'pending'
-    ]);
+        $validated = $request->validate([
+            'patient_id' => 'required|exists:patients,id',
+            'unit_id' => 'required|exists:units,id',
+            'appointment_date' => 'required|date|after_or_equal:today',
+        ]);
 
-    return redirect()->route('appointments.index')
-            ->with('success','Appointment Created');
+        try {
+            $appointmentDate = $validated['appointment_date'];
+            $clinicOpenTime = Carbon::parse($appointmentDate . ' 09:00');
+            $clinicCloseTime = Carbon::parse($appointmentDate . ' 15:00');
+            $slotDuration = 15;
+
+            // Get the last appointment for this date
+            $lastAppointment = Appointment::whereDate('appointment_date', $appointmentDate)
+                ->orderByDesc('appointment_time')
+                ->first();
+
+            if ($lastAppointment) {
+                $lastTime = Carbon::parse($lastAppointment->appointment_time);
+                $nextTime = $lastTime->copy()->addMinutes($slotDuration);
+
+                if ($nextTime->greaterThan($clinicCloseTime)) {
+                    return back()
+                        ->withInput()
+                        ->with('error', 'No slots available for this date. All appointment slots are fully booked.');
+                }
+
+                $appointmentTime = $nextTime->format('H:i:s');
+                $tokenNo = $lastAppointment->token_no + 1;
+            } else {
+                $appointmentTime = $clinicOpenTime->format('H:i:s');
+                $tokenNo = 1;
+            }
+
+            Appointment::create([
+                'patient_id' => $validated['patient_id'],
+                'unit_id' => $validated['unit_id'],
+                'appointment_date' => $appointmentDate,
+                'appointment_time' => $appointmentTime,
+                'token_no' => $tokenNo,
+                'status' => 'pending'
+            ]);
+
+            // Get patient details
+            $patient = Patient::find($validated['patient_id']);
+
+            // SMS message
+            $message = "Dear {$patient->first_name}, Your appointment is confirmed on {$appointmentDate} at {$appointmentTime}. Token No: {$tokenNo}.";
+
+            $phone = preg_replace('/\D/', '', $patient->phone);
+
+            if (str_starts_with($phone, '0')) {
+                $phone = '94' . substr($phone, 1);
+            }
+
+            // Send SMS
+            // NotifyLKService::send($phone, $message);
+
+            return redirect()->route('appointments.index')
+                ->with('success', "Appointment created successfully. Token #$tokenNo at $appointmentTime");
+
+        } catch (\Exception $e) {
+            return back()
+                ->withInput()
+                ->with('error', 'Failed to create appointment. Please try again.');
+        }
     }
 
     /**
@@ -109,12 +166,29 @@ class AppointmentController extends Controller
         ->where('status', 'pending')
         ->update(['status' => 'cancelled']);
     }
-    
+
     $appointments = Appointment::with('patient')
         ->whereDate('appointment_date', $today)
         ->orderBy('token_no')
         ->get();
 
     return view('appointments.today', compact('appointments'));
+    }
+
+    public function searchPatient(Request $request)
+    {
+        $query = $request->get('query');
+
+        if (!$query || strlen($query) < 3) {
+            return response()->json([]);
+        }
+
+        $patients = Patient::where('phone', 'like', "%{$query}%")
+            ->orWhere('nic', 'like', "%{$query}%")
+            ->latest()
+            ->limit(10)
+            ->get();
+
+        return response()->json($patients);
     }
 }
