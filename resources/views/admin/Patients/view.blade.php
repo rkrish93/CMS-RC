@@ -172,7 +172,7 @@
             <div>
 
                 <h4 class="card-title mb-1">
-                    Patient Monthly History
+                    Patient Medical History
                 </h4>
 
                 <p class="text-muted mb-0">

@@ -17,7 +17,7 @@ class UserSeeder extends Seeder
     {
         // Get roles
         $adminRole = Role::where('name', 'Admin')->first();
-        $doctorRole = Role::where('name', 'doctor')->first(); // lowercase in database
+        $doctorRole = Role::where('name', 'Doctor')->first();
         $nurseRole = Role::where('name', 'Nurse')->first();
         $receptionistRole = Role::where('name', 'Receptionist')->first();
         $midwifeRole = Role::where('name', 'Mid wife')->first();
@@ -52,7 +52,7 @@ class UserSeeder extends Seeder
                 'force_password_change' => 0,
             ]
         );
-        $admin->assignRole($adminRole);
+        $this->syncUserRole($admin, $adminRole);
 
         // Create Doctor Users
         $doctors = [
@@ -85,7 +85,7 @@ class UserSeeder extends Seeder
                     'force_password_change' => 0,
                 ])
             );
-            $doctor->assignRole($doctorRole);
+            $this->syncUserRole($doctor, $doctorRole);
         }
 
         // Create Nurse Users
@@ -119,7 +119,7 @@ class UserSeeder extends Seeder
                     'force_password_change' => 0,
                 ])
             );
-            $nurse->assignRole($nurseRole);
+            $this->syncUserRole($nurse, $nurseRole);
         }
 
         // Create Receptionist Users
@@ -145,7 +145,7 @@ class UserSeeder extends Seeder
                     'force_password_change' => 0,
                 ])
             );
-            $receptionist->assignRole($receptionistRole);
+            $this->syncUserRole($receptionist, $receptionistRole);
         }
 
         // Create Midwife Users
@@ -171,7 +171,7 @@ class UserSeeder extends Seeder
                     'force_password_change' => 0,
                 ])
             );
-            $midwife->assignRole($midwifeRole);
+            $this->syncUserRole($midwife, $midwifeRole);
         }
 
         // Create PHI Users
@@ -197,7 +197,7 @@ class UserSeeder extends Seeder
                     'force_password_change' => 0,
                 ])
             );
-            $phi->assignRole($phiRole);
+            $this->syncUserRole($phi, $phiRole);
         }
 
         // Create Pharmacist Users
@@ -223,7 +223,25 @@ class UserSeeder extends Seeder
                     'force_password_change' => 0,
                 ])
             );
-            $pharmacist->assignRole($pharmacistRole);
+            $this->syncUserRole($pharmacist, $pharmacistRole);
         }
+
+        User::whereNotNull('role_id')
+            ->with('roles')
+            ->get()
+            ->each(function (User $user) {
+                $role = Role::find($user->role_id);
+                $this->syncUserRole($user, $role);
+            });
+    }
+
+    private function syncUserRole(User $user, ?Role $role): void
+    {
+        if (! $role) {
+            return;
+        }
+
+        $user->forceFill(['role_id' => $role->id])->save();
+        $user->syncRoles($role);
     }
 }

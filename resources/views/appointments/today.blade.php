@@ -10,6 +10,14 @@
 
 @section('content')
 
+@php
+    $queueUser = auth()->user();
+    $canOpenAppointment = $queueUser?->can('consultations-create')
+        || $queueUser?->can('vitals-create')
+        || $queueUser?->hasAnyRole(['Doctor', 'Admin']);
+    $disableOpenAfterVitals = $queueUser?->hasAnyRole(['Nurse', 'Mid wife']);
+@endphp
+
 <div class="card">
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
@@ -26,17 +34,21 @@
                     <tr>
                         <th>Token</th>
                         <th>Patient</th>
+                        <th>Unit</th>
                         <th>Time</th>
                         <th>Status</th>
-                        @canany(['consultations-view', 'vitals-view'])
-                        <th width="120" class="text-end">Action</th>
-                        @endcan
+                        @if($canOpenAppointment)
+                            <th width="120" class="text-end">Action</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($appointments as $appt)
                         @php
-                            $disabled = in_array($appt->status, ['completed', 'cancelled']);
+                            $vitalsRecorded = ($appt->vitals_count ?? 0) > 0;
+                            $disabled = in_array($appt->status, ['completed', 'cancelled'])
+                                || ($disableOpenAfterVitals && $vitalsRecorded);
+                            $actionLabel = $disableOpenAfterVitals && $vitalsRecorded ? 'Vitals Done' : 'Open';
                             $statusClass = match($appt->status) {
                                 'pending' => 'warning',
                                 'in_progress', 'in_Progress' => 'primary',
@@ -47,28 +59,27 @@
                         <tr>
                             <td><span class="token-pill">{{ $appt->token_no ?? 'N/A' }}</span></td>
                             <td class="fw-semibold">{{ trim((optional($appt->patient)->first_name ?? '') . ' ' . (optional($appt->patient)->last_name ?? '')) ?: 'No Patient' }}</td>
+                           <td>{{ $appt->unit->unit_name ?? 'N/A' }}</td>
                             <td>{{ $appt->appointment_time ?? 'N/A' }}</td>
                             <td>
                                 <span class="badge bg-{{ $statusClass }}">
                                     {{ $appt->status === 'pending' ? 'Waiting' : ucfirst(str_replace('_', ' ', $appt->status ?? 'pending')) }}
                                 </span>
                             </td>
-                                                            @canany(['consultations-view', 'vitals-view'])
-
-                            <td class="text-end">
+                            @if($canOpenAppointment)
+                                <td class="text-end">
                                     <a href="{{ route('consultations.create', $appt->id) }}"
                                        class="btn btn-sm btn-gradient-primary {{ $disabled ? 'disabled' : '' }}"
                                        @if($disabled) aria-disabled="true" tabindex="-1" @endif>
-                                        Open
+                                        {{ $actionLabel }}
                                     </a>
-
-                            </td>
-                                                            @endcanany
+                                </td>
+                            @endif
 
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-5">No appointments in today's queue.</td>
+                            <td colspan="{{ $canOpenAppointment ? 6 : 5 }}" class="text-center text-muted py-5">No appointments in today's queue.</td>
                         </tr>
                     @endforelse
                 </tbody>

@@ -15,26 +15,33 @@ class AppointmentController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-          if(auth()->user()->hasRole('doctor')) {
+        abort_unless($request->user()?->can('appointments-view'), 403);
 
-        $appointments = Appointment::with(['patient', 'unit'])
-            ->where('unit_id', auth()->user()->unit_id)
+        $query = Appointment::with(['patient', 'unit']);
+
+        if ($request->user()->hasRole('Doctor')) {
+            $query->where('unit_id', $request->user()->unit_id);
+        } elseif ($request->filled('unit_id')) {
+            $query->where('unit_id', $request->unit_id);
+        }
+
+        if ($request->filled('appointment_date')) {
+            $query->whereDate('appointment_date', $request->appointment_date);
+        }
+
+        $appointments = $query
             ->latest()
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
-    } else {
-
-        $appointments = Appointment::with(['patient', 'unit'])
-            ->latest()
-            ->paginate(10);
-
-    }
         $patients = Patient::all();
-        $units  = Unit::all();
+        $units = $request->user()->hasRole('Doctor')
+            ? Unit::where('id', $request->user()->unit_id)->get()
+            : Unit::orderBy('unit_name')->get();
 
-    return view('appointments.index', compact('appointments','patients','units'));
+        return view('appointments.index', compact('appointments','patients','units'));
     }
 
     /**
@@ -111,6 +118,7 @@ class AppointmentController extends Controller
             }
 
             // Send SMS
+            
             // NotifyLKService::send($phone, $message);
 
             return redirect()->route('appointments.index')
@@ -177,9 +185,10 @@ class AppointmentController extends Controller
 
 
     // DOCTOR → ONLY OWN UNIT
-    if(auth()->user()->hasRole('doctor')) {
+    if(auth()->user()->hasRole('Doctor')) {
 
         $appointments = Appointment::with(['patient', 'unit'])
+            ->withCount('vitals')
 
             ->where('unit_id', auth()->user()->unit_id)
 
@@ -193,6 +202,7 @@ class AppointmentController extends Controller
 
         // ADMIN / RECEPTIONIST → ALL
         $appointments = Appointment::with(['patient', 'unit'])
+            ->withCount('vitals')
 
             ->whereDate('appointment_date', $today)
 

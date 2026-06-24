@@ -7,13 +7,41 @@
 @can('vitals-view')
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h2 class="mb-0">Vitals</h2>
+
+        
         <p class="text-muted">Recent vitals recorded from consultations.</p>
     </div>
 </div>
 
 <div class="card">
     <div class="card-body">
+        <form method="GET" action="{{ route('vitals.index') }}" class="row g-2 align-items-end mb-3">
+            <div class="col-md-6 col-lg-4">
+                <label for="patient-search" class="form-label">Patient Name</label>
+                <input
+                    type="text"
+                    id="patient-search"
+                    name="search"
+                    value="{{ $search }}"
+                    class="form-control"
+                    placeholder="Search patient name">
+            </div>
+
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">
+                    Search
+                </button>
+            </div>
+
+            @if($search !== '')
+                <div class="col-md-auto">
+                    <a href="{{ route('vitals.index') }}" class="btn btn-light">
+                        Clear
+                    </a>
+                </div>
+            @endif
+        </form>
+
         <div class="table-responsive">
             <table class="table table-hover">
                 <thead>
@@ -55,7 +83,7 @@
     <td colspan="5"
         class="text-center text-muted">
 
-        No vitals recorded.
+        {{ $search !== '' ? 'No vitals found for this patient name.' : 'No vitals recorded.' }}
 
     </td>
 
@@ -67,9 +95,11 @@
             </table>
         </div>
 
-        <div class="mt-3">
-{{ $vitals->links() }}
-        </div>
+        @if($vitals->hasPages())
+            <div class="d-flex justify-content-end mt-3">
+                {{ $vitals->onEachSide(1)->links('pagination::bootstrap-5') }}
+            </div>
+        @endif
     </div>
 </div>
 @endcan

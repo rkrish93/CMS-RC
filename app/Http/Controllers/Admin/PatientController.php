@@ -20,7 +20,7 @@ class PatientController extends Controller
 
         $search = $request->search;
 
-        if(auth()->user()->hasRole('doctor')) {
+        if(auth()->user()->hasRole('Doctor')) {
 
         $patients = Patient::whereHas('appointments', function ($query) {
 
@@ -136,7 +136,7 @@ class PatientController extends Controller
         $num = 1;
     }
 
-    $patientCode = 'CL-' . str_pad($num, 5, '0', STR_PAD_LEFT);
+    $patientCode = 'P' . str_pad($num, 5, '0', STR_PAD_LEFT);
 
     $phone = ltrim($request->phone, '0');
     $phone = '94' . $phone;

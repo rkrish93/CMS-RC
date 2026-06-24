@@ -107,7 +107,7 @@ $latestVitals = Vital::with('patient')
     {
         $user = auth()->user();
 
-        if (! $user->can('vitals-show') && ! $user->hasRole('Admin')) {
+        if (! $user->can('vitals-view') && ! $user->hasRole('Admin')) {
             abort(403);
         }
 

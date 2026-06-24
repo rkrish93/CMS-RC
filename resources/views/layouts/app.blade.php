@@ -681,7 +681,7 @@
                         </li>
                     @endcan
 
-                    @can('vitals-show')
+                    @can('vitals-view')
                         <li class="nav-item {{ request()->routeIs('vitals.index') ? 'active' : '' }}">
                             <a class="nav-link" href="{{ route('vitals.index') }}">
                                 <i class="mdi mdi-heart-pulse"></i>

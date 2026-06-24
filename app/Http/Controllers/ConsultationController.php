@@ -22,7 +22,19 @@ class ConsultationController extends Controller
      */
     public function create($appointment_id)
     {
+         $user = auth()->user();
+         abort_unless(
+             $user?->can('consultations-create') || $user?->can('vitals-create') || $user?->hasAnyRole(['Doctor', 'Admin']),
+             403
+         );
+
          $appointment = Appointment::with('patient')->findOrFail($appointment_id);
+
+         if ($user?->hasAnyRole(['Nurse', 'Mid wife']) && Vital::where('appointment_id', $appointment->id)->exists()) {
+            return redirect()
+                ->route('appointments.today')
+                ->with('error', 'Vitals already recorded for this appointment.');
+         }
 
          if($appointment->status == 'pending'){
         $appointment->update(['status' => 'in_progress']);
@@ -36,7 +48,14 @@ class ConsultationController extends Controller
 $latestVital = Vital::where('appointment_id', $appointment_id)
                     ->latest()
                     ->first();
-        return view('consultations.index', compact('appointment','history', 'latestVital'));
+                     $previousVitals = Vital::where(
+        'patient_id',
+        $appointment->patient_id
+    )
+    ->latest()
+    ->take(10)
+    ->get();
+        return view('consultations.index', compact('appointment','history', 'latestVital','previousVitals'));
     }
 
     /**
@@ -102,7 +121,7 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
 
             //  AUTO TOKEN (Unit + Date wise)
             $lastToken = Appointment::where('unit_id', $oldAppointment->unit_id)
-                            ->where('appointment_date', $request->next_visit_date)
+                            ->where('appointment_date', $request->next_visit)
                             ->max('token_no');
 
             $nextToken = $lastToken ? $lastToken + 1 : 1;
@@ -207,19 +226,25 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
             ->back()
             ->with('success', 'Vitals saved successfully');
 }
-public function indexVitals()
+public function indexVitals(Request $request)
 {
     abort_unless(auth()->user()?->can('vitals-view'), 403);
 
+    $search = trim((string) $request->input('search'));
+
     $vitals = Vital::with(['patient'])
-
+        ->when($search !== '', function ($query) use ($search) {
+            $query->whereHas('patient', function ($patientQuery) use ($search) {
+                $patientQuery
+                    ->where('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhereRaw("CONCAT(first_name, ' ', last_name) like ?", ["%{$search}%"]);
+            });
+        })
         ->latest()
+        ->paginate(10)
+        ->withQueryString();
 
-        ->paginate(10);
-
-    return view(
-        'vitals.index',
-        compact('vitals')
-    );
+    return view('vitals.index', compact('vitals', 'search'));
 }
 }

@@ -75,7 +75,7 @@
                     <div class="alert alert-info mb-0">
                         <small>
                             <i class="mdi mdi-information me-1"></i>
-                            <strong>Appointment time will be automatically assigned</strong> based on available slots (10-minute intervals)
+                            <strong>Appointment time will be automatically assigned</strong> based on available slots (15-minute intervals)
                         </small>
                     </div>
                 </div>

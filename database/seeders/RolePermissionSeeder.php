@@ -80,6 +80,7 @@ class RolePermissionSeeder extends Seeder
         $menuDashboardPermissions = [
             'dashboard-view',
             'vitals-view',
+             'vitals-create',
             'menu-users',
             'menu-patients',
             'menu-appointments',
@@ -123,9 +124,6 @@ class RolePermissionSeeder extends Seeder
         }
 
         // Create Roles
-        // Remove old Super Admin role if exists
-        Role::where('name', 'Super Admin')->delete();
-
         $adminRole = Role::firstOrCreate(['name' => 'Admin', 'guard_name' => 'web']);
         $doctorRole = Role::firstOrCreate(['name' => 'Doctor', 'guard_name' => 'web']);
         $nurseRole = Role::firstOrCreate(['name' => 'Nurse', 'guard_name' => 'web']);
@@ -141,6 +139,7 @@ class RolePermissionSeeder extends Seeder
         $doctorPermissions = Permission::whereIn('name', [
             'dashboard-view',
             'menu-patients',
+              'vitals-view',
             'menu-appointments',
             'menu-consultations',
             'menu-reports',
@@ -160,6 +159,8 @@ class RolePermissionSeeder extends Seeder
         // Assign specific permissions to Nurse
         $nursePermissions = Permission::whereIn('name', [
             'dashboard-view',
+              'vitals-view',
+    'vitals-create',
             'menu-patients',
             'menu-appointments',
             'menu-consultations',
@@ -176,6 +177,7 @@ class RolePermissionSeeder extends Seeder
 
         // Assign specific permissions to Receptionist
         $receptionistPermissions = Permission::whereIn('name', [
+            'dashboard-view',
             'menu-patients',
             'menu-appointments',
             'patients-view',
@@ -191,6 +193,8 @@ class RolePermissionSeeder extends Seeder
         $midwifePermissions = Permission::whereIn('name', [
             'dashboard-view',
             'menu-patients',
+                'vitals-view',
+    'vitals-create',
             'menu-appointments',
             'menu-consultations',
             'menu-reports',

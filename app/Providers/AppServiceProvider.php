@@ -30,7 +30,7 @@ class AppServiceProvider extends ServiceProvider
             if(auth()->check()) {
 
                 // DOCTOR → ONLY OWN UNIT
-                if(auth()->user()->hasRole('doctor')) {
+                if(auth()->user()->hasRole('Doctor')) {
 
                     $todayAppointments = Appointment::whereDate(
                             'appointment_date',
@@ -61,4 +61,3 @@ class AppServiceProvider extends ServiceProvider
 
     }
     }
-

@@ -67,7 +67,7 @@
 
             {{-- VITALS --}}
           {{-- VITALS FORM --}}
-@can('vitals-view')
+@can('vitals-create')
 
 <form method="POST" action="{{ route('vitals.store') }}">
 
@@ -90,48 +90,37 @@
                 <div class="col-md-3">
                     <label class="form-label">Blood Pressure</label>
 
-                    <input type="text"
-                           name="bp"
-                           class="form-control"
-                           placeholder="120/80"
-                            value="{{ $latestVital->bp ?? '' }}"
-                           @role('doctor') readonly @endrole>
+                 <input type="text"
+       name="bp"
+       class="form-control"
+       placeholder="120/80">
                 </div>
 
                 <div class="col-md-3">
                     <label class="form-label">Temperature</label>
 
-                    <input type="text"
-                           name="temp"
-                           class="form-control"
-                           placeholder="37.0"
-                                  value="{{ $latestVital->temp ?? '' }}"
-
-                           @role('doctor') readonly @endrole>
+                   <input type="text"
+       name="temp"
+       class="form-control"
+       placeholder="37.0">
                 </div>
 
                 <div class="col-md-3">
                     <label class="form-label">Diabetes</label>
 
-                    <input type="text"
-                           name="sugar"
-                           class="form-control"
-                           placeholder="mg/dL"
-                                  value="{{ $latestVital->sugar ?? '' }}"
-
-                           @role('doctor') readonly @endrole>
+                   <input type="text"
+       name="sugar"
+       class="form-control"
+       placeholder="mg/dL">
                 </div>
 
                 <div class="col-md-3">
                     <label class="form-label">Pulse</label>
 
-                    <input type="text"
-                           name="pulse"
-                           class="form-control"
-                           placeholder="72"
-                                  value="{{ $latestVital->pulse ?? '' }}"
-
-                           @role('doctor') readonly @endrole>
+                   <input type="text"
+       name="pulse"
+       class="form-control"
+       placeholder="72">
                 </div>
 
             </div>
@@ -142,7 +131,6 @@
 
 
 
-@unlessrole('doctor')
     <div class="mb-3 text-end">
 
         <button type="submit"
@@ -155,17 +143,60 @@
 
     </div>
 
-            @endunlessrole
-
 </form>
 @endcan
 
+@if($latestVital)
 
+<div class="card mb-3">
+    <div class="card-body">
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="card-title mb-0">
+        Latest Recorded Vitals
+    </h4>
+
+  <button type="button"
+        class="btn btn-sm btn-primary"
+        data-bs-toggle="modal"
+        data-bs-target="#vitalsHistoryModal">
+    Previous Vitals
+</button>
+</div>
+
+        <div class="row">
+
+            <div class="col-md-3">
+                <strong>BP</strong><br>
+                {{ $latestVital->bp ?? '-' }}
+            </div>
+
+            <div class="col-md-3">
+                <strong>Temperature</strong><br>
+                {{ $latestVital->temp ?? '-' }}
+            </div>
+
+            <div class="col-md-3">
+                <strong>Sugar</strong><br>
+                {{ $latestVital->sugar ?? '-' }}
+            </div>
+
+            <div class="col-md-3">
+                <strong>Pulse</strong><br>
+                {{ $latestVital->pulse ?? '-' }}
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+@endif
 
 
 
             {{-- DOCTOR ONLY SECTION --}}
-            @role('doctor')
+            @hasanyrole('Doctor|Admin')
 
             {{-- CLINICAL NOTES --}}
             <div class="card mb-3">
@@ -173,10 +204,19 @@
     @csrf
     <input type="hidden" name="appointment_id" value="{{ $appointment->id }}">
                 <div class="card-body">
+<div class="d-flex justify-content-between align-items-center mb-3">
 
-                    <h4 class="card-title mb-3">
-                        Clinical Notes
-                    </h4>
+    <h4 class="card-title mb-0">
+        Clinical Notes
+    </h4>
+<button type="button"
+        class="btn btn-sm btn-info"
+        data-bs-toggle="modal"
+        data-bs-target="#consultationHistoryModal">
+    Previous Consultations
+</button>
+
+</div>
 
                     <div class="row g-3">
 
@@ -294,22 +334,123 @@
 
             </div>
 
-            @endrole
+            @endhasanyrole
 
         </div>
 
     </div>
 
 </form>
+<div class="modal fade" id="consultationHistoryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
 
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    Previous Consultations
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal">
+                </button>
+            </div>
+
+            <div class="modal-body">
+
+                @forelse($history as $consultation)
+
+                    <div class="border rounded p-3 mb-2">
+
+                        <small class="text-muted">
+                            {{ $consultation->created_at->format('d-m-Y H:i') }}
+                        </small>
+
+                        <div class="mt-2">
+                            <strong>Diagnosis:</strong>
+                            {{ $consultation->diagnosis }}
+                        </div>
+
+                    </div>
+
+                @empty
+
+                    <p>No consultation history found</p>
+
+                @endforelse
+
+            </div>
+
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="vitalsHistoryModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    Previous Vitals
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal">
+                </button>
+            </div>
+
+            <div class="modal-body">
+
+                <table class="table table-bordered">
+
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>BP</th>
+                            <th>Temp</th>
+                            <th>Sugar</th>
+                            <th>Pulse</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                    @forelse($previousVitals as $vital)
+
+                        <tr>
+                            <td>{{ $vital->created_at->format('d-m-Y H:i') }}</td>
+                            <td>{{ $vital->bp }}</td>
+                            <td>{{ $vital->temp }}</td>
+                            <td>{{ $vital->sugar }}</td>
+                            <td>{{ $vital->pulse }}</td>
+                        </tr>
+
+                    @empty
+
+                        <tr>
+                            <td colspan="5" class="text-center">
+                                No vitals found
+                            </td>
+                        </tr>
+
+                    @endforelse
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+    </div>
+</div>
 @endsection
-
 
 
 @section('scripts')
 
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 
 const bookedDates = @json($bookedDates ?? []);
@@ -329,6 +470,9 @@ flatpickr('#next_visit_date', {
     ]
 
 });
+
+
+
 
 </script>
 

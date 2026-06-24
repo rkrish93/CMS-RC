@@ -36,6 +36,43 @@
             </a>
         </div>
 
+        <form method="GET" action="{{ route('appointments.index') }}" class="filter-panel mb-4">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4 col-lg-3">
+                    <label class="form-label" for="appointment_date">Date</label>
+                    <input type="date"
+                           class="form-control"
+                           id="appointment_date"
+                           name="appointment_date"
+                           value="{{ request('appointment_date') }}">
+                </div>
+
+                <div class="col-md-5 col-lg-4">
+                    <label class="form-label" for="unit_id">Unit</label>
+                    <select class="form-select"
+                            id="unit_id"
+                            name="unit_id"
+                            @if(auth()->user()->hasRole('Doctor')) disabled @endif>
+                        <option value="">All Units</option>
+                        @foreach($units as $unit)
+                            <option value="{{ $unit->id }}" @selected((string) request('unit_id') === (string) $unit->id || (auth()->user()->hasRole('Doctor') && auth()->user()->unit_id === $unit->id))>
+                                {{ $unit->unit_name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="col-md-3 col-lg-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-fill">
+                        <i class="mdi mdi-magnify me-1"></i> Search
+                    </button>
+                    <a href="{{ route('appointments.index') }}" class="btn btn-light">
+                        <i class="mdi mdi-refresh"></i>
+                    </a>
+                </div>
+            </div>
+        </form>
+
         <div class="table-responsive">
             <table class="table table-hover align-middle admin-table">
                 <thead>
@@ -184,6 +221,21 @@
         font-size: 12px;
         font-weight: 800;
     }
+
+    .filter-panel {
+        padding: 16px;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        background: #f8fafc;
+    }
+
+    .filter-panel .form-label {
+        color: #475467;
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
     .pagination {
     margin-bottom: 0 !important;
 }
