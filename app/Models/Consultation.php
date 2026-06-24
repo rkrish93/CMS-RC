@@ -18,6 +18,14 @@ class Consultation extends Model
         'clinical_notes',
         'icd_code',
         'diagnosis',
+        'prescription',
+        'prescribed_quantity',
+        'dispensed_quantity',
+        'dispensed_breakdown',
+        'pharmacy_note',
+        'notes',
+        'pharmacy_status',
+        'dispensed_at',
         'treatment_plan',
         'next_visit',
         'is_locked'
@@ -26,6 +34,11 @@ class Consultation extends Model
     protected $casts = [
         'vitals' => 'array',
         'symptoms' => 'array',
+        'prescribed_quantity' => 'integer',
+        'dispensed_quantity' => 'integer',
+        'dispensed_breakdown' => 'array',
+        'dispensed_at' => 'datetime',
+        'is_locked' => 'boolean',
     ];
 
     public function patient()

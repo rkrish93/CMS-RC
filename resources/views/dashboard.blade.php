@@ -271,9 +271,129 @@
                     @can('patients-view')
                         <a href="{{ route('patients.index') }}" class="btn btn-outline-success">Patient Records</a>
                     @endcan
+                    @can('pharmacy-stocks-view')
+                        <a href="{{ route('pharmacy-stocks.index') }}" class="btn btn-outline-primary">Manage Pharmacy Stock</a>
+                    @endcan
+                    @can('pharmacy-prescriptions-view')
+                        <a href="{{ route('pharmacy.prescriptions.index') }}" class="btn btn-outline-dark">Prescription View</a>
+                    @endcan
                 </div>
             </div>
         </div>
+
+        @can('pharmacy-dashboard-view')
+            <div class="card mb-4">
+                <div class="card-body">
+                    @if(($newPrescriptionNotificationCount ?? 0) > 0)
+                        <div class="alert alert-warning d-flex align-items-center justify-content-between mb-3">
+                            <div>
+                                <strong>Prescription Notification:</strong>
+                                {{ $newPrescriptionNotificationCount }} new doctor prescription(s) in the last 6 hours.
+                            </div>
+                            @can('pharmacy-prescriptions-view')
+                                <a href="{{ route('pharmacy.prescriptions.index') }}" class="btn btn-sm btn-dark">Open Prescriptions</a>
+                            @endcan
+                        </div>
+                    @endif
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded-3 border">
+                                <small class="text-muted">Total Stock Items</small>
+                                <div class="h3 mb-0">{{ $pharmacySummary['total_items'] ?? 0 }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded-3 border">
+                                <small class="text-muted">Low Stock Items</small>
+                                <div class="h3 mb-0 text-danger">{{ $pharmacySummary['low_stock'] ?? 0 }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded-3 border">
+                                <small class="text-muted">Today Prescriptions</small>
+                                <div class="h3 mb-0 text-primary">{{ $pharmacySummary['active_prescriptions'] ?? 0 }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-lg-6">
+                            <h6 class="mb-2">Low Stock Medicines</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Medicine</th>
+                                            <th>Qty</th>
+                                            <th>Reorder</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($lowStocks ?? [] as $stock)
+                                            <tr>
+                                                <td>{{ $stock->medicine_name }}</td>
+                                                <td>{{ $stock->quantity }}</td>
+                                                <td>{{ $stock->reorder_level }}</td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="3" class="text-center text-muted">No low-stock items.</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6">
+                            <h6 class="mb-2">Latest Prescriptions</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Patient Code</th>
+                                            <th>Doctor</th>
+                                            <th>Qty (P/G/R)</th>
+                                            <th>Status</th>
+                                            <th>Prescription</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($pendingPrescriptions ?? [] as $consult)
+                                            @php
+                                                $statusName = $consult->pharmacy_status ?? 'pending';
+                                                $isDispensed = $statusName === 'dispensed';
+                                                $prescribedQty = (int) ($consult->prescribed_quantity ?? 0);
+                                                $givenQty = (int) ($consult->dispensed_quantity ?? 0);
+                                                $remainingQty = $prescribedQty > 0 ? max($prescribedQty - $givenQty, 0) : 0;
+                                            @endphp
+                                            <tr>
+                                                <td>{{ $consult->created_at->format('Y-m-d') }}</td>
+                                                <td>{{ optional($consult->patient)->patient_code ?? 'N/A' }}</td>
+                                                <td>{{ optional($consult->doctor)->name ?? 'N/A' }}</td>
+                                                <td>{{ $prescribedQty > 0 ? $prescribedQty : '-' }}/{{ $givenQty }}/{{ $prescribedQty > 0 ? $remainingQty : '-' }}</td>
+                                                <td>
+                                                    <span class="badge bg-{{ $isDispensed ? 'success' : ($statusName === 'partial' ? 'info' : 'warning') }}">
+                                                        {{ ucfirst($statusName) }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ \Illuminate\Support\Str::limit($consult->prescription, 40) }}</td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted">No prescriptions recorded.</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endcan
     @elseif($user->hasRole('Receptionist') || $user->hasRole('Admin'))
         <div class="card mb-4">
             <div class="card-body">

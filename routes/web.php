@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PatientController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\PermissionGroupController;
+use App\Http\Controllers\Admin\PharmacyStockController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UnitController;
 use App\Http\Controllers\Admin\UserController;
@@ -65,6 +66,14 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('permission-groups',PermissionGroupController::class);
         Route::resource('permissions',PermissionController::class);
         Route::resource('roles',RoleController::class);
+        Route::resource('pharmacy-stocks', PharmacyStockController::class)
+            ->except(['show', 'create']);
+        Route::get('pharmacy-prescriptions', [PharmacyStockController::class, 'prescriptions'])
+            ->name('pharmacy.prescriptions.index');
+        Route::post('pharmacy-prescriptions/{consultation}/dispense', [PharmacyStockController::class, 'markDispensed'])
+            ->name('pharmacy.prescriptions.dispense');
+        Route::post('pharmacy-prescriptions/{consultation}/send-sms', [PharmacyStockController::class, 'sendPatientSms'])
+            ->name('pharmacy.prescriptions.send-sms');
 
 
         Route::get('consultation/{appointment}', [ConsultationController::class,'create'])

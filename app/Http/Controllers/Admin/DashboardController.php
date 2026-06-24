@@ -7,6 +7,7 @@ use App\Models\Appointment;
 use App\Models\Patient;
 use App\Models\Unit;
 use App\Models\Consultation;
+use App\Models\PharmacyStock;
 use App\Models\Vital;
 use Illuminate\Http\Request;
 
@@ -68,6 +69,28 @@ $latestVitals = Vital::with('patient')
 
     });
 
+        $lowStocks = PharmacyStock::query()
+            ->whereColumn('quantity', '<=', 'reorder_level')
+            ->where('is_active', true)
+            ->orderBy('quantity')
+            ->take(8)
+            ->get();
+
+        $pendingPrescriptions = Consultation::query()
+            ->with(['patient:id,patient_code,first_name,last_name', 'doctor:id,fname,lname'])
+            ->whereNotNull('prescription')
+            ->where('prescription', '!=', '')
+            ->latest()
+            ->take(8)
+            ->get();
+
+        $newPrescriptionNotificationCount = Consultation::query()
+            ->whereNotNull('prescription')
+            ->where('prescription', '!=', '')
+            ->where('pharmacy_status', 'pending')
+            ->where('created_at', '>=', now()->subHours(6))
+            ->count();
+
         return view('dashboard', [
             'patients' => Patient::count(),
             'todayAppointments' => Appointment::whereDate('appointment_date', today())->count(),
@@ -96,6 +119,18 @@ $latestVitals = Vital::with('patient')
                 'alerts' => $alerts,
             ],
             'latestVitals' => $latestVitals,
+            'pharmacySummary' => [
+                'total_items' => PharmacyStock::count(),
+                'low_stock' => PharmacyStock::whereColumn('quantity', '<=', 'reorder_level')->where('is_active', true)->count(),
+                'active_prescriptions' => Consultation::whereNotNull('prescription')
+                    ->where('prescription', '!=', '')
+                    ->whereIn('pharmacy_status', ['pending', 'partial'])
+                    ->whereDate('created_at', today())
+                    ->count(),
+            ],
+            'lowStocks' => $lowStocks,
+            'pendingPrescriptions' => $pendingPrescriptions,
+            'newPrescriptionNotificationCount' => $newPrescriptionNotificationCount,
         ]);
 
     }

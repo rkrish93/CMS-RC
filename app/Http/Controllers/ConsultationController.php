@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\Consultation;
 use App\Models\Vital;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class ConsultationController extends Controller
 {
@@ -63,6 +64,28 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
      */
     public function store(Request $request)
     {
+        $validated = $request->validate([
+            'appointment_id' => 'required|exists:appointments,id',
+            'diagnosis' => 'required|string',
+            'prescription' => 'nullable|string',
+            'prescribed_quantity' => 'nullable|integer|min:1',
+            'notes' => 'nullable|string',
+            'next_visit' => 'nullable|date|after_or_equal:today',
+        ]);
+
+        $prescriptionText = trim((string) ($validated['prescription'] ?? ''));
+        if ($prescriptionText !== '' && empty($validated['prescribed_quantity'])) {
+            $parsedItems = $this->parsePrescriptionItems($prescriptionText);
+
+            if (! empty($parsedItems)) {
+                $validated['prescribed_quantity'] = array_sum($parsedItems);
+            } else {
+                throw ValidationException::withMessages([
+                    'prescribed_quantity' => 'Enter Prescribed Quantity or use format: Panadol-60, VitaminC-50',
+                ]);
+            }
+        }
+
         $appointment = Appointment::findOrFail($request->appointment_id);
         // $request->validate([
         //     'diagnosis' => 'required',
@@ -86,8 +109,14 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
             'appointment_id' => $appointment->id,
             'patient_id' => $appointment->patient_id,
             'doctor_id' => auth()->id(),
-            'diagnosis' => $request->diagnosis,
-            'next_visit' => $request->next_visit,
+            'diagnosis' => $validated['diagnosis'],
+            'prescription' => $validated['prescription'] ?? null,
+            'prescribed_quantity' => $validated['prescribed_quantity'] ?? null,
+            'dispensed_quantity' => 0,
+            'dispensed_breakdown' => [],
+            'notes' => $validated['notes'] ?? null,
+            'pharmacy_status' => 'pending',
+            'next_visit' => $validated['next_visit'] ?? null,
         ]);
 
         // Appointment::where('id',$request->appointment_id)
@@ -150,6 +179,28 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
         return redirect()->route('appointments.today', compact('bookedDates'))
             ->with('success','Consultation saved & next appointment created');
 
+    }
+
+    private function parsePrescriptionItems(string $text): array
+    {
+        $items = [];
+        preg_match_all('/(?:^|[,;\n\r]|\s{1,})([A-Za-z0-9][A-Za-z0-9\s\-\/.\(\)]*?)\s*[-:]\s*(\d+)/u', $text, $matches, PREG_SET_ORDER);
+
+        foreach ($matches as $match) {
+            $name = trim((string) ($match[1] ?? ''));
+            $qty = (int) ($match[2] ?? 0);
+
+            if ($name !== '' && $qty > 0) {
+                $items[$this->normalizeMedicineName($name)] = $qty;
+            }
+        }
+
+        return $items;
+    }
+
+    private function normalizeMedicineName(string $name): string
+    {
+        return strtolower(preg_replace('/\s+/', '', trim($name)));
     }
 
     /**

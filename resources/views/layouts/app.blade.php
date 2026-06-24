@@ -7,9 +7,21 @@
     $patientsActive = request()->routeIs('patients.*');
     $appointmentsActive = request()->routeIs('appointments.*');
     $consultationsActive = request()->routeIs('consultations.*');
+    $pharmacyActive = request()->routeIs('pharmacy-stocks.*');
+    $pharmacyPrescriptionActive = request()->routeIs('pharmacy.prescriptions.*');
     $usersActive = request()->routeIs('users.*');
     $unitsActive = request()->routeIs('units.*');
     $settingsActive = request()->routeIs('roles.*') || request()->routeIs('permissions.*') || request()->routeIs('permission-groups.*');
+
+    $pharmacyPrescriptionNotifications = 0;
+    if ($currentUser && ($currentUser->can('pharmacy-prescriptions-view') || $currentUser->hasRole('Admin'))) {
+        $pharmacyPrescriptionNotifications = \App\Models\Consultation::query()
+            ->whereNotNull('prescription')
+            ->where('prescription', '!=', '')
+            ->whereIn('pharmacy_status', ['pending', 'partial'])
+            ->where('is_locked', false)
+            ->count();
+    }
 @endphp
 
 <!DOCTYPE html>
@@ -604,6 +616,13 @@
                     </a>
                 @endcan
 
+                @can('pharmacy-prescriptions-view')
+                    <a class="btn icon-button notification-link" href="{{ route('pharmacy.prescriptions.index') }}" aria-label="Pharmacy prescriptions">
+                        <i class="mdi mdi-pill"></i>
+                        <span class="notification-count">{{ $pharmacyPrescriptionNotifications }}</span>
+                    </a>
+                @endcan
+
                 <div class="dropdown">
                     <button class="btn user-menu-button dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         @if($currentUser && $currentUser->image)
@@ -719,6 +738,26 @@
                                 <span class="menu-title">Consultations</span>
                             </a>
                         </li>
+                    @endcan
+
+                    @can('menu-pharmacy')
+                        <li class="nav-item {{ $pharmacyActive ? 'active' : '' }}">
+                            <a class="nav-link {{ $pharmacyActive ? 'active' : '' }}" href="{{ route('pharmacy-stocks.index') }}">
+                                <i class="mdi mdi-pill"></i>
+                                <span class="menu-title">Pharmacy Stock</span>
+                                <span class="badge bg-danger ms-auto">{{ $pharmacyPrescriptionNotifications }}</span>
+                            </a>
+                        </li>
+
+                        @can('pharmacy-prescriptions-view')
+                            <li class="nav-item {{ $pharmacyPrescriptionActive ? 'active' : '' }}">
+                                <a class="nav-link {{ $pharmacyPrescriptionActive ? 'active' : '' }}" href="{{ route('pharmacy.prescriptions.index') }}">
+                                    <i class="mdi mdi-clipboard-text-outline"></i>
+                                    <span class="menu-title">Pharmacy Prescriptions</span>
+                                    <span class="badge bg-danger ms-auto">{{ $pharmacyPrescriptionNotifications }}</span>
+                                </a>
+                            </li>
+                        @endcan
                     @endcan
 
                     @canany(['menu-users', 'menu-units', 'menu-reports', 'menu-roles'])

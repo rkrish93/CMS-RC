@@ -243,10 +243,13 @@
                             <textarea name="prescription"
                                       rows="3"
                                       class="form-control"
-                                      placeholder="Medicine, dosage and instructions"></textarea>
+                                      placeholder="Format: Panadol-60, VitaminC-50"></textarea>
+
+                            <small class="text-muted">
+                                Use comma-separated format with quantity per medicine (example: Panadol-60, VitaminC-50).
+                            </small>
 
                         </div>
-
 
                         <div class="col-md-12">
 

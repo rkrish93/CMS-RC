@@ -23,6 +23,7 @@ class RolePermissionSeeder extends Seeder
             ['id' => 5, 'name' => 'Units Management'],
             ['id' => 6, 'name' => 'Reports & Analytics'],
             ['id' => 7, 'name' => 'Menu & Dashboard'],
+            ['id' => 8, 'name' => 'Pharmacy Management'],
         ];
 
         foreach ($groups as $group) {
@@ -87,6 +88,7 @@ class RolePermissionSeeder extends Seeder
             'menu-consultations',
             'menu-units',
             'menu-reports',
+            'menu-pharmacy',
             'menu-roles',
             'menu-permissions',
             'roles-view',
@@ -103,6 +105,16 @@ class RolePermissionSeeder extends Seeder
             'permission-groups-delete',
         ];
 
+        $pharmacyPermissions = [
+            'pharmacy-stocks-view',
+            'pharmacy-stocks-create',
+            'pharmacy-stocks-edit',
+            'pharmacy-stocks-delete',
+            'pharmacy-dashboard-view',
+            'pharmacy-prescriptions-view',
+            'pharmacy-prescriptions-dispense',
+        ];
+
         // Create all permissions
         $allPermissions = [
             1 => $userPermissions,
@@ -112,6 +124,7 @@ class RolePermissionSeeder extends Seeder
             5 => $unitPermissions,
             6 => $reportPermissions,
             7 => $menuDashboardPermissions,
+            8 => $pharmacyPermissions,
         ];
 
         foreach ($allPermissions as $groupId => $permissions) {
@@ -129,7 +142,7 @@ class RolePermissionSeeder extends Seeder
         $nurseRole = Role::firstOrCreate(['name' => 'Nurse', 'guard_name' => 'web']);
         $receptionist = Role::firstOrCreate(['name' => 'Receptionist', 'guard_name' => 'web']);
         $midwifeRole = Role::firstOrCreate(['name' => 'Mid wife', 'guard_name' => 'web']);
-        $phiRole = Role::firstOrCreate(['name' => 'PHI', 'guard_name' => 'web']);
+        // $phiRole = Role::firstOrCreate(['name' => 'PHI', 'guard_name' => 'web']);
         $pharmacistRole = Role::firstOrCreate(['name' => 'Pharmacist', 'guard_name' => 'web']);
 
         // Assign all permissions to Admin
@@ -209,22 +222,22 @@ class RolePermissionSeeder extends Seeder
         ])->get();
         $midwifeRole->syncPermissions($midwifePermissions);
 
-        // Assign specific permissions to PHI (Public Health Inspector)
-        $phiPermissions = Permission::whereIn('name', [
-            'dashboard-view',
-            'menu-patients',
-            'menu-appointments',
-            'menu-units',
-            'menu-reports',
-            'patients-view',
-            'patients-edit',
-            'appointments-view',
-            'units-view',
-            'reports-view',
-            'reports-export',
-            'analytics-view',
-        ])->get();
-        $phiRole->syncPermissions($phiPermissions);
+        // // Assign specific permissions to PHI (Public Health Inspector)
+        // $phiPermissions = Permission::whereIn('name', [
+        //     'dashboard-view',
+        //     'menu-patients',
+        //     'menu-appointments',
+        //     'menu-units',
+        //     'menu-reports',
+        //     'patients-view',
+        //     'patients-edit',
+        //     'appointments-view',
+        //     'units-view',
+        //     'reports-view',
+        //     'reports-export',
+        //     'analytics-view',
+        // ])->get();
+        // $phiRole->syncPermissions($phiPermissions);
 
         // Assign specific permissions to Pharmacist
         $pharmacistPermissions = Permission::whereIn('name', [
@@ -232,9 +245,16 @@ class RolePermissionSeeder extends Seeder
             'menu-patients',
             'menu-consultations',
             'menu-reports',
+            'menu-pharmacy',
             'patients-view',
             'consultations-view',
             'reports-view',
+            'pharmacy-dashboard-view',
+            'pharmacy-prescriptions-view',
+            'pharmacy-prescriptions-dispense',
+            'pharmacy-stocks-view',
+            'pharmacy-stocks-create',
+            'pharmacy-stocks-edit',
         ])->get();
         $pharmacistRole->syncPermissions($pharmacistPermissions);
     }
