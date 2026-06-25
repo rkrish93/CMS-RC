@@ -21,7 +21,9 @@ class AppointmentController extends Controller
 
         $query = Appointment::with(['patient', 'unit']);
 
-        if ($request->user()->hasRole('Doctor')) {
+        $unitScopedRoles = ['Doctor', 'Nurse', 'Mid wife'];
+
+        if ($request->user()->hasAnyRole($unitScopedRoles)) {
             $query->where('unit_id', $request->user()->unit_id);
         } elseif ($request->filled('unit_id')) {
             $query->where('unit_id', $request->unit_id);
@@ -37,7 +39,7 @@ class AppointmentController extends Controller
             ->withQueryString();
 
         $patients = Patient::all();
-        $units = $request->user()->hasRole('Doctor')
+        $units = $request->user()->hasAnyRole($unitScopedRoles)
             ? Unit::where('id', $request->user()->unit_id)->get()
             : Unit::orderBy('unit_name')->get();
 
@@ -173,6 +175,9 @@ class AppointmentController extends Controller
 {
     abort_unless(auth()->user()?->can('appointments-view'), 403);
 
+    $user = auth()->user();
+    $unitScopedRoles = ['Doctor', 'Nurse', 'Mid wife'];
+
     $today = now()->toDateString();
 
     // Auto cancel pending after 4 PM
@@ -184,15 +189,16 @@ class AppointmentController extends Controller
     }
 
 
-    // DOCTOR → ONLY OWN UNIT
-    if(auth()->user()->hasRole('Doctor')) {
+    // DOCTOR / NURSE / MID WIFE -> ONLY OWN UNIT
+    if ($user->hasAnyRole($unitScopedRoles)) {
 
         $appointments = Appointment::with(['patient', 'unit'])
             ->withCount('vitals')
 
-            ->where('unit_id', auth()->user()->unit_id)
+            ->where('unit_id', $user->unit_id)
 
             ->whereDate('appointment_date', $today)
+            ->whereNotIn('status', ['completed', 'cancelled'])
 
             ->orderBy('token_no')
 
@@ -200,11 +206,12 @@ class AppointmentController extends Controller
 
     } else {
 
-        // ADMIN / RECEPTIONIST → ALL
+        // ADMIN / RECEPTIONIST → ALL ACTIVE STATUSES (pending, in_progress, nurse_done)
         $appointments = Appointment::with(['patient', 'unit'])
             ->withCount('vitals')
 
             ->whereDate('appointment_date', $today)
+            ->whereNotIn('status', ['completed', 'cancelled'])
 
             ->orderBy('token_no')
 

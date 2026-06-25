@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Vital extends Model
 {
-   protected $fillable = [
+    protected $fillable = [
 
         'appointment_id',
         'patient_id',
@@ -15,6 +15,11 @@ class Vital extends Model
         'temp',
         'sugar',
         'pulse',
+        'weight',
+        'height',
+        'respiratory_rate',
+        'oxygen_saturation',
+        'bmi',
         'created_by',
 
     ];

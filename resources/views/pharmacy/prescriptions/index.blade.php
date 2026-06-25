@@ -18,7 +18,7 @@
             </div>
         @endif
 
-        <form method="GET" class="row g-2">
+        <form method="GET" class="row g-2 align-items-center">
             <div class="col-md-6">
                 <input type="text" name="search" class="form-control" value="{{ $search }}" placeholder="Search by patient code, name, or prescription text">
             </div>
@@ -30,8 +30,11 @@
                     <option value="dispensed" @selected(($status ?? '') === 'dispensed')>Dispensed</option>
                 </select>
             </div>
-            <div class="col-md-2">
-                <button class="btn btn-outline-primary w-100">Search</button>
+            <div class="col-md-2 d-grid">
+                <button class="btn btn-outline-primary">Search</button>
+            </div>
+            <div class="col-md-1 d-grid">
+                <a href="{{ route('pharmacy.prescriptions.index') }}" class="btn btn-outline-secondary">Reset</a>
             </div>
         </form>
     </div>
@@ -40,7 +43,7 @@
 <div class="card">
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-hover align-middle">
+            <table class="table table-hover table-sm align-middle prescription-table">
                 <thead>
                     <tr>
                         <th>Date</th>
@@ -91,20 +94,24 @@
                                 {{ trim((optional($item->patient)->first_name ?? '') . ' ' . (optional($item->patient)->last_name ?? '')) ?: 'N/A' }}
                             </td>
                             <td>{{ optional($item->doctor)->name ?? 'N/A' }}</td>
-                            <td style="min-width: 260px">{{ $item->prescription }}</td>
+                            <td class="prescription-cell" style="min-width: 260px">
+                                <div class="prescription-text">{{ $item->prescription }}</div>
+                            </td>
                             <td>
                                 {{ $prescribedQty > 0 ? $prescribedQty : '-' }}/{{ $givenQty }}/{{ $prescribedQty > 0 ? $remainingQty : '-' }}
                             </td>
                             <td style="min-width:260px">
                                 @if(count($items))
-                                    @foreach($items as $med)
-                                        <div>
-                                            <strong>{{ $med['name'] }}</strong>: {{ $med['prescribed'] }}/{{ $med['given'] }}/{{ $med['remaining'] }}
-                                            <small class="ms-1 {{ $med['stock'] > 0 ? 'text-muted' : 'text-danger fw-semibold' }}">
-                                                Stock: {{ $med['stock'] }}{{ $med['stock'] <= 0 ? ' (Out of stock)' : '' }}
-                                            </small>
-                                        </div>
-                                    @endforeach
+                                    <div class="d-flex flex-column gap-1">
+                                        @foreach($items as $med)
+                                            <div class="medicine-line">
+                                                <strong>{{ $med['name'] }}</strong>: {{ $med['prescribed'] }}/{{ $med['given'] }}/{{ $med['remaining'] }}
+                                                <small class="ms-1 {{ $med['stock'] > 0 ? 'text-muted' : 'text-danger fw-semibold' }}">
+                                                    Stock: {{ $med['stock'] }}{{ $med['stock'] <= 0 ? ' (Out of stock)' : '' }}
+                                                </small>
+                                            </div>
+                                        @endforeach
+                                    </div>
                                 @else
                                     <span class="text-muted">Use format Name-Qty</span>
                                 @endif
@@ -124,51 +131,54 @@
                             <td class="text-end">
                                 @if(! $isDispensed)
                                     @can('pharmacy-prescriptions-dispense')
-                                        <form action="{{ route('pharmacy.prescriptions.dispense', $item->id) }}" method="POST" class="d-inline-flex gap-1 align-items-center js-dispense-form">
-                                            @csrf
-                                            @if(count($items))
-                                                <select name="medicine_name"
-                                                        class="form-select form-select-sm js-medicine-select"
-                                                        style="width:180px"
-                                                        @disabled($isLocked)
-                                                        required>
-                                                    @foreach($items as $index => $med)
-                                                        @if($med['remaining'] > 0)
-                                                            <option value="{{ $med['name'] }}"
-                                                                    data-limit="{{ $med['dispense_limit'] }}"
-                                                                    @selected($index === 0)>
-                                                                {{ $med['name'] }} (R: {{ $med['remaining'] }}, S: {{ $med['stock'] }})
-                                                            </option>
-                                                        @endif
-                                                    @endforeach
-                                                </select>
-                                            @else
-                                                <input type="text"
-                                                       name="medicine_name"
-                                                       class="form-control form-control-sm"
-                                                       style="width:140px"
-                                                       placeholder="Tablet name"
+                                        <div class="d-inline-flex flex-column align-items-end gap-2 prescription-actions">
+                                            <form action="{{ route('pharmacy.prescriptions.dispense', $item->id) }}" method="POST" class="d-inline-flex gap-1 align-items-center js-dispense-form flex-wrap justify-content-end">
+                                                @csrf
+                                                @if(count($items))
+                                                    <select name="medicine_name"
+                                                            class="form-select form-select-sm js-medicine-select"
+                                                            style="width:180px"
+                                                            @disabled($isLocked)
+                                                            required>
+                                                        @foreach($items as $index => $med)
+                                                            @if($med['remaining'] > 0)
+                                                                <option value="{{ $med['name'] }}"
+                                                                        data-limit="{{ $med['dispense_limit'] }}"
+                                                                        @selected($index === 0)>
+                                                                    {{ $med['name'] }} (R: {{ $med['remaining'] }}, S: {{ $med['stock'] }})
+                                                                </option>
+                                                            @endif
+                                                        @endforeach
+                                                    </select>
+                                                @else
+                                                    <input type="text"
+                                                           name="medicine_name"
+                                                           class="form-control form-control-sm"
+                                                           style="width:140px"
+                                                           placeholder="Tablet name"
+                                                           @disabled($isLocked)
+                                                           required>
+                                                @endif
+                                                <input type="number"
+                                                       name="dispense_quantity"
+                                                       min="1"
+                                                       max="{{ $prescribedQty > 0 ? $remainingQty : 99999 }}"
+                                                       value="1"
+                                                       class="form-control form-control-sm js-dispense-qty"
                                                        @disabled($isLocked)
-                                                       required>
-                                            @endif
-                                            <input type="number"
-                                                   name="dispense_quantity"
-                                                   min="1"
-                                                   max="{{ $prescribedQty > 0 ? $remainingQty : 99999 }}"
-                                                   value="1"
-                                                   class="form-control form-control-sm js-dispense-qty"
-                                                   @disabled($isLocked)
-                                                   style="width:88px">
-                                            <button type="submit" class="btn btn-sm btn-success js-add-given-btn" @disabled($isLocked) title="{{ $isLocked ? 'Disabled: SMS already sent and prescription is locked.' : '' }}">Add Given</button>
-                                        </form>
+                                                       style="width:88px">
+                                                <button type="submit" class="btn btn-sm btn-success js-add-given-btn" @disabled($isLocked) title="{{ $isLocked ? 'Disabled: SMS already sent and prescription is locked.' : '' }}">Add Given</button>
+                                            </form>
 
-                                        <form action="{{ route('pharmacy.prescriptions.send-sms', $item->id) }}" method="POST" class="d-inline-flex ms-1 js-sms-form">
-                                            @csrf
-                                            <button type="submit" class="btn btn-sm btn-outline-primary js-send-sms-btn" @disabled($isLocked) title="{{ $isLocked ? 'Disabled: SMS already sent and prescription is locked.' : '' }}">Send SMS</button>
-                                        </form>
-                                        @if($isLocked)
-                                            <div class="mt-1 text-muted" style="font-size:12px;">This row is permanently locked after SMS.</div>
-                                        @endif
+                                            <form action="{{ route('pharmacy.prescriptions.send-sms', $item->id) }}" method="POST" class="d-inline-flex js-sms-form">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-outline-primary js-send-sms-btn" @disabled($isLocked) title="{{ $isLocked ? 'Disabled: SMS already sent and prescription is locked.' : '' }}">Send SMS</button>
+                                            </form>
+
+                                            @if($isLocked)
+                                                <div class="text-muted text-end" style="font-size:12px;">This row is permanently locked after SMS.</div>
+                                            @endif
+                                        </div>
                                     @endcan
                                 @endif
                             </td>
@@ -186,6 +196,34 @@
     </div>
 </div>
 @endsection
+
+@push('styles')
+<style>
+    .prescription-table td,
+    .prescription-table th {
+        vertical-align: top;
+    }
+
+    .prescription-text {
+        white-space: pre-wrap;
+        line-height: 1.35;
+    }
+
+    .medicine-line {
+        line-height: 1.3;
+    }
+
+    .prescription-actions {
+        min-width: 290px;
+    }
+
+    @media (max-width: 768px) {
+        .prescription-actions {
+            min-width: 220px;
+        }
+    }
+</style>
+@endpush
 
 @push('scripts')
 <script>

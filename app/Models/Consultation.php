@@ -18,6 +18,7 @@ class Consultation extends Model
         'clinical_notes',
         'icd_code',
         'diagnosis',
+        'prescription_items',
         'prescription',
         'prescribed_quantity',
         'dispensed_quantity',
@@ -34,6 +35,7 @@ class Consultation extends Model
     protected $casts = [
         'vitals' => 'array',
         'symptoms' => 'array',
+        'prescription_items' => 'array',
         'prescribed_quantity' => 'integer',
         'dispensed_quantity' => 'integer',
         'dispensed_breakdown' => 'array',

@@ -12,7 +12,14 @@
 <div class="dashboard-header d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4 gap-3 p-4 rounded-3 shadow-sm bg-white">
     <div>
         <h2 class="mb-1">Dashboard</h2>
-        <p class="text-muted mb-0">Welcome back, {{ $user->name }}. Role: {{ $user->getRoleNames()->first() ?? 'Unknown' }}</p>
+        <p class="text-muted mb-0">
+            Welcome back, {{ $user->name }}. Role: {{ $user->getRoleNames()->first() ?? 'Unknown' }}
+            @if($user->hasAnyRole(['Doctor', 'Nurse', 'Mid wife', 'Midwife']))
+                @if($user->unit)
+                    | Unit: <strong>{{ $user->unit->unit_name }}</strong>
+                @endif
+            @endif
+        </p>
     </div>
 
     <div>
@@ -52,6 +59,24 @@
                     </div>
                 </div>
             </div>
+        @endcan
+
+        @can('menu-users')
+            <div class="col-md-6 col-xl-3 grid-margin stretch-card">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <div>
+                            <p class="stat-label">Total Users</p>
+                            <h2 class="stat-value">{{ $users ?? 0 }}</h2>
+                        </div>
+                        <span class="stat-icon text-dark">
+                            <i class="mdi mdi-account-group"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+    
         @endcan
 
         @can('appointments-view')

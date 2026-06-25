@@ -9,6 +9,7 @@ use App\Models\Unit;
 use App\Models\Consultation;
 use App\Models\PharmacyStock;
 use App\Models\Vital;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller

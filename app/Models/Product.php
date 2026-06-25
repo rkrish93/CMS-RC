@@ -5,19 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class PharmacyStock extends Model
+class Product extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'product_id',
+        'product_code',
         'medicine_name',
         'generic_name',
-        'batch_no',
+        'description',
         'unit',
-        'quantity',
-        'reorder_level',
         'expiry_date',
+        'minimum_stock',
         'is_active',
     ];
 
@@ -26,8 +25,15 @@ class PharmacyStock extends Model
         'is_active' => 'boolean',
     ];
 
-    public function product()
+    public function stocks()
     {
-        return $this->belongsTo(Product::class);
+        return $this->hasMany(PharmacyStock::class);
+    }
+
+    public static function generateProductCode()
+    {
+        $latest = self::latest('id')->first();
+        $number = ($latest?->id ?? 0) + 1;
+        return 'PROD' . str_pad($number, 5, '0', STR_PAD_LEFT);
     }
 }

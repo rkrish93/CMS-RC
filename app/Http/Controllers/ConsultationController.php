@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Appointment;
 use App\Models\Consultation;
+use App\Models\Product;
 use App\Models\Vital;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -24,12 +25,17 @@ class ConsultationController extends Controller
     public function create($appointment_id)
     {
          $user = auth()->user();
+         $unitScopedRoles = ['Doctor', 'Nurse', 'Mid wife'];
          abort_unless(
              $user?->can('consultations-create') || $user?->can('vitals-create') || $user?->hasAnyRole(['Doctor', 'Admin']),
              403
          );
 
          $appointment = Appointment::with('patient')->findOrFail($appointment_id);
+
+         if ($user?->hasAnyRole($unitScopedRoles) && (int) $user->unit_id !== (int) $appointment->unit_id) {
+            abort(403);
+         }
 
          if ($user?->hasAnyRole(['Nurse', 'Mid wife']) && Vital::where('appointment_id', $appointment->id)->exists()) {
             return redirect()
@@ -41,11 +47,11 @@ class ConsultationController extends Controller
         $appointment->update(['status' => 'in_progress']);
         }
 
-
-        $history = Consultation::where('patient_id',$appointment->patient_id)
+        // Old medical history - all consultations
+        $oldConsultations = Consultation::where('patient_id',$appointment->patient_id)
                     ->latest()
-                    ->take(10)
                     ->get();
+        
 $latestVital = Vital::where('appointment_id', $appointment_id)
                     ->latest()
                     ->first();
@@ -56,7 +62,13 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
     ->latest()
     ->take(10)
     ->get();
-        return view('consultations.index', compact('appointment','history', 'latestVital','previousVitals'));
+        
+        $products = Product::query()
+            ->where('is_active', true)
+            ->orderBy('medicine_name')
+            ->get(['id', 'product_code', 'medicine_name', 'generic_name']);
+
+        return view('consultations.index', compact('appointment', 'oldConsultations', 'latestVital', 'previousVitals', 'products'));
     }
 
     /**
@@ -67,24 +79,63 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
         $validated = $request->validate([
             'appointment_id' => 'required|exists:appointments,id',
             'diagnosis' => 'required|string',
-            'prescription' => 'nullable|string',
-            'prescribed_quantity' => 'nullable|integer|min:1',
+            'symptoms' => 'nullable|string',
+            'prescription_items' => 'nullable|array',
+            'prescription_items.*.medicine_id' => 'nullable|exists:products,id',
+            'prescription_items.*.medicine_name' => 'nullable|string|max:255',
+            'prescription_items.*.duration' => 'nullable|string|max:100',
+            'prescription_items.*.dosage' => 'nullable|string|max:100',
             'notes' => 'nullable|string',
             'next_visit' => 'nullable|date|after_or_equal:today',
         ]);
 
-        $prescriptionText = trim((string) ($validated['prescription'] ?? ''));
-        if ($prescriptionText !== '' && empty($validated['prescribed_quantity'])) {
-            $parsedItems = $this->parsePrescriptionItems($prescriptionText);
+        $prescriptionItems = collect($validated['prescription_items'] ?? [])
+            ->filter(function ($item) {
+                return ! empty($item['medicine_id']) || ! empty($item['medicine_name']);
+            })
+            ->values()
+            ->map(function (array $item) {
+                $product = ! empty($item['medicine_id'])
+                    ? Product::find($item['medicine_id'])
+                    : null;
 
-            if (! empty($parsedItems)) {
-                $validated['prescribed_quantity'] = array_sum($parsedItems);
-            } else {
-                throw ValidationException::withMessages([
-                    'prescribed_quantity' => 'Enter Prescribed Quantity or use format: Panadol-60, VitaminC-50',
-                ]);
-            }
+                return [
+                    'medicine_id' => $product?->id,
+                    'product_code' => $product?->product_code,
+                    'medicine_name' => $product?->medicine_name ?? trim((string) ($item['medicine_name'] ?? '')),
+                    'generic_name' => $product?->generic_name,
+                    'duration' => trim((string) ($item['duration'] ?? '')),
+                    'dosage' => trim((string) ($item['dosage'] ?? '')),
+                ];
+            })
+            ->filter(function (array $item) {
+                return $item['medicine_name'] !== '';
+            })
+            ->all();
+
+        if (empty($prescriptionItems)) {
+            throw ValidationException::withMessages([
+                'prescription_items' => 'Add at least one medicine row.',
+            ]);
         }
+
+        $legacyPrescription = collect($prescriptionItems)
+            ->map(function (array $item) {
+                $parts = [$item['medicine_name']];
+
+                if ($item['dosage'] !== '') {
+                    $parts[] = $item['dosage'];
+                }
+
+                if ($item['duration'] !== '') {
+                    $parts[] = $item['duration'];
+                }
+
+                return implode(' | ', $parts);
+            })
+            ->implode(', ');
+
+        $validated['symptoms'] = array_values(array_filter(array_map('trim', explode(',', (string) ($validated['symptoms'] ?? '')))));
 
         $appointment = Appointment::findOrFail($request->appointment_id);
         // $request->validate([
@@ -110,8 +161,10 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
             'patient_id' => $appointment->patient_id,
             'doctor_id' => auth()->id(),
             'diagnosis' => $validated['diagnosis'],
-            'prescription' => $validated['prescription'] ?? null,
-            'prescribed_quantity' => $validated['prescribed_quantity'] ?? null,
+            'symptoms' => $validated['symptoms'] ?? null,
+            'prescription_items' => $prescriptionItems,
+            'prescription' => $legacyPrescription,
+            'prescribed_quantity' => count($prescriptionItems),
             'dispensed_quantity' => 0,
             'dispensed_breakdown' => [],
             'notes' => $validated['notes'] ?? null,
@@ -242,16 +295,35 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
 
         'bp' => 'nullable|string|max:20',
 
-        'temp' => 'nullable',
+        'temp' => 'nullable|numeric',
 
-        'sugar' => 'nullable',
+        'sugar' => 'nullable|numeric',
 
-        'pulse' => 'nullable',
+        'pulse' => 'nullable|integer',
+
+        'weight' => 'nullable|numeric',
+
+        'height' => 'nullable|numeric',
+
+        'respiratory_rate' => 'nullable|integer',
+
+        'oxygen_saturation' => 'nullable|numeric|min:0|max:100',
+
+        'bmi' => 'nullable|numeric',
 
     ]);
 
 
     $appointment = Appointment::findOrFail($request->appointment_id);
+
+    $weight = $request->filled('weight') ? (float) $request->weight : null;
+    $height = $request->filled('height') ? (float) $request->height : null;
+    $bmi = $request->filled('bmi') ? (float) $request->bmi : null;
+
+    if ($bmi === null && $weight !== null && $height !== null && $height > 0) {
+        $heightMeters = $height / 100;
+        $bmi = round($weight / ($heightMeters * $heightMeters), 1);
+    }
 
 
     Vital::create([
@@ -268,9 +340,28 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
 
         'pulse' => $request->pulse,
 
+        'weight' => $weight,
+
+        'height' => $height,
+
+        'respiratory_rate' => $request->respiratory_rate,
+
+        'oxygen_saturation' => $request->oxygen_saturation,
+
+        'bmi' => $bmi,
+
         'created_by' => auth()->id(),
 
     ]);
+
+    $designation = strtolower(trim((string) auth()->user()?->designation));
+    $isNurseWorkflow = auth()->user()?->hasAnyRole(['Nurse', 'Mid wife', 'Midwife'])
+        || in_array($designation, ['nurse', 'mid wife', 'midwife'], true);
+
+    if ($isNurseWorkflow
+        && ! in_array($appointment->status, ['completed', 'cancelled'], true)) {
+        $appointment->update(['status' => 'nurse_done']);
+    }
 
 
     return redirect()

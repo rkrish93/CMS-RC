@@ -100,12 +100,16 @@
                                     $statusClass = match($app->status) {
                                         'pending' => 'warning',
                                         'in_progress', 'in_Progress' => 'primary',
+                                        'nurse_done' => 'dark',
                                         'completed' => 'success',
                                         default => 'secondary',
                                     };
+                                    $statusLabel = $app->status === 'nurse_done'
+                                        ? 'Nurse Done'
+                                        : ucfirst(str_replace('_', ' ', $app->status ?? 'pending'));
                                 @endphp
                                 <span class="badge bg-{{ $statusClass }}">
-                                    {{ ucfirst(str_replace('_', ' ', $app->status ?? 'pending')) }}
+                                    {{ $statusLabel }}
                                 </span>
                             </td>
                         </tr>

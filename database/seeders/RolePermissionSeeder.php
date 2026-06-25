@@ -89,6 +89,7 @@ class RolePermissionSeeder extends Seeder
             'menu-units',
             'menu-reports',
             'menu-pharmacy',
+            'menu-products',
             'menu-roles',
             'menu-permissions',
             'roles-view',
@@ -115,6 +116,14 @@ class RolePermissionSeeder extends Seeder
             'pharmacy-prescriptions-dispense',
         ];
 
+        // Products Management Permissions
+        $productPermissions = [
+            'products-view',
+            'products-create',
+            'products-edit',
+            'products-delete',
+        ];
+
         // Create all permissions
         $allPermissions = [
             1 => $userPermissions,
@@ -125,6 +134,7 @@ class RolePermissionSeeder extends Seeder
             6 => $reportPermissions,
             7 => $menuDashboardPermissions,
             8 => $pharmacyPermissions,
+            9 => $productPermissions,
         ];
 
         foreach ($allPermissions as $groupId => $permissions) {
@@ -246,6 +256,7 @@ class RolePermissionSeeder extends Seeder
             'menu-consultations',
             'menu-reports',
             'menu-pharmacy',
+            'menu-products',
             'patients-view',
             'consultations-view',
             'reports-view',
@@ -255,6 +266,7 @@ class RolePermissionSeeder extends Seeder
             'pharmacy-stocks-view',
             'pharmacy-stocks-create',
             'pharmacy-stocks-edit',
+            'products-view',
         ])->get();
         $pharmacistRole->syncPermissions($pharmacistPermissions);
     }

@@ -27,19 +27,24 @@
     <div class="card-body">
         <form method="GET" class="row g-2 mb-3">
             <div class="col-md-5">
-                <input type="text" name="search" value="{{ $search }}" class="form-control" placeholder="Search medicine or batch">
+                <input type="text" name="search" value="{{ $search }}" class="form-control" placeholder="Search product, medicine, or batch">
             </div>
             <div class="col-md-2">
                 <button class="btn btn-outline-primary w-100">Search</button>
             </div>
         </form>
 
+        <div class="alert alert-info py-2 mb-3">
+            Select a product to auto-fill medicine name, generic name, and unit from the product master.
+        </div>
+
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead>
                     <tr>
-                        <th>Medicine</th>
+                        <th>Product</th>
                         <th>Generic</th>
+                        <th>Unit</th>
                         <th>Batch</th>
                         <th>Qty</th>
                         <th>Reorder</th>
@@ -51,12 +56,16 @@
                 <tbody>
                     @forelse($stocks as $stock)
                         <tr>
-                            <td>{{ $stock->medicine_name }}</td>
+                            <td>
+                                <div class="fw-semibold">{{ $stock->product?->product_code ?? '-' }}</div>
+                                <small class="text-muted">{{ $stock->medicine_name }}</small>
+                            </td>
                             <td>{{ $stock->generic_name ?? '-' }}</td>
+                            <td>{{ $stock->unit ?? '-' }}</td>
                             <td>{{ $stock->batch_no }}</td>
                             <td class="{{ $stock->quantity <= $stock->reorder_level ? 'text-danger fw-bold' : '' }}">{{ $stock->quantity }}</td>
                             <td>{{ $stock->reorder_level }}</td>
-                            <td>{{ optional($stock->expiry_date)->format('Y-m-d') ?? '-' }}</td>
+                            <td>{{ $stock->product?->expiry_date ? $stock->product->expiry_date->format('Y-m-d') : '-' }}</td>
                             <td>
                                 <span class="badge bg-{{ $stock->is_active ? 'success' : 'secondary' }}">
                                     {{ $stock->is_active ? 'Active' : 'Inactive' }}
@@ -103,7 +112,7 @@
                         </div>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4">No stock items found.</td>
+                            <td colspan="9" class="text-center text-muted py-4">No stock items found.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -148,6 +157,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const form = createModal.querySelector('form');
         if (form) {
             form.reset();
+
+            const productSelect = form.querySelector('select[name="product_id"]');
+            if (productSelect && productSelect.tomselect) {
+                productSelect.tomselect.clear(true);
+            }
         }
     });
 
@@ -163,6 +177,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 el.value = value;
             }
         };
+
+        const productSelect = form.querySelector('select[name="product_id"]');
+        if (productSelect && productSelect.tomselect) {
+            productSelect.tomselect.clear(true);
+        }
 
         setValue('medicine_name', '');
         setValue('generic_name', '');

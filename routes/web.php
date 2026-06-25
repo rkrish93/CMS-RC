@@ -1,13 +1,18 @@
 <?php
 
 use App\Http\Controllers\Admin\AuthController;
+use App\Http\Controllers\Admin\AppointmentReportController;
+use App\Http\Controllers\Admin\ConsultationReportController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PatientController;
+use App\Http\Controllers\Admin\PatientReportController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\PermissionGroupController;
 use App\Http\Controllers\Admin\PharmacyStockController;
+use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UnitController;
+use App\Http\Controllers\Admin\UserReportController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\ConsultationController;
@@ -56,8 +61,44 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('patients', PatientController::class);
         Route::get('patients-search', [PatientController::class,'ajaxSearch'])
                 ->name('patients.ajax.search');
+        Route::get('reports/patients', [PatientReportController::class, 'index'])
+            ->name('reports.patients.index');
+        Route::get('reports/patients/{patient}', [PatientReportController::class, 'show'])
+            ->name('reports.patients.show');
+        Route::get('reports/patients/{patient}/print', [PatientReportController::class, 'print'])
+            ->name('reports.patients.print');
+        Route::get('reports/patients/{patient}/pdf', [PatientReportController::class, 'pdf'])
+            ->name('reports.patients.pdf');
+        Route::get('reports/appointments', [AppointmentReportController::class, 'index'])
+            ->name('reports.appointments.index');
+        Route::get('reports/appointments/print', [AppointmentReportController::class, 'print'])
+            ->name('reports.appointments.print');
+        Route::get('reports/appointments/pdf', [AppointmentReportController::class, 'pdf'])
+            ->name('reports.appointments.pdf');
+        Route::get('reports/appointments/csv', [AppointmentReportController::class, 'csv'])
+            ->name('reports.appointments.csv');
+        Route::get('reports/consultations', [ConsultationReportController::class, 'index'])
+            ->name('reports.consultations.index');
+        Route::get('reports/consultations/print', [ConsultationReportController::class, 'print'])
+            ->name('reports.consultations.print');
+        Route::get('reports/consultations/pdf', [ConsultationReportController::class, 'pdf'])
+            ->name('reports.consultations.pdf');
+        Route::get('reports/consultations/csv', [ConsultationReportController::class, 'csv'])
+            ->name('reports.consultations.csv');
+        Route::get('reports/users', [UserReportController::class, 'index'])
+            ->name('reports.users.index');
+        Route::get('reports/users/print', [UserReportController::class, 'print'])
+            ->name('reports.users.print');
+        Route::get('reports/users/pdf', [UserReportController::class, 'pdf'])
+            ->name('reports.users.pdf');
+        Route::get('reports/users/csv', [UserReportController::class, 'csv'])
+            ->name('reports.users.csv');
 
         Route::resource('units', UnitController::class);
+
+        Route::resource('products', ProductController::class);
+        Route::get('products-search', [ProductController::class, 'search'])
+                ->name('products.search');
 
         Route::resource('appointments', AppointmentController::class);
         Route::get('search-patient', [AppointmentController::class, 'searchPatient'])

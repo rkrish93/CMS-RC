@@ -11,6 +11,7 @@
     $pharmacyPrescriptionActive = request()->routeIs('pharmacy.prescriptions.*');
     $usersActive = request()->routeIs('users.*');
     $unitsActive = request()->routeIs('units.*');
+    $reportsActive = request()->routeIs('reports.*');
     $settingsActive = request()->routeIs('roles.*') || request()->routeIs('permissions.*') || request()->routeIs('permission-groups.*');
 
     $pharmacyPrescriptionNotifications = 0;
@@ -710,6 +711,7 @@
                     @endcan
 
                     @can('menu-appointments')
+                        @unless(auth()->user()->hasAnyRole(['Nurse', 'Mid wife', 'Midwife']))
                         <li class="nav-item {{ $appointmentsActive ? 'active' : '' }}">
                             <a class="nav-link" data-bs-toggle="collapse" href="#appointmentsMenu" role="button" aria-expanded="{{ $appointmentsActive ? 'true' : 'false' }}" aria-controls="appointmentsMenu">
                                 <i class="mdi mdi-calendar-clock-outline"></i>
@@ -729,6 +731,7 @@
                                 </ul>
                             </div>
                         </li>
+                        @endunless
                     @endcan
 
                     @can('menu-consultations')
@@ -739,7 +742,23 @@
                             </a>
                         </li>
                     @endcan
-
+     @can('menu-products')
+                        <li class="nav-item {{ request()->routeIs('products.*') ? 'active' : '' }}">
+                            <a class="nav-link" data-bs-toggle="collapse" href="#productsMenu" role="button" aria-expanded="{{ request()->routeIs('products.*') ? 'true' : 'false' }}" aria-controls="productsMenu">
+                                <i class="mdi mdi-pill"></i>
+                                <span class="menu-title">Products</span>
+                                <i class="mdi mdi-chevron-down menu-arrow"></i>
+                            </a>
+                            <div class="collapse {{ request()->routeIs('products.*') ? 'show' : '' }}" id="productsMenu">
+                                <ul class="nav sub-menu">
+                                    <li class="nav-item"><a class="nav-link {{ request()->routeIs('products.index') ? 'active' : '' }}" href="{{ route('products.index') }}">All Products</a></li>
+                                    @can('products-create')
+                                        <li class="nav-item"><a class="nav-link {{ request()->routeIs('products.create') ? 'active' : '' }}" href="{{ route('products.create') }}">Add Product</a></li>
+                                    @endcan
+                                </ul>
+                            </div>
+                        </li>
+                    @endcan
                     @can('menu-pharmacy')
                         <li class="nav-item {{ $pharmacyActive ? 'active' : '' }}">
                             <a class="nav-link {{ $pharmacyActive ? 'active' : '' }}" href="{{ route('pharmacy-stocks.index') }}">
@@ -759,6 +778,8 @@
                             </li>
                         @endcan
                     @endcan
+
+               
 
                     @canany(['menu-users', 'menu-units', 'menu-reports', 'menu-roles'])
 
@@ -795,11 +816,22 @@
                         @endcan
 
                         @can('menu-reports')
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('dashboard') }}">
+                            <li class="nav-item {{ $reportsActive ? 'active' : '' }}">
+                                <a class="nav-link" data-bs-toggle="collapse" href="#reportsMenu" role="button" aria-expanded="{{ $reportsActive ? 'true' : 'false' }}" aria-controls="reportsMenu">
                                     <i class="mdi mdi-chart-line"></i>
                                     <span class="menu-title">Reports</span>
+                                    <i class="mdi mdi-chevron-down menu-arrow"></i>
                                 </a>
+                                <div class="collapse {{ $reportsActive ? 'show' : '' }}" id="reportsMenu">
+                                    <ul class="nav sub-menu">
+                                        @can('reports-view')
+                                            <li class="nav-item"><a class="nav-link {{ request()->routeIs('reports.patients.*') ? 'active' : '' }}" href="{{ route('reports.patients.index') }}">Patient Reports</a></li>
+                                            <li class="nav-item"><a class="nav-link {{ request()->routeIs('reports.appointments.*') ? 'active' : '' }}" href="{{ route('reports.appointments.index') }}">Appointment Reports</a></li>
+                                            <li class="nav-item"><a class="nav-link {{ request()->routeIs('reports.consultations.*') ? 'active' : '' }}" href="{{ route('reports.consultations.index') }}">Consultation Reports</a></li>
+                                            <li class="nav-item"><a class="nav-link {{ request()->routeIs('reports.users.*') ? 'active' : '' }}" href="{{ route('reports.users.index') }}">User Reports</a></li>
+                                        @endcan
+                                    </ul>
+                                </div>
                             </li>
                         @endcan
 

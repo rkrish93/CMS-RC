@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Consultation;
 use App\Models\PharmacyStock;
+use App\Models\Product;
 use App\Services\NotifyLKService;
 use Illuminate\Http\Request;
 
@@ -382,16 +383,27 @@ class PharmacyStockController extends Controller
         $search = trim((string) $request->input('search'));
 
         $stocks = PharmacyStock::query()
+            ->with('product:id,product_code,medicine_name,generic_name,unit,expiry_date')
             ->when($search !== '', function ($query) use ($search) {
                 $query->where('medicine_name', 'like', "%{$search}%")
                     ->orWhere('generic_name', 'like', "%{$search}%")
-                    ->orWhere('batch_no', 'like', "%{$search}%");
+                    ->orWhere('batch_no', 'like', "%{$search}%")
+                    ->orWhereHas('product', function ($productQuery) use ($search) {
+                        $productQuery->where('product_code', 'like', "%{$search}%")
+                            ->orWhere('medicine_name', 'like', "%{$search}%")
+                            ->orWhere('generic_name', 'like', "%{$search}%");
+                    });
             })
             ->latest()
             ->paginate(15)
             ->withQueryString();
 
-        return view('pharmacy.stocks.index', compact('stocks', 'search'));
+        $products = Product::query()
+            ->where('is_active', true)
+            ->orderBy('medicine_name')
+            ->get(['id', 'product_code', 'medicine_name', 'generic_name', 'unit', 'expiry_date']);
+
+        return view('pharmacy.stocks.index', compact('stocks', 'search', 'products'));
     }
 
     public function store(Request $request)
@@ -399,16 +411,19 @@ class PharmacyStockController extends Controller
         abort_unless(auth()->user()?->can('pharmacy-stocks-create') || auth()->user()?->hasRole('Admin'), 403);
 
         $validated = $request->validate([
-            'medicine_name' => 'required|string|max:150',
-            'generic_name' => 'nullable|string|max:150',
+            'product_id' => 'required|exists:products,id',
             'batch_no' => 'required|string|max:100',
-            'unit' => 'nullable|string|max:50',
             'quantity' => 'required|integer|min:0',
             'reorder_level' => 'required|integer|min:0',
             'expiry_date' => 'nullable|date',
             'is_active' => 'nullable|boolean',
         ]);
 
+        $product = Product::findOrFail($validated['product_id']);
+
+        $validated['medicine_name'] = $product->medicine_name;
+        $validated['generic_name'] = $product->generic_name;
+        $validated['unit'] = $product->unit;
         $validated['is_active'] = $request->boolean('is_active', true);
 
         PharmacyStock::create($validated);
@@ -423,16 +438,19 @@ class PharmacyStockController extends Controller
         $stock = PharmacyStock::findOrFail($id);
 
         $validated = $request->validate([
-            'medicine_name' => 'required|string|max:150',
-            'generic_name' => 'nullable|string|max:150',
+            'product_id' => 'required|exists:products,id',
             'batch_no' => 'required|string|max:100',
-            'unit' => 'nullable|string|max:50',
             'quantity' => 'required|integer|min:0',
             'reorder_level' => 'required|integer|min:0',
             'expiry_date' => 'nullable|date',
             'is_active' => 'nullable|boolean',
         ]);
 
+        $product = Product::findOrFail($validated['product_id']);
+
+        $validated['medicine_name'] = $product->medicine_name;
+        $validated['generic_name'] = $product->generic_name;
+        $validated['unit'] = $product->unit;
         $validated['is_active'] = $request->boolean('is_active');
 
         $stock->update($validated);
