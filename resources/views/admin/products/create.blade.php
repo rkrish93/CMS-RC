@@ -39,14 +39,6 @@
                             @enderror
                         </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">Expiry Date</label>
-                            <input type="date" name="expiry_date" value="{{ old('expiry_date') }}" class="form-control">
-                            @error('expiry_date')
-                                <div class="text-danger small mt-1">{{ $message }}</div>
-                            @enderror
-                        </div>
-
                         <div class="col-md-12">
                             <label class="form-label">Medicine Name *</label>
                             <input type="text" name="medicine_name" value="{{ old('medicine_name') }}" class="form-control" placeholder="e.g. Paracetamol" required>
@@ -67,14 +59,6 @@
                             <label class="form-label">Description</label>
                             <textarea name="description" rows="3" class="form-control" placeholder="Product description">{{ old('description') }}</textarea>
                             @error('description')
-                                <div class="text-danger small mt-1">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        <div class="col-md-12">
-                            <label class="form-label">Minimum Stock Level *</label>
-                            <input type="number" name="minimum_stock" value="{{ old('minimum_stock', 10) }}" class="form-control" min="1" required>
-                            @error('minimum_stock')
                                 <div class="text-danger small mt-1">{{ $message }}</div>
                             @enderror
                         </div>

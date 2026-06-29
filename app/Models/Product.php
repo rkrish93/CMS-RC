@@ -15,13 +15,10 @@ class Product extends Model
         'generic_name',
         'description',
         'unit',
-        'expiry_date',
-        'minimum_stock',
         'is_active',
     ];
 
     protected $casts = [
-        'expiry_date' => 'date',
         'is_active' => 'boolean',
     ];
 

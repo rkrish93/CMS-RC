@@ -65,7 +65,7 @@
                             <td>{{ $stock->batch_no }}</td>
                             <td class="{{ $stock->quantity <= $stock->reorder_level ? 'text-danger fw-bold' : '' }}">{{ $stock->quantity }}</td>
                             <td>{{ $stock->reorder_level }}</td>
-                            <td>{{ $stock->product?->expiry_date ? $stock->product->expiry_date->format('Y-m-d') : '-' }}</td>
+                            <td>{{ $stock->expiry_date ? $stock->expiry_date->format('Y-m-d') : '-' }}</td>
                             <td>
                                 <span class="badge bg-{{ $stock->is_active ? 'success' : 'secondary' }}">
                                     {{ $stock->is_active ? 'Active' : 'Inactive' }}

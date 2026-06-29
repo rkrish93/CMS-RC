@@ -54,8 +54,6 @@ class ProductController extends Controller
             'generic_name' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'unit' => 'required|string',
-            'expiry_date' => 'nullable|date',
-            'minimum_stock' => 'required|integer|min:1',
             'is_active' => 'boolean',
         ]);
 
@@ -98,8 +96,6 @@ class ProductController extends Controller
             'generic_name' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'unit' => 'required|string',
-            'expiry_date' => 'nullable|date',
-            'minimum_stock' => 'required|integer|min:1',
             'is_active' => 'boolean',
         ]);
 

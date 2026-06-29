@@ -47,8 +47,6 @@
                         <th>Medicine Name</th>
                         <th>Generic Name</th>
                         <th>Unit</th>
-                        <th>Expiry Date</th>
-                        <th>Min Stock</th>
                         <th>Status</th>
                         <th class="text-end">Action</th>
                     </tr>
@@ -60,8 +58,6 @@
                             <td class="fw-semibold">{{ $product->medicine_name }}</td>
                             <td>{{ $product->generic_name ?? '-' }}</td>
                             <td>{{ ucfirst($product->unit) }}</td>
-                            <td>{{ $product->expiry_date ? $product->expiry_date->format('Y-m-d') : '-' }}</td>
-                            <td>{{ $product->minimum_stock }}</td>
                             <td>
                                 <span class="badge bg-{{ $product->is_active ? 'success' : 'secondary' }}">
                                     {{ $product->is_active ? 'Active' : 'Inactive' }}
@@ -86,7 +82,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4">No products found.</td>
+                            <td colspan="6" class="text-center text-muted py-4">No products found.</td>
                         </tr>
                     @endforelse
                 </tbody>
