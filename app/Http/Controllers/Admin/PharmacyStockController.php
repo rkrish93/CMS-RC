@@ -8,6 +8,7 @@ use App\Models\PharmacyStock;
 use App\Models\Product;
 use App\Services\NotifyLKService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class PharmacyStockController extends Controller
 {
@@ -25,38 +26,53 @@ class PharmacyStockController extends Controller
             return $redirect->with('success', 'Prescription already locked after SMS.');
         }
 
-        $phone = trim((string) optional($record->patient)->phone);
+        $phone = $this->resolvePatientPhone($record);
         if ($phone === '') {
-            return $redirect->with('error', 'Patient phone number is missing.');
+            return $redirect->with('error', 'Patient phone number is missing or invalid.');
         }
 
-        $items = $this->parsePrescriptionItems((string) ($record->prescription ?? ''));
+        $items = $this->getPrescriptionItemsWithNames($record);
+        if (empty($items)) {
+            return $redirect->with('error', 'No prescription items found for this consultation.');
+        }
+
+        $metaByMedicine = $this->getPrescriptionMetaByMedicine($record);
         $dispensed = is_array($record->dispensed_breakdown) ? $record->dispensed_breakdown : [];
 
         $stockMap = $this->buildStockMap();
         $parts = [];
 
-        foreach ($items as $normalized => $prescribedQty) {
+        foreach ($items as $normalized => $itemData) {
+            $prescribedQty = (int) ($itemData['qty'] ?? 0);
+            $displayName = (string) ($itemData['name'] ?? $normalized);
+
             $given = (int) ($dispensed[$normalized] ?? 0);
-            $remaining = max((int) $prescribedQty - $given, 0);
+            $remaining = max($prescribedQty - $given, 0);
 
             if ($remaining <= 0) {
                 continue;
             }
 
             $stock = (int) ($stockMap[$normalized] ?? 0);
-            $parts[] = ucfirst($normalized) . " R{$remaining} S{$stock}";
+            $detailSuffix = $this->formatDoseDurationDetails($metaByMedicine[$normalized] ?? []);
+
+            if ($stock <= 0) {
+                $parts[] = "{$displayName}{$detailSuffix}: not available (need {$remaining})";
+                continue;
+            }
+
+            if ($stock < $remaining) {
+                $parts[] = "{$displayName}{$detailSuffix}: need {$remaining}, available {$stock}";
+            }
         }
 
         if (empty($parts)) {
-            $fallbackRemaining = max((int) ($record->prescribed_quantity ?? 0) - (int) ($record->dispensed_quantity ?? 0), 0);
-            if ($fallbackRemaining <= 0) {
-                return $redirect->with('success', 'Prescription already completed. No SMS needed.');
-            }
-            $parts[] = "Remaining {$fallbackRemaining}";
+            return $redirect->with('success', 'No shortage medicines found. SMS not sent.');
         }
 
-        $message = 'CMS-RC Pharmacy update: ' . implode('; ', array_slice($parts, 0, 4)) . '. Please visit pharmacy.';
+        $message = 'CMS-RC Pharmacy: Some prescribed medicines are currently unavailable. Prescription details - '
+            . implode('; ', array_slice($parts, 0, 4))
+            . '. Please contact pharmacy.';
 
         $sent = $this->dispatchSms($phone, $message);
 
@@ -65,10 +81,10 @@ class PharmacyStockController extends Controller
                 'is_locked' => true,
             ]);
 
-            return $redirect->with('success', 'Patient SMS sent successfully.');
+            return $redirect->with('success', 'Shortage SMS sent to patient via NotifyLK successfully.');
         }
 
-        return $redirect->with('error', 'SMS sending failed. Check NotifyLK settings.');
+        return $redirect->with('error', 'NotifyLK SMS sending failed. Check NotifyLK settings.');
     }
 
     public function prescriptions(Request $request)
@@ -83,8 +99,12 @@ class PharmacyStockController extends Controller
 
         $prescriptions = Consultation::query()
             ->with(['patient:id,patient_code,first_name,last_name', 'doctor:id,fname,lname'])
-            ->whereNotNull('prescription')
-            ->where('prescription', '!=', '')
+            ->where(function ($query) {
+                $query->where(function ($q) {
+                    $q->whereNotNull('prescription')
+                        ->where('prescription', '!=', '');
+                })->orWhereNotNull('prescription_items');
+            })
             ->when(in_array($status, ['pending', 'partial', 'dispensed']), function ($query) use ($status) {
                 $query->where('pharmacy_status', $status);
             })
@@ -101,8 +121,12 @@ class PharmacyStockController extends Controller
             ->withQueryString();
 
         $newPrescriptionCount = Consultation::query()
-            ->whereNotNull('prescription')
-            ->where('prescription', '!=', '')
+            ->where(function ($query) {
+                $query->where(function ($q) {
+                    $q->whereNotNull('prescription')
+                        ->where('prescription', '!=', '');
+                })->orWhereNotNull('prescription_items');
+            })
             ->where('pharmacy_status', 'pending')
             ->where('is_locked', false)
             ->where('created_at', '>=', now()->subHours(6))
@@ -110,8 +134,7 @@ class PharmacyStockController extends Controller
 
         $medicineKeys = [];
         foreach ($prescriptions->items() as $consultation) {
-            $parsed = $this->parsePrescriptionItems((string) ($consultation->prescription ?? ''));
-            foreach (array_keys($parsed) as $key) {
+            foreach (array_keys($this->getPrescriptionItemsWithNames($consultation)) as $key) {
                 $medicineKeys[$key] = true;
             }
         }
@@ -148,9 +171,12 @@ class PharmacyStockController extends Controller
         );
 
         $validated = $request->validate([
-            'medicine_name' => 'required|string|max:150',
-            'dispense_quantity' => 'required|integer|min:1',
+            'medicine_name' => 'nullable|string|max:150',
+            'dispense_quantity' => 'nullable|integer|min:1',
             'pharmacy_note' => 'nullable|string',
+            'medicines' => 'nullable|array',
+            'medicines.*.medicine_name' => 'required_with:medicines|string|max:150',
+            'medicines.*.dispense_quantity' => 'nullable|integer|min:0',
         ]);
 
         $record = Consultation::with('patient')->findOrFail($consultation);
@@ -159,12 +185,91 @@ class PharmacyStockController extends Controller
             return back()->with('error', 'Prescription is locked after SMS. Add Given is disabled.');
         }
 
-        $normalizedMedicine = $this->normalizeMedicineName($validated['medicine_name']);
-        $prescriptionItems = $this->parsePrescriptionItems((string) ($record->prescription ?? ''));
+        $entries = [];
+
+        if (is_array($validated['medicines'] ?? null)) {
+            foreach ($validated['medicines'] as $entry) {
+                $name = trim((string) ($entry['medicine_name'] ?? ''));
+                $qty = (int) ($entry['dispense_quantity'] ?? 0);
+
+                if ($name !== '' && $qty > 0) {
+                    $entries[] = [
+                        'medicine_name' => $name,
+                        'dispense_quantity' => $qty,
+                    ];
+                }
+            }
+        }
+
+        if (empty($entries) && ! empty($validated['medicine_name']) && ! empty($validated['dispense_quantity'])) {
+            $entries[] = [
+                'medicine_name' => (string) $validated['medicine_name'],
+                'dispense_quantity' => (int) $validated['dispense_quantity'],
+            ];
+        }
+
+        if (empty($entries)) {
+            return back()->with('error', 'Please enter at least one medicine quantity greater than zero.');
+        }
+
+        $successMessages = [];
+        $errorMessages = [];
+        $pharmacyNote = trim((string) ($validated['pharmacy_note'] ?? ''));
+
+        foreach ($entries as $index => $entry) {
+            $result = $this->dispenseSingleMedicine(
+                $record,
+                (string) $entry['medicine_name'],
+                (int) $entry['dispense_quantity'],
+                $index === 0 ? $pharmacyNote : ''
+            );
+
+            if ((bool) ($result['ok'] ?? false)) {
+                $successMessages[] = (string) ($result['message'] ?? 'Saved.');
+                /** @var Consultation $record */
+                $record = $result['record'];
+            } else {
+                $errorMessages[] = (string) ($result['message'] ?? 'Failed to save medicine.');
+            }
+        }
+
+        if (empty($successMessages)) {
+            return back()->with('error', $errorMessages[0] ?? 'Unable to save given medicines.');
+        }
+
+        $record = $record->refresh();
+
+        $summary = count($successMessages) . ' medicine item(s) saved.';
+
+        if (($record->pharmacy_status ?? 'pending') === 'dispensed') {
+            $summary .= ' Status changed to Dispensed.';
+        } elseif (($record->pharmacy_status ?? 'pending') === 'partial') {
+            $summary .= ' Status changed to Partial. Use Send Shortage SMS if needed.';
+        }
+
+        if (! empty($errorMessages)) {
+            $summary .= ' Some items failed: ' . implode(' | ', array_slice($errorMessages, 0, 2));
+        }
+
+        return back()->with('success', $summary);
+    }
+
+    private function dispenseSingleMedicine(Consultation $record, string $medicineName, int $requestedQuantity, string $pharmacyNote = ''): array
+    {
+        $medicineName = trim($medicineName);
+        if ($medicineName === '' || $requestedQuantity <= 0) {
+            return ['ok' => false, 'message' => 'Invalid medicine or quantity.'];
+        }
+
+        $normalizedMedicine = $this->normalizeMedicineName($medicineName);
+        $prescriptionItems = [];
+        foreach ($this->getPrescriptionItemsWithNames($record) as $key => $item) {
+            $prescriptionItems[$key] = (int) ($item['qty'] ?? 0);
+        }
         $prescribedForMedicine = $prescriptionItems[$normalizedMedicine] ?? null;
 
         if (! empty($prescriptionItems) && $prescribedForMedicine === null) {
-            return back()->with('error', "{$validated['medicine_name']} is not in this prescription list.");
+            return ['ok' => false, 'message' => "{$medicineName} is not in this prescription list."];
         }
 
         $dispensedBreakdown = is_array($record->dispensed_breakdown) ? $record->dispensed_breakdown : [];
@@ -172,42 +277,42 @@ class PharmacyStockController extends Controller
 
         $stock = PharmacyStock::query()
             ->where('is_active', true)
-            ->where(function ($query) use ($validated) {
-                $query->whereRaw('LOWER(medicine_name) = ?', [strtolower($validated['medicine_name'])])
-                    ->orWhereRaw('LOWER(generic_name) = ?', [strtolower($validated['medicine_name'])])
-                    ->orWhere('medicine_name', 'like', '%' . $validated['medicine_name'] . '%')
-                    ->orWhere('generic_name', 'like', '%' . $validated['medicine_name'] . '%');
+            ->where(function ($query) use ($medicineName) {
+                $query->whereRaw('LOWER(medicine_name) = ?', [strtolower($medicineName)])
+                    ->orWhereRaw('LOWER(generic_name) = ?', [strtolower($medicineName)])
+                    ->orWhere('medicine_name', 'like', '%' . $medicineName . '%')
+                    ->orWhere('generic_name', 'like', '%' . $medicineName . '%');
             })
             ->orderBy('expiry_date')
             ->first();
 
         if (! $stock) {
-            $remainingRequested = $prescribedForMedicine ?? (int) $validated['dispense_quantity'];
+            $remainingRequested = $prescribedForMedicine ?? $requestedQuantity;
             $sent = $this->sendShortageSms(
                 $record,
-                $validated['medicine_name'],
+                $medicineName,
                 $remainingRequested,
                 0,
                 $remainingRequested,
                 0
             );
 
-            return back()->with('error', "Medicine not found in stock: {$validated['medicine_name']}. " . ($sent ? 'Patient SMS sent via NotifyLK.' : 'SMS failed.'));
+            return ['ok' => false, 'message' => "Medicine not found in stock: {$medicineName}. " . ($sent ? 'Patient SMS sent via NotifyLK.' : 'SMS failed.')];
         }
 
         $availableStock = (int) $stock->quantity;
         if ($availableStock <= 0) {
-            $requested = $prescribedForMedicine ?? (int) $validated['dispense_quantity'];
+            $requested = $prescribedForMedicine ?? $requestedQuantity;
             $sent = $this->sendShortageSms(
                 $record,
-                $validated['medicine_name'],
+                $medicineName,
                 $requested,
                 0,
                 $requested,
                 0
             );
 
-            return back()->with('error', "Out of stock for {$validated['medicine_name']}. " . ($sent ? 'Patient SMS sent via NotifyLK.' : 'SMS failed.'));
+            return ['ok' => false, 'message' => "Out of stock for {$medicineName}. " . ($sent ? 'Patient SMS sent via NotifyLK.' : 'SMS failed.')];
         }
 
         $prescribed = (int) ($record->prescribed_quantity ?? 0);
@@ -218,24 +323,23 @@ class PharmacyStockController extends Controller
         } else {
             $remainingPrescription = $prescribed > 0
                 ? max($prescribed - $alreadyDispensed, 0)
-                : (int) $validated['dispense_quantity'];
+                : $requestedQuantity;
         }
 
         if ($remainingPrescription <= 0) {
-            return back()->with('error', 'Prescription already completed.');
+            return ['ok' => false, 'message' => "Prescription already completed for {$medicineName}."];
         }
 
-        $requestedQuantity = (int) $validated['dispense_quantity'];
         $dispenseNow = min($requestedQuantity, $availableStock, $remainingPrescription);
         $dispensedBreakdown[$normalizedMedicine] = $alreadyDispensedForMedicine + $dispenseNow;
         $newTotalDispensed = array_sum(array_map('intval', $dispensedBreakdown));
 
         if ($prescribed > 0 && $newTotalDispensed > $prescribed) {
-            return back()->with('error', 'Given quantity cannot exceed prescribed quantity.');
+            return ['ok' => false, 'message' => 'Given quantity cannot exceed prescribed quantity.'];
         }
 
         if ($dispenseNow <= 0) {
-            return back()->with('error', 'Unable to dispense with current stock and prescription balance.');
+            return ['ok' => false, 'message' => 'Unable to dispense with current stock and prescription balance.'];
         }
 
         $totalPrescribed = $prescribed;
@@ -252,11 +356,21 @@ class PharmacyStockController extends Controller
             'quantity' => max($availableStock - $dispenseNow, 0),
         ]);
 
+        $noteParts = [];
+        $existingNote = trim((string) ($record->pharmacy_note ?? ''));
+        if ($existingNote !== '') {
+            $noteParts[] = $existingNote;
+        }
+        if (trim($pharmacyNote) !== '') {
+            $noteParts[] = trim($pharmacyNote);
+        }
+        $noteParts[] = "Medicine: {$stock->medicine_name}; Given now: {$dispenseNow}";
+
         $record->update([
             'prescribed_quantity' => $totalPrescribed > 0 ? $totalPrescribed : $newTotalDispensed,
             'dispensed_quantity' => $newTotalDispensed,
             'dispensed_breakdown' => $dispensedBreakdown,
-            'pharmacy_note' => trim(($validated['pharmacy_note'] ?? $record->pharmacy_note ?? '') . "\nMedicine: {$stock->medicine_name}; Given now: {$dispenseNow}"),
+            'pharmacy_note' => trim(implode("\n", $noteParts)),
             'pharmacy_status' => $status,
             'dispensed_at' => $status === 'dispensed' ? now() : null,
         ]);
@@ -279,10 +393,18 @@ class PharmacyStockController extends Controller
         }
 
         if ($status === 'dispensed') {
-            return back()->with('success', 'Prescription fully dispensed.');
+            return [
+                'ok' => true,
+                'record' => $record->refresh(),
+                'message' => 'Prescription fully dispensed.',
+            ];
         }
 
-        return back()->with('success', "Partial dispense saved for {$stock->medicine_name} ({$dispenseNow} given). Remaining: {$remainingForMedicine}.");
+        return [
+            'ok' => true,
+            'record' => $record->refresh(),
+            'message' => "Partial dispense saved for {$stock->medicine_name} ({$dispenseNow} given). Remaining: {$remainingForMedicine}.",
+        ];
     }
 
     private function parsePrescriptionItems(string $text): array
@@ -295,11 +417,109 @@ class PharmacyStockController extends Controller
             $qty = (int) ($match[2] ?? 0);
 
             if ($name !== '' && $qty > 0) {
-                $items[$this->normalizeMedicineName($name)] = $qty;
+                $normalized = $this->normalizeMedicineName($name);
+                $items[$normalized] = (int) ($items[$normalized] ?? 0) + $qty;
             }
         }
 
         return $items;
+    }
+
+    private function parsePrescriptionItemsWithNames(string $text): array
+    {
+        $items = [];
+        preg_match_all('/(?:^|[,;\n\r]|\s{1,})([A-Za-z0-9][A-Za-z0-9\s\-\/\.\(\)]*?)\s*[-:]\s*(\d+)/u', $text, $matches, PREG_SET_ORDER);
+
+        foreach ($matches as $match) {
+            $name = trim((string) ($match[1] ?? ''));
+            $qty = (int) ($match[2] ?? 0);
+
+            if ($name === '' || $qty <= 0) {
+                continue;
+            }
+
+            $normalized = $this->normalizeMedicineName($name);
+            $existingQty = (int) (($items[$normalized]['qty'] ?? 0));
+
+            $items[$normalized] = [
+                'name' => $items[$normalized]['name'] ?? $name,
+                'qty' => $existingQty + $qty,
+            ];
+        }
+
+        return $items;
+    }
+
+    private function getPrescriptionItemsWithNames(Consultation $record): array
+    {
+        $prescriptionRows = is_array($record->prescription_items ?? null) ? $record->prescription_items : [];
+        $items = [];
+
+        if (! empty($prescriptionRows)) {
+            foreach ($prescriptionRows as $row) {
+                $name = trim((string) ($row['medicine_name'] ?? ''));
+                if ($name === '') {
+                    continue;
+                }
+
+                $normalized = $this->normalizeMedicineName($name);
+                $items[$normalized] = [
+                    'name' => $items[$normalized]['name'] ?? $name,
+                    'qty' => (int) (($items[$normalized]['qty'] ?? 0) + 1),
+                ];
+            }
+
+            return $items;
+        }
+
+        return $this->parsePrescriptionItemsWithNames((string) ($record->prescription ?? ''));
+    }
+
+    private function sendShortageSummarySms(Consultation $record): bool
+    {
+        $phone = $this->resolvePatientPhone($record);
+        if ($phone === '') {
+            return false;
+        }
+
+        $items = $this->getPrescriptionItemsWithNames($record);
+        $metaByMedicine = $this->getPrescriptionMetaByMedicine($record);
+        $dispensed = is_array($record->dispensed_breakdown) ? $record->dispensed_breakdown : [];
+        $stockMap = $this->buildStockMap();
+
+        $parts = [];
+        foreach ($items as $normalized => $itemData) {
+            $prescribedQty = (int) ($itemData['qty'] ?? 0);
+            $displayName = (string) ($itemData['name'] ?? $normalized);
+
+            $given = (int) ($dispensed[$normalized] ?? 0);
+            $remaining = max($prescribedQty - $given, 0);
+
+            if ($remaining <= 0) {
+                continue;
+            }
+
+            $stock = (int) ($stockMap[$normalized] ?? 0);
+            $detailSuffix = $this->formatDoseDurationDetails($metaByMedicine[$normalized] ?? []);
+            if ($stock <= 0) {
+                $parts[] = "{$displayName}{$detailSuffix}: not available (need {$remaining})";
+                continue;
+            }
+
+            if ($stock < $remaining) {
+                $parts[] = "{$displayName}{$detailSuffix}: need {$remaining}, available {$stock}";
+            }
+        }
+
+        if (empty($parts)) {
+            return false;
+        }
+
+        $message = 'CMS-RC Pharmacy: Some prescribed medicines are currently unavailable. Prescription details - '
+            . implode('; ', array_slice($parts, 0, 4))
+            . '. Please contact pharmacy.';
+
+        return $this->dispatchSms($phone, $message);
     }
 
     private function normalizeMedicineName(string $name): string
@@ -316,14 +536,116 @@ class PharmacyStockController extends Controller
         int $availableStock
     ): bool
     {
-        $phone = trim((string) optional($record->patient)->phone);
+        $phone = $this->resolvePatientPhone($record);
         if ($phone === '') {
             return false;
         }
 
-        $message = "CMS-RC Pharmacy update: {$medicineName}. Requested {$requested} tablets, available {$availableStock}, given {$givenNow}, remaining {$remaining}. Please contact pharmacy.";
+        $normalizedMedicine = $this->normalizeMedicineName($medicineName);
+        $metaByMedicine = $this->getPrescriptionMetaByMedicine($record);
+        $detailSuffix = $this->formatDoseDurationDetails($metaByMedicine[$normalizedMedicine] ?? []);
+
+        $message = "CMS-RC Pharmacy update: {$medicineName}{$detailSuffix}. Requested {$requested} tablets, available {$availableStock}, given {$givenNow}, remaining {$remaining}. Please contact pharmacy.";
 
         return $this->dispatchSms($phone, $message);
+    }
+
+    private function getPrescriptionMetaByMedicine(Consultation $record): array
+    {
+        $rows = is_array($record->prescription_items ?? null) ? $record->prescription_items : [];
+        $meta = [];
+
+        foreach ($rows as $row) {
+            $name = trim((string) ($row['medicine_name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+
+            $normalized = $this->normalizeMedicineName($name);
+            if (! isset($meta[$normalized])) {
+                $meta[$normalized] = [
+                    'dosage' => [],
+                    'duration' => [],
+                ];
+            }
+
+            $dosage = trim((string) ($row['dosage'] ?? ''));
+            if ($dosage !== '') {
+                $meta[$normalized]['dosage'][$dosage] = true;
+            }
+
+            $duration = trim((string) ($row['duration'] ?? ''));
+            if ($duration !== '') {
+                $meta[$normalized]['duration'][$duration] = true;
+            }
+        }
+
+        foreach ($meta as $key => $item) {
+            $meta[$key] = [
+                'dosage' => implode(', ', array_keys($item['dosage'] ?? [])),
+                'duration' => implode(', ', array_keys($item['duration'] ?? [])),
+            ];
+        }
+
+        return $meta;
+    }
+
+    private function formatDoseDurationDetails(array $meta): string
+    {
+        $dosage = trim((string) ($meta['dosage'] ?? ''));
+        $duration = trim((string) ($meta['duration'] ?? ''));
+
+        $parts = [];
+        if ($dosage !== '') {
+            $parts[] = "dosage: {$dosage}";
+        }
+
+        if ($duration !== '') {
+            $parts[] = "duration: {$duration}";
+        }
+
+        if (empty($parts)) {
+            return '';
+        }
+
+        return ' (' . implode(', ', $parts) . ')';
+    }
+
+    private function resolvePatientPhone(Consultation $record): string
+    {
+        $rawPhone = trim((string) optional($record->patient)->phone);
+
+        return $this->normalizeSriLankaPhone($rawPhone);
+    }
+
+    private function normalizeSriLankaPhone(string $phone): string
+    {
+        if ($phone === '') {
+            return '';
+        }
+
+        $digits = preg_replace('/\D+/', '', $phone) ?? '';
+        if ($digits === '') {
+            return '';
+        }
+
+        if (str_starts_with($digits, '0094') && strlen($digits) === 13) {
+            $digits = substr($digits, 2);
+        }
+
+        if (str_starts_with($digits, '94') && strlen($digits) === 11) {
+            return $digits;
+        }
+
+        if (str_starts_with($digits, '0') && strlen($digits) === 10) {
+            return '94' . substr($digits, 1);
+        }
+
+        if (strlen($digits) === 9) {
+            return '94' . $digits;
+        }
+
+        return '';
     }
 
     private function dispatchSms(string $phone, string $message): bool
@@ -332,6 +654,11 @@ class PharmacyStockController extends Controller
             $response = NotifyLKService::send($phone, $message);
 
             if (! $response->successful()) {
+                Log::warning('NotifyLK SMS failed with non-success HTTP status.', [
+                    'phone' => $phone,
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
                 return false;
             }
 
@@ -339,11 +666,24 @@ class PharmacyStockController extends Controller
             if (is_array($json) && array_key_exists('status', $json)) {
                 $status = strtolower(trim((string) $json['status']));
 
-                return in_array($status, ['success', 'ok', '1', 'true'], true);
+                $sent = in_array($status, ['success', 'ok', '1', 'true'], true);
+                if (! $sent) {
+                    Log::warning('NotifyLK SMS failed with unsuccessful response status.', [
+                        'phone' => $phone,
+                        'notify_status' => $json['status'] ?? null,
+                        'response' => $json,
+                    ]);
+                }
+
+                return $sent;
             }
 
             return true;
         } catch (\Throwable $e) {
+            Log::error('NotifyLK SMS exception.', [
+                'phone' => $phone,
+                'error' => $e->getMessage(),
+            ]);
             return false;
         }
     }

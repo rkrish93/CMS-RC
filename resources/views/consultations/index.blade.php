@@ -56,6 +56,64 @@
                     <i class="mdi mdi-eye me-1"></i> View Full Profile
                 </a>
                 @endif
+
+                <div class="mt-4">
+                    <h5 class="mb-3">Medical History</h5>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="min-width: 120px;">Date</th>
+                                    <th style="min-width: 160px;">Diagnosis</th>
+                                    <th>Symptoms</th>
+                                    <th style="min-width: 220px;">Prescription</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($oldConsultations as $consultation)
+                                    <tr>
+                                        <td>
+                                            <small class="text-muted d-block">{{ $consultation->created_at->format('d M Y') }}</small>
+                                            <small>{{ $consultation->created_at->format('H:i') }}</small>
+                                        </td>
+                                        <td>{{ $consultation->diagnosis ?? '-' }}</td>
+                                        <td>
+                                            @if(!empty($consultation->symptoms))
+                                                {{ is_array($consultation->symptoms) ? implode(', ', $consultation->symptoms) : $consultation->symptoms }}
+                                            @else
+                                                -
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if(!empty($consultation->prescription_items))
+                                                <ul class="mb-0 ps-3 small">
+                                                    @foreach($consultation->prescription_items as $item)
+                                                        <li>
+                                                            {{ $item['medicine_name'] ?? 'Medicine' }}
+                                                            @if(!empty($item['dosage']))
+                                                                - {{ $item['dosage'] }}
+                                                            @endif
+                                                            @if(!empty($item['duration']))
+                                                                - {{ $item['duration'] }}
+                                                            @endif
+                                                        </li>
+                                                    @endforeach
+                                                </ul>
+                                            @else
+                                                -
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-3">No medical history found.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -277,81 +335,6 @@
         </div>
 
         @endif
-
-        @php
-            $currentUser = auth()->user();
-            $designation = strtolower(trim((string) ($currentUser->designation ?? '')));
-            $canViewMedicalHistory = $currentUser?->can('vitals-create')
-                || $currentUser?->hasAnyRole(['Doctor', 'Admin'])
-                || $currentUser?->hasAnyRole(['Nurse', 'Mid wife', 'Midwife'])
-                || in_array($designation, ['nurse', 'mid wife', 'midwife', 'staff nurse'], true);
-        @endphp
-
-        @if($canViewMedicalHistory)
-            <div class="card mb-3">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h4 class="card-title mb-0">Medical History</h4>
-                    </div>
-
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover align-middle mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="min-width: 140px;">Date</th>
-                                    <th style="min-width: 180px;">Diagnosis</th>
-                                    <th>Symptoms</th>
-                                    <th style="min-width: 260px;">Prescription</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($oldConsultations as $consultation)
-                                    <tr>
-                                        <td>
-                                            <small class="text-muted d-block">{{ $consultation->created_at->format('d M Y') }}</small>
-                                            <small>{{ $consultation->created_at->format('H:i') }}</small>
-                                        </td>
-                                        <td>{{ $consultation->diagnosis ?? '-' }}</td>
-                                        <td>
-                                            @if(!empty($consultation->symptoms))
-                                                {{ is_array($consultation->symptoms) ? implode(', ', $consultation->symptoms) : $consultation->symptoms }}
-                                            @else
-                                                -
-                                            @endif
-                                        </td>
-                                        <td>
-                                            @if(!empty($consultation->prescription_items))
-                                                <ul class="mb-0 ps-3 small">
-                                                    @foreach($consultation->prescription_items as $item)
-                                                        <li>
-                                                            {{ $item['medicine_name'] ?? 'Medicine' }}
-                                                            @if(!empty($item['dosage']))
-                                                                - {{ $item['dosage'] }}
-                                                            @endif
-                                                            @if(!empty($item['duration']))
-                                                                - {{ $item['duration'] }}
-                                                            @endif
-                                                        </li>
-                                                    @endforeach
-                                                </ul>
-                                            @else
-                                                -
-                                            @endif
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="4" class="text-center text-muted py-3">No medical history found.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        @endif
-
-
 
         {{-- DOCTOR ONLY SECTION --}}
         @hasanyrole('Doctor|Admin')
@@ -620,101 +603,6 @@
 </div>
 
 @endsection
-
-@push('scripts')
-
-<script>
-    let medicineRowCount = 1;
-
-    document.getElementById('addMedicineRowBtn')?.addEventListener('click', function() {
-
-        const tbody = document.getElementById('medicineTableBody');
-
-        const newRow = document.createElement('tr');
-
-        newRow.classList.add('medicine-row');
-
-        newRow.innerHTML = `
-
-        <td>
-
-            <select name="prescription_items[${medicineRowCount}][medicine_id]" class="form-select medicine-select">
-
-                <option value="">Select medicine...</option>
-
-                @foreach($products as $product)
-
-                    <option value="{{ $product->id }}">
-
-                        {{ $product->product_code }} - {{ $product->medicine_name }}{{ $product->generic_name ? ' (' . $product->generic_name . ')' : '' }}
-
-                    </option>
-
-                @endforeach
-
-            </select>
-
-        </td>
-
-        <td>
-
-            <input type="text" name="prescription_items[${medicineRowCount}][dosage]" class="form-control" placeholder="1 tablet twice daily">
-
-        </td>
-
-        <td>
-
-            <input type="text" name="prescription_items[${medicineRowCount}][duration]" class="form-control" placeholder="5 days">
-
-        </td>
-
-        <td class="text-center">
-
-            <button type="button" class="btn btn-sm btn-outline-danger js-remove-medicine-row">&times;</button>
-
-        </td>
-
-    `;
-
-        tbody.appendChild(newRow);
-
-        medicineRowCount++;
-
-        updateRemoveButtons();
-
-    });
-
-    function updateRemoveButtons() {
-
-        const rows = document.querySelectorAll('.medicine-row');
-
-        rows.forEach(row => {
-
-            const btn = row.querySelector('.js-remove-medicine-row');
-
-            btn.disabled = rows.length === 1;
-
-            btn.onclick = function() {
-
-                row.remove();
-
-                updateRemoveButtons();
-
-            };
-
-        });
-
-    }
-
-    updateRemoveButtons();
-</script>
-
-@endpush
-</div>
-</div>
-</div>
-
-
 @section('scripts')
 
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -849,6 +737,8 @@
 
 
 @push('styles')
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css">
 
 <style>
     .patient-badge {
