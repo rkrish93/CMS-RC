@@ -103,6 +103,14 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('appointments', AppointmentController::class);
         Route::get('search-patient', [AppointmentController::class, 'searchPatient'])
                 ->name('search.patient');
+        Route::get('appointments/{appointment}/qr-pass', [AppointmentController::class, 'qrPass'])
+            ->name('appointments.qr-pass');
+        Route::post('appointments/{appointment}/no-show', [AppointmentController::class, 'markNoShow'])
+            ->name('appointments.no-show');
+        Route::get('patient-flow/scanner', [AppointmentController::class, 'qrScanner'])
+            ->name('patient.flow.scanner');
+        Route::get('patient-flow/scan/{appointment}', [AppointmentController::class, 'scanPatientFlow'])
+            ->name('patient.flow.scan');
 
         Route::resource('permission-groups',PermissionGroupController::class);
         Route::resource('permissions',PermissionController::class);

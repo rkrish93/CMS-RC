@@ -29,10 +29,12 @@ class AppointmentReportController extends Controller
         $summary = [
             'total' => (clone $query)->count(),
             'pending' => (clone $query)->where('status', 'pending')->count(),
+            'checked_in' => (clone $query)->where('status', 'checked_in')->count(),
             'in_progress' => (clone $query)->where('status', 'in_progress')->count(),
             'nurse_done' => (clone $query)->where('status', 'nurse_done')->count(),
             'completed' => (clone $query)->where('status', 'completed')->count(),
             'cancelled' => (clone $query)->where('status', 'cancelled')->count(),
+            'no_show' => (clone $query)->where('status', 'no_show')->count(),
         ];
 
         $units = Unit::query()->orderBy('unit_name')->get(['id', 'unit_name']);
@@ -168,7 +170,7 @@ class AppointmentReportController extends Controller
 
     private function buildFilteredQuery(array $filters)
     {
-        $allowedStatuses = ['pending', 'in_progress', 'nurse_done', 'completed', 'cancelled'];
+        $allowedStatuses = ['pending', 'checked_in', 'in_progress', 'nurse_done', 'completed', 'cancelled', 'no_show'];
 
         return Appointment::query()
             ->with([

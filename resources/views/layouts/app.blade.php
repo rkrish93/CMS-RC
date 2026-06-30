@@ -6,6 +6,7 @@
     $dashboardActive = request()->routeIs('dashboard') || request()->is('/');
     $patientsActive = request()->routeIs('patients.*');
     $appointmentsActive = request()->routeIs('appointments.*');
+    $patientFlowActive = request()->routeIs('patient.flow.*');
     $consultationsActive = request()->routeIs('consultations.*');
     $pharmacyActive = request()->routeIs('pharmacy-stocks.*');
     $pharmacyPrescriptionActive = request()->routeIs('pharmacy.prescriptions.*');
@@ -734,14 +735,15 @@
                         @endunless
                     @endcan
 
-                    @can('menu-consultations')
-                        <li class="nav-item {{ $consultationsActive ? 'active' : '' }}">
-                            <a class="nav-link {{ $consultationsActive ? 'active' : '' }}" href="{{ route('consultations.index') }}">
-                                <i class="mdi mdi-stethoscope"></i>
-                                <span class="menu-title">Consultations</span>
+                    @if(auth()->user()?->can('appointments-view') || auth()->user()?->can('pharmacy-prescriptions-view') || auth()->user()?->hasAnyRole(['Receptionist', 'Admin', 'Doctor', 'Nurse', 'Mid wife', 'Midwife', 'Pharmacist']))
+                        <li class="nav-item {{ $patientFlowActive ? 'active' : '' }}">
+                            <a class="nav-link {{ $patientFlowActive ? 'active' : '' }}" href="{{ route('patient.flow.scanner') }}">
+                                <i class="mdi mdi-qrcode-scan"></i>
+                                <span class="menu-title">Scan Patient QR</span>
                             </a>
                         </li>
-                    @endcan
+                    @endif
+
      @can('menu-products')
                         <li class="nav-item {{ request()->routeIs('products.*') ? 'active' : '' }}">
                             <a class="nav-link" data-bs-toggle="collapse" href="#productsMenu" role="button" aria-expanded="{{ request()->routeIs('products.*') ? 'true' : 'false' }}" aria-controls="productsMenu">

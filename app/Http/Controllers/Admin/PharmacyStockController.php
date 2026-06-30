@@ -96,6 +96,7 @@ class PharmacyStockController extends Controller
 
         $search = trim((string) $request->input('search'));
         $status = trim((string) $request->input('status'));
+        $consultationId = (int) $request->input('consultation_id');
 
         $prescriptions = Consultation::query()
             ->with(['patient:id,patient_code,first_name,last_name', 'doctor:id,fname,lname'])
@@ -107,6 +108,9 @@ class PharmacyStockController extends Controller
             })
             ->when(in_array($status, ['pending', 'partial', 'dispensed']), function ($query) use ($status) {
                 $query->where('pharmacy_status', $status);
+            })
+            ->when($consultationId > 0, function ($query) use ($consultationId) {
+                $query->where('id', $consultationId);
             })
             ->when($search !== '', function ($query) use ($search) {
                 $query->where('prescription', 'like', "%{$search}%")
@@ -160,7 +164,7 @@ class PharmacyStockController extends Controller
             }
         }
 
-        return view('pharmacy.prescriptions.index', compact('prescriptions', 'search', 'status', 'newPrescriptionCount', 'stockByMedicine'));
+        return view('pharmacy.prescriptions.index', compact('prescriptions', 'search', 'status', 'consultationId', 'newPrescriptionCount', 'stockByMedicine'));
     }
 
     public function markDispensed(Request $request, string $consultation)

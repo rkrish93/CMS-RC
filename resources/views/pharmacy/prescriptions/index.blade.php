@@ -11,6 +11,14 @@
 @section('content')
 <div class="card mb-3">
     <div class="card-body">
+        @if(session('success'))
+            <div class="alert alert-success mb-3">{{ session('success') }}</div>
+        @endif
+
+        @if(session('error'))
+            <div class="alert alert-danger mb-3">{{ session('error') }}</div>
+        @endif
+
         @if(($newPrescriptionCount ?? 0) > 0)
             <div class="alert alert-warning mb-3">
                 <strong>New Notification:</strong>
@@ -19,6 +27,9 @@
         @endif
 
         <form method="GET" class="row g-2 align-items-center prescription-filter-row">
+            @if(($consultationId ?? 0) > 0)
+                <input type="hidden" name="consultation_id" value="{{ $consultationId }}">
+            @endif
             <div class="col-md-6">
                 <input type="text" name="search" class="form-control" value="{{ $search }}" placeholder="Search by patient code, name, or prescription text">
             </div>
@@ -37,6 +48,12 @@
                 <a href="{{ route('pharmacy.prescriptions.index') }}" class="btn btn-outline-secondary">Reset</a>
             </div>
         </form>
+
+        @if(($consultationId ?? 0) > 0)
+            <div class="alert alert-info mt-3 mb-0">
+                Showing pharmacy record opened from scanned patient QR.
+            </div>
+        @endif
     </div>
 </div>
 
@@ -78,6 +95,8 @@
                             $prescriptionRows = is_array($item->prescription_items ?? null) ? $item->prescription_items : [];
 
                             if (!empty($prescriptionRows)) {
+                                $itemsByKey = [];
+
                                 foreach ($prescriptionRows as $prescriptionRow) {
                                     $medicineName = trim((string) ($prescriptionRow['medicine_name'] ?? ''));
                                     if ($medicineName === '') {
@@ -85,18 +104,44 @@
                                     }
 
                                     $key = strtolower(preg_replace('/\s+/', '', $medicineName));
+
+                                    if (!isset($itemsByKey[$key])) {
+                                        $itemsByKey[$key] = [
+                                            'name' => $medicineName,
+                                            'dosage_list' => [],
+                                            'duration_list' => [],
+                                            'prescribed' => 0,
+                                        ];
+                                    }
+
+                                    $itemsByKey[$key]['prescribed']++;
+
+                                    $dosage = trim((string) ($prescriptionRow['dosage'] ?? ''));
+                                    if ($dosage !== '') {
+                                        $itemsByKey[$key]['dosage_list'][$dosage] = true;
+                                    }
+
+                                    $duration = trim((string) ($prescriptionRow['duration'] ?? ''));
+                                    if ($duration !== '') {
+                                        $itemsByKey[$key]['duration_list'][$duration] = true;
+                                    }
+                                }
+
+                                foreach ($itemsByKey as $key => $row) {
                                     $givenPerItem = (int) ($dispensedBreakdown[$key] ?? 0);
                                     $stockAvailable = (int) (($stockByMedicine[$key] ?? 0));
+                                    $prescribedForItem = (int) ($row['prescribed'] ?? 0);
+                                    $remainingForItem = max($prescribedForItem - $givenPerItem, 0);
 
                                     $items[] = [
-                                        'name' => $medicineName,
-                                        'dosage' => trim((string) ($prescriptionRow['dosage'] ?? '')),
-                                        'duration' => trim((string) ($prescriptionRow['duration'] ?? '')),
-                                        'prescribed' => 1,
-                                        'given' => min($givenPerItem, 1),
-                                        'remaining' => max(1 - $givenPerItem, 0),
+                                        'name' => (string) ($row['name'] ?? $key),
+                                        'dosage' => implode(', ', array_keys($row['dosage_list'] ?? [])),
+                                        'duration' => implode(', ', array_keys($row['duration_list'] ?? [])),
+                                        'prescribed' => $prescribedForItem,
+                                        'given' => $givenPerItem,
+                                        'remaining' => $remainingForItem,
                                         'stock' => $stockAvailable,
-                                        'dispense_limit' => ($stockAvailable > 0 && $givenPerItem < 1) ? 1 : 0,
+                                        'dispense_limit' => min($remainingForItem, max($stockAvailable, 0)),
                                     ];
                                 }
                             } else {
@@ -563,6 +608,36 @@ document.addEventListener('DOMContentLoaded', function () {
     const modalDoctorPrescriptionList = document.getElementById('modalDoctorPrescriptionList');
     const modalVisitSummary = document.getElementById('modalVisitSummary');
 
+    const updateModalSubmitState = (isLocked, hasManualEntry = false) => {
+        if (!modalGiveBtn || !modalGiveMedicineRows) {
+            return;
+        }
+
+        const qtyInputs = Array.from(modalGiveMedicineRows.querySelectorAll('.js-give-qty-hidden'));
+        const hasSelectedQty = qtyInputs.some((input) => Number(input.value || 0) > 0);
+
+        const noteId = 'modalSelectionHint';
+        let hint = document.getElementById(noteId);
+
+        if (isLocked || hasSelectedQty || hasManualEntry) {
+            modalGiveBtn.disabled = isLocked;
+            if (hint) {
+                hint.remove();
+            }
+            return;
+        }
+
+        modalGiveBtn.disabled = true;
+
+        if (!hint) {
+            hint = document.createElement('div');
+            hint.id = noteId;
+            hint.className = 'small text-danger mt-2';
+            hint.textContent = 'Select at least one medicine with quantity greater than zero.';
+            modalGiveMedicineRows.appendChild(hint);
+        }
+    };
+
     const resetGiveModal = () => {
         if (!giveMedicineForm) {
             return;
@@ -627,7 +702,11 @@ document.addEventListener('DOMContentLoaded', function () {
             if (modalVisitSummary) {
                 modalVisitSummary.textContent = `Patient: ${patientName} (${patientCode}) | Doctor: ${doctorName}`;
             }
+            let hasDispensableRows = false;
+
             if (allItems.length > 0) {
+                const selectableRowControls = [];
+
                 allItems.forEach((med, index) => {
                     const itemRow = document.createElement('label');
                     itemRow.className = 'doctor-prescription-item mb-2';
@@ -648,6 +727,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     const canGive = Number(med.dispense_limit || 0) > 0 && Number(med.remaining || 0) > 0;
                     const defaultGiveQty = canGive ? Number(med.dispense_limit || 1) : 0;
                     const checkId = `give_check_${index}`;
+
+                    if (canGive) {
+                        hasDispensableRows = true;
+                    }
 
                     row.innerHTML = `
                         <div class="form-check m-0">
@@ -671,6 +754,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     const checkInput = row.querySelector('.js-give-check');
                     const qtyHidden = row.querySelector('.js-give-qty-hidden');
                     const toggleButton = row.querySelector('.js-give-toggle');
+                    const rowDetails = row.querySelector('.flex-grow-1');
 
                     const syncGiveState = () => {
                         if (!checkInput || !qtyHidden || !toggleButton) {
@@ -679,22 +763,65 @@ document.addEventListener('DOMContentLoaded', function () {
 
                         const checked = checkInput.checked;
                         qtyHidden.value = checked ? String(defaultGiveQty) : '0';
-                        toggleButton.textContent = checked ? `Checked for Give (${defaultGiveQty})` : 'Not Selected';
+                        toggleButton.textContent = checked ? `Checked for Give (${defaultGiveQty})` : `Select to Give (${defaultGiveQty})`;
                         toggleButton.classList.toggle('btn-outline-success', checked);
                         toggleButton.classList.toggle('btn-outline-secondary', !checked);
+                        updateModalSubmitState(isLocked, false);
                     };
 
                     if (checkInput && toggleButton) {
+                        checkInput.checked = canGive;
+
                         checkInput.addEventListener('change', syncGiveState);
                         toggleButton.addEventListener('click', function () {
                             checkInput.checked = !checkInput.checked;
                             syncGiveState();
                         });
+
+                        if (rowDetails) {
+                            rowDetails.style.cursor = canGive ? 'pointer' : 'default';
+                            rowDetails.addEventListener('click', function () {
+                                if (!canGive) {
+                                    return;
+                                }
+
+                                checkInput.checked = !checkInput.checked;
+                                syncGiveState();
+                            });
+                        }
+
+                        if (canGive) {
+                            selectableRowControls.push({ checkInput, syncGiveState });
+                        }
+
                         syncGiveState();
                     }
 
                     modalGiveMedicineRows.appendChild(row);
                 });
+
+                const anySelected = selectableRowControls.some(({ checkInput }) => checkInput.checked);
+                if (!anySelected && selectableRowControls.length > 0) {
+                    const first = selectableRowControls[0];
+                    first.checkInput.checked = true;
+                    first.syncGiveState();
+                }
+
+                // Final safety: always preselect first available row on modal open.
+                if (selectableRowControls.length > 0) {
+                    const firstAvailable = selectableRowControls[0];
+                    firstAvailable.checkInput.checked = true;
+                    firstAvailable.syncGiveState();
+                }
+
+                if (!hasDispensableRows && modalGiveMedicineRows) {
+                    const helper = document.createElement('div');
+                    helper.className = 'small text-muted mt-2';
+                    helper.textContent = 'No remaining quantity available to give for this prescription.';
+                    modalGiveMedicineRows.appendChild(helper);
+                }
+
+                updateModalSubmitState(isLocked, false);
             } else {
                 modalDoctorPrescriptionList.innerHTML = '<span class="text-muted small">No parsed doctor prescription items.</span>';
 
@@ -705,11 +832,17 @@ document.addEventListener('DOMContentLoaded', function () {
                         <input type="number" class="form-control form-control-sm" name="dispense_quantity" min="1" max="${fallbackMax}" value="1" required style="width:95px;">
                     </div>
                 `;
+
+                updateModalSubmitState(isLocked, true);
             }
 
-            [modalPharmacyNote, modalGiveBtn].forEach((control) => {
+            [modalPharmacyNote].forEach((control) => {
                 control.disabled = isLocked;
             });
+
+            if (allItems.length > 0 && !hasDispensableRows) {
+                updateModalSubmitState(isLocked, false);
+            }
 
             modalGiveMedicineRows.querySelectorAll('input, select, textarea, button').forEach((control) => {
                 control.disabled = isLocked || control.disabled;

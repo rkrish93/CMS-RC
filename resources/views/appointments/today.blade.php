@@ -16,8 +16,11 @@ $hideUnitColumn = $queueUser?->hasAnyRole(['Doctor', 'Nurse', 'Mid wife', 'Midwi
 $canOpenAppointment = $queueUser?->can('consultations-create')
 || $queueUser?->can('vitals-create')
 || $queueUser?->hasAnyRole(['Doctor', 'Admin']);
+$canGenerateQr = $queueUser?->hasAnyRole(['Receptionist', 'Admin']);
+$canMarkNoShow = $queueUser?->hasAnyRole(['Receptionist', 'Admin']);
+$showActionColumn = $canOpenAppointment || $canGenerateQr;
 $disableOpenAfterVitals = $queueUser?->hasAnyRole(['Nurse', 'Mid wife']);
-$columnCount = $canOpenAppointment ? 6 : 5;
+$columnCount = $showActionColumn ? 6 : 5;
 if ($hideUnitColumn) {
 $columnCount--;
 }
@@ -25,6 +28,14 @@ $columnCount--;
 
 <div class="card">
     <div class="card-body">
+        @if(session('success'))
+            <div class="alert alert-success mb-3">{{ session('success') }}</div>
+        @endif
+
+        @if(session('error'))
+            <div class="alert alert-danger mb-3">{{ session('error') }}</div>
+        @endif
+
         <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
             <div>
                 <h4 class="card-title mb-1">Today's Queue</h4>
@@ -44,7 +55,7 @@ $columnCount--;
                         @endunless
                         <th>Time</th>
                         <th>Status</th>
-                        @if($canOpenAppointment)
+                        @if($showActionColumn)
                         <th width="120" class="text-end">Action</th>
                         @endif
                     </tr>
@@ -58,14 +69,18 @@ $columnCount--;
                     $actionLabel = $disableOpenAfterVitals && $vitalsRecorded ? 'Vitals Done' : 'Open';
                     $statusClass = match($appt->status) {
                     'pending' => 'warning',
+                    'checked_in' => 'info',
                     'in_progress', 'in_Progress' => 'primary',
                     'nurse_done' => 'dark',
                     'completed' => 'success',
+                    'no_show' => 'secondary',
                     default => 'secondary',
                     };
                     $statusLabel = match($appt->status) {
                     'pending' => 'Waiting',
+                    'checked_in' => 'Checked In',
                     'nurse_done' => 'Nurse Done',
+                    'no_show' => 'No Show',
                     default => ucfirst(str_replace('_', ' ', $appt->status ?? 'pending')),
                     };
                     @endphp
@@ -81,13 +96,32 @@ $columnCount--;
                                 {{ $statusLabel }}
                             </span>
                         </td>
-                        @if($canOpenAppointment)
+                        @if($showActionColumn)
                         <td class="text-end">
-                            <a href="{{ route('consultations.create', $appt->id) }}"
-                                class="btn btn-sm btn-gradient-primary {{ $disabled ? 'disabled' : '' }}"
-                                @if($disabled) aria-disabled="true" tabindex="-1" @endif>
-                                {{ $actionLabel }}
-                            </a>
+                            <div class="d-flex justify-content-end gap-2 flex-wrap">
+                                @if($canOpenAppointment)
+                                <a href="{{ route('consultations.create', $appt->id) }}"
+                                    class="btn btn-sm btn-gradient-primary {{ $disabled ? 'disabled' : '' }}"
+                                    @if($disabled) aria-disabled="true" tabindex="-1" @endif>
+                                    {{ $actionLabel }}
+                                </a>
+                                @endif
+
+                                @if($canGenerateQr)
+                                <a href="{{ route('appointments.qr-pass', $appt->id) }}" class="btn btn-sm btn-outline-dark">
+                                    {{ $appt->status === 'pending' ? 'Check-in + QR' : 'QR Pass' }}
+                                </a>
+                                @endif
+
+                                @if($canMarkNoShow && $appt->status === 'pending')
+                                <form method="POST" action="{{ route('appointments.no-show', $appt->id) }}" class="d-inline">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Mark this appointment as no-show?')">
+                                        No Show
+                                    </button>
+                                </form>
+                                @endif
+                            </div>
                         </td>
                         @endif
 

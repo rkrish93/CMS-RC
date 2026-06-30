@@ -48,10 +48,12 @@
                 <select name="status" class="form-select">
                     <option value="">All</option>
                     <option value="pending" @selected($status === 'pending')>Pending</option>
+                    <option value="checked_in" @selected($status === 'checked_in')>Checked In</option>
                     <option value="in_progress" @selected($status === 'in_progress')>In Progress</option>
                     <option value="nurse_done" @selected($status === 'nurse_done')>Nurse Done</option>
                     <option value="completed" @selected($status === 'completed')>Completed</option>
                     <option value="cancelled" @selected($status === 'cancelled')>Cancelled</option>
+                    <option value="no_show" @selected($status === 'no_show')>No Show</option>
                 </select>
             </div>
             <div class="col-md-2">
@@ -108,6 +110,14 @@
     <div class="col-md-3">
         <div class="card h-100">
             <div class="card-body">
+                <small class="text-muted">Checked In</small>
+                <h4 class="mb-0">{{ $summary['checked_in'] }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body">
                 <small class="text-muted">Completed</small>
                 <h4 class="mb-0">{{ $summary['completed'] }}</h4>
             </div>
@@ -126,6 +136,14 @@
             <div class="card-body">
                 <small class="text-muted">Cancelled</small>
                 <h4 class="mb-0">{{ $summary['cancelled'] }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <small class="text-muted">No Show</small>
+                <h4 class="mb-0">{{ $summary['no_show'] }}</h4>
             </div>
         </div>
     </div>

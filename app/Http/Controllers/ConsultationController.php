@@ -16,7 +16,7 @@ class ConsultationController extends Controller
      */
     public function index()
     {
-        return redirect()->route('appointments.today');
+        return redirect()->route('patient.flow.scanner');
     }
 
     /**
@@ -43,9 +43,15 @@ class ConsultationController extends Controller
                 ->with('error', 'Vitals already recorded for this appointment.');
          }
 
-         if($appointment->status == 'pending'){
-        $appointment->update(['status' => 'in_progress']);
-        }
+            if($appointment->status == 'pending'){
+                return redirect()
+                     ->route('appointments.today')
+                     ->with('error', 'Patient is not checked-in yet. Generate QR pass first.');
+            }
+
+            if($appointment->status == 'checked_in'){
+                $appointment->update(['status' => 'in_progress']);
+            }
 
         // Old medical history - all consultations
         $oldConsultations = Consultation::where('patient_id',$appointment->patient_id)

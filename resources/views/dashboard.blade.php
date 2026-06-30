@@ -41,6 +41,14 @@
             <span class="badge bg-secondary">General Dashboard</span>
         @endif
     </div>
+
+    @if($user?->can('appointments-view') || $user?->can('pharmacy-prescriptions-view') || $user?->hasAnyRole(['Receptionist', 'Admin', 'Doctor', 'Nurse', 'Mid wife', 'Midwife', 'Pharmacist']))
+        <div>
+            <a href="{{ route('patient.flow.scanner') }}" class="btn btn-dark">
+                <i class="mdi mdi-qrcode-scan me-1"></i> Scan Patient QR
+            </a>
+        </div>
+    @endif
 </div>
 
 @if($canViewDashboard)
