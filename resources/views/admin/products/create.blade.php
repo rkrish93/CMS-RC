@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Add Product')
+@section('title', 'Add Medicine')
 
 @section('page-actions')
     <a href="{{ route('products.index') }}" class="btn btn-light">
@@ -14,14 +14,14 @@
     <div class="col-12">
         <div class="card">
             <div class="card-body">
-                <h4 class="card-title mb-4">Add New Product</h4>
+                <h4 class="card-title mb-4">Add New Medicine</h4>
 
                 <form method="POST" action="{{ route('products.store') }}">
                     @csrf
 
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label">Product Code</label>
+                            <label class="form-label">Medicine Code</label>
                             <input type="text" name="product_code" value="{{ $productCode }}" class="form-control" readonly>
                             <small class="text-muted">Auto-generated</small>
                         </div>
@@ -57,7 +57,7 @@
 
                         <div class="col-md-12">
                             <label class="form-label">Description</label>
-                            <textarea name="description" rows="3" class="form-control" placeholder="Product description">{{ old('description') }}</textarea>
+                            <textarea name="description" rows="3" class="form-control" placeholder="Medicine description">{{ old('description') }}</textarea>
                             @error('description')
                                 <div class="text-danger small mt-1">{{ $message }}</div>
                             @enderror
@@ -74,7 +74,7 @@
 
                         <div class="col-md-12">
                             <button type="submit" class="btn btn-gradient-primary">
-                                <i class="mdi mdi-plus me-1"></i> Create Product
+                                <i class="mdi mdi-plus me-1"></i> Create Medicine
                             </button>
                             <a href="{{ route('products.index') }}" class="btn btn-light">Cancel</a>
                         </div>

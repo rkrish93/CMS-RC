@@ -748,14 +748,14 @@
                         <li class="nav-item {{ request()->routeIs('products.*') ? 'active' : '' }}">
                             <a class="nav-link" data-bs-toggle="collapse" href="#productsMenu" role="button" aria-expanded="{{ request()->routeIs('products.*') ? 'true' : 'false' }}" aria-controls="productsMenu">
                                 <i class="mdi mdi-pill"></i>
-                                <span class="menu-title">Products</span>
+                                <span class="menu-title">Medicines</span>
                                 <i class="mdi mdi-chevron-down menu-arrow"></i>
                             </a>
                             <div class="collapse {{ request()->routeIs('products.*') ? 'show' : '' }}" id="productsMenu">
                                 <ul class="nav sub-menu">
-                                    <li class="nav-item"><a class="nav-link {{ request()->routeIs('products.index') ? 'active' : '' }}" href="{{ route('products.index') }}">All Products</a></li>
+                                    <li class="nav-item"><a class="nav-link {{ request()->routeIs('products.index') ? 'active' : '' }}" href="{{ route('products.index') }}">All Medicines</a></li>
                                     @can('products-create')
-                                        <li class="nav-item"><a class="nav-link {{ request()->routeIs('products.create') ? 'active' : '' }}" href="{{ route('products.create') }}">Add Product</a></li>
+                                        <li class="nav-item"><a class="nav-link {{ request()->routeIs('products.create') ? 'active' : '' }}" href="{{ route('products.create') }}">Add Medicine</a></li>
                                     @endcan
                                 </ul>
                             </div>

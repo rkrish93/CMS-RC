@@ -59,6 +59,8 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('users', UserController::class);
 
         Route::resource('patients', PatientController::class);
+        Route::get('patients/{patient}/qr-card', [PatientController::class, 'qrCard'])
+            ->name('patients.qr-card');
         Route::get('patients-search', [PatientController::class,'ajaxSearch'])
                 ->name('patients.ajax.search');
         Route::get('reports/patients', [PatientReportController::class, 'index'])
@@ -105,10 +107,14 @@ Route::middleware(['auth'])->group(function () {
                 ->name('search.patient');
         Route::get('appointments/{appointment}/qr-pass', [AppointmentController::class, 'qrPass'])
             ->name('appointments.qr-pass');
+        Route::post('appointments/{appointment}/check-in', [AppointmentController::class, 'checkIn'])
+            ->name('appointments.check-in');
         Route::post('appointments/{appointment}/no-show', [AppointmentController::class, 'markNoShow'])
             ->name('appointments.no-show');
         Route::get('patient-flow/scanner', [AppointmentController::class, 'qrScanner'])
             ->name('patient.flow.scanner');
+        Route::get('patient-flow/scan-patient/{patient}', [AppointmentController::class, 'scanByPatientQr'])
+            ->name('patient.flow.scan-patient');
         Route::get('patient-flow/scan/{appointment}', [AppointmentController::class, 'scanPatientFlow'])
             ->name('patient.flow.scan');
 

@@ -9,6 +9,11 @@
 @endsection
 
 @section('content')
+@php
+    $vitalsDone = $previousVitals->where('appointment_id', $appointment->id)->isNotEmpty();
+    $doctorDone = !is_null($consultationForPharmacy) || (string) $appointment->status === 'completed';
+    $pharmacyReady = !is_null($consultationForPharmacy);
+@endphp
 <div class="row g-3 mb-3">
     <div class="col-12">
         <div class="card border-0 shadow-sm">
@@ -30,23 +35,35 @@
                     <div class="col-md-4"><strong>Status:</strong> {{ ucfirst(str_replace('_', ' ', $appointment->status ?? 'pending')) }}</div>
                 </div>
 
-                <div class="mt-4 d-flex flex-wrap gap-2">
-                    @canany(['consultations-create', 'vitals-create'])
-                    <a href="{{ route('consultations.create', $appointment->id) }}" class="btn btn-primary">
-                        <i class="mdi mdi-stethoscope me-1"></i> Open Nurse / Doctor Screen
-                    </a>
-                    @endcanany
+                <div class="mt-4 d-flex flex-wrap align-items-center gap-2">
+                    @if(auth()->user()?->can('vitals-create') || auth()->user()?->hasAnyRole(['Nurse', 'Mid wife', 'Midwife', 'Admin']))
+                        <a href="{{ route('consultations.create', ['appointment' => $appointment->id, 'screen' => 'nurse']) }}" class="btn btn-info">
+                            <i class="mdi mdi-heart-pulse me-1"></i> Open Nurse / Midwife
+                        </a>
+                        <span class="badge {{ $vitalsDone ? 'bg-success' : 'bg-warning text-dark' }}">
+                            Nurse Status: {{ $vitalsDone ? 'Vitals Done' : 'Vitals Pending' }}
+                        </span>
+                    @endif
+
+                    @if(auth()->user()?->can('consultations-create') || auth()->user()?->hasAnyRole(['Doctor', 'Admin']))
+                        <a href="{{ route('consultations.create', ['appointment' => $appointment->id, 'screen' => 'doctor']) }}" class="btn btn-primary {{ !$vitalsDone ? 'disabled' : '' }}"
+                           @if(!$vitalsDone) aria-disabled="true" tabindex="-1" @endif>
+                            <i class="mdi mdi-stethoscope me-1"></i> Open Doctor
+                        </a>
+                        <span class="badge {{ $doctorDone ? 'bg-success' : 'bg-secondary' }}">
+                            Doctor Status: {{ $doctorDone ? 'Consultation Done' : 'Consultation Pending' }}
+                        </span>
+                    @endif
 
                     @can('pharmacy-prescriptions-view')
-                        @if($consultationForPharmacy)
-                        <a href="{{ route('pharmacy.prescriptions.index', ['consultation_id' => $consultationForPharmacy->id]) }}" class="btn btn-success">
+                        <a href="{{ $consultationForPharmacy ? route('pharmacy.prescriptions.index', ['consultation_id' => $consultationForPharmacy->id]) : '#' }}"
+                           class="btn {{ $consultationForPharmacy ? 'btn-success' : 'btn-outline-secondary disabled' }}"
+                           @if(!$consultationForPharmacy) aria-disabled="true" tabindex="-1" @endif>
                             <i class="mdi mdi-pill me-1"></i> Open Pharmacy Screen
                         </a>
-                        @else
-                        <button class="btn btn-outline-secondary" disabled>
-                            <i class="mdi mdi-pill me-1"></i> Pharmacy Waiting for Doctor Consultation
-                        </button>
-                        @endif
+                        <span class="badge {{ $pharmacyReady ? 'bg-success' : 'bg-secondary' }}">
+                            Pharmacy Status: {{ $pharmacyReady ? 'Prescription Ready' : 'Waiting for Doctor Prescription' }}
+                        </span>
                     @endcan
                 </div>
             </div>

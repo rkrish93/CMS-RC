@@ -52,13 +52,19 @@ class AppointmentController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(Request $request)
     {
         abort_unless(auth()->user()?->can('appointments-create'), 403);
 
         $patients = Patient::all();
         $units = Unit::all();
-        return view('appointments.create', compact('patients','units'));
+        $prefilledPatient = null;
+
+        if ($request->filled('patient_code')) {
+            $prefilledPatient = Patient::where('patient_code', $request->string('patient_code'))->first();
+        }
+
+        return view('appointments.create', compact('patients', 'units', 'prefilledPatient'));
     }
 
     /**
@@ -198,7 +204,9 @@ class AppointmentController extends Controller
         $appointments = Appointment::with(['patient', 'unit'])
             ->withCount('vitals')
 
-            ->where('unit_id', $user->unit_id)
+            ->when(!empty($user->unit_id), function ($query) use ($user) {
+                $query->where('unit_id', $user->unit_id);
+            })
 
             ->whereDate('appointment_date', $today)
             ->whereIn('status', ['checked_in', 'in_progress', 'nurse_done'])
@@ -271,6 +279,102 @@ class AppointmentController extends Controller
         return view('appointments.qr-pass', compact('appointment', 'scanUrl', 'qrImageUrl'));
     }
 
+    public function checkIn(Appointment $appointment)
+    {
+        $user = auth()->user();
+
+        abort_unless($user?->hasAnyRole(['Receptionist', 'Admin']) || $user?->can('appointments-edit'), 403);
+
+        if (in_array((string) $appointment->status, ['cancelled', 'completed', 'no_show'], true)) {
+            return redirect()->route('appointments.today')
+                ->with('error', 'Cannot check-in cancelled/completed/no-show appointment.');
+        }
+
+        if ((string) $appointment->status === 'pending') {
+            $appointment->update(['status' => 'checked_in']);
+
+            return redirect()->route('appointments.today')->with('success', 'Patient checked-in successfully.');
+        }
+
+        return redirect()->route('appointments.today')->with('success', 'Patient already checked-in.');
+    }
+
+    public function scanByPatientQr(Request $request, Patient $patient)
+    {
+        $user = auth()->user();
+        $unitScopedRoles = ['Doctor', 'Nurse', 'Mid wife', 'Midwife'];
+        $isPharmacyUser = (bool) ($user?->can('pharmacy-prescriptions-view') || $user?->hasRole('Pharmacist'));
+
+        abort_unless(
+            $user?->can('appointments-view')
+                || $user?->can('consultations-create')
+                || $user?->can('vitals-create')
+                || $user?->can('pharmacy-prescriptions-view')
+                || $user?->can('appointments-create')
+                || $user?->hasAnyRole(['Receptionist', 'Admin', 'Doctor', 'Nurse', 'Mid wife', 'Midwife', 'Pharmacist']),
+            403
+        );
+
+        $appointmentQuery = Appointment::query()
+            ->where('patient_id', $patient->id)
+            ->whereDate('appointment_date', now()->toDateString())
+            ->when($isPharmacyUser, function ($query) {
+                $query->whereNotIn('status', ['cancelled', 'no_show']);
+            }, function ($query) {
+                $query->whereNotIn('status', ['completed', 'cancelled', 'no_show']);
+            });
+
+        if ($user?->hasAnyRole($unitScopedRoles) && !empty($user->unit_id)) {
+            $appointmentQuery->where('unit_id', $user->unit_id);
+        }
+
+        $appointment = $appointmentQuery
+            ->orderBy('token_no')
+            ->first();
+
+        if (!$appointment) {
+            if ($isPharmacyUser) {
+                $appointment = Appointment::query()
+                    ->where('patient_id', $patient->id)
+                    ->whereDate('appointment_date', now()->toDateString())
+                    ->whereHas('consultation', function ($consultationQuery) {
+                        $consultationQuery->where(function ($query) {
+                            $query->whereNotNull('prescription_items')
+                                ->orWhere(function ($subQuery) {
+                                    $subQuery->whereNotNull('prescription')
+                                        ->where('prescription', '!=', '');
+                                });
+                        });
+                    })
+                    ->orderByDesc('token_no')
+                    ->first();
+            }
+
+            if ($appointment) {
+                $signedScanUrl = URL::signedRoute('patient.flow.scan', ['appointment' => $appointment->id]);
+
+                return redirect()->to($signedScanUrl);
+            }
+
+            if ($user?->can('appointments-create') || $user?->hasAnyRole(['Receptionist', 'Admin'])) {
+                return redirect()->route('appointments.create', ['patient_code' => $patient->patient_code])
+                    ->with('success', 'No active appointment today. Create a new appointment for this patient.');
+            }
+
+            return redirect()->route('patient.flow.scanner')
+                ->with('error', 'No active appointment found today for this patient.');
+        }
+
+        if ($user?->hasAnyRole($unitScopedRoles) && (string) $appointment->status === 'pending') {
+            return redirect()->route('patient.flow.scanner')
+                ->with('error', 'Patient is not checked-in yet. Reception must check-in first.');
+        }
+
+        $signedScanUrl = URL::signedRoute('patient.flow.scan', ['appointment' => $appointment->id]);
+
+        return redirect()->to($signedScanUrl);
+    }
+
     public function scanPatientFlow(Request $request, Appointment $appointment)
     {
         abort_unless($request->hasValidSignature(), 403);
@@ -317,6 +421,13 @@ class AppointmentController extends Controller
 
         $consultationForPharmacy = Consultation::query()
             ->where('appointment_id', $appointment->id)
+            ->where(function ($query) {
+                $query->whereNotNull('prescription_items')
+                    ->orWhere(function ($subQuery) {
+                        $subQuery->whereNotNull('prescription')
+                            ->where('prescription', '!=', '');
+                    });
+            })
             ->latest()
             ->first();
 
@@ -346,7 +457,11 @@ class AppointmentController extends Controller
         $search = trim((string) $request->input('search'));
 
         $appointments = Appointment::query()
-            ->with(['patient:id,patient_code,first_name,last_name,phone', 'unit:id,unit_name'])
+            ->with([
+                'patient:id,patient_code,first_name,last_name,phone',
+                'unit:id,unit_name',
+                'consultation:id,appointment_id,pharmacy_status,dispensed_at',
+            ])
             ->whereDate('appointment_date', now()->toDateString())
             ->when($isPharmacyUser, function ($query) {
                 $query->whereHas('consultation', function ($consultationQuery) {
@@ -356,6 +471,10 @@ class AppointmentController extends Controller
                                 $subQ->whereNotNull('prescription')
                                     ->where('prescription', '!=', '');
                             });
+                    })
+                    ->where(function ($q) {
+                        $q->whereNull('pharmacy_status')
+                            ->orWhereIn('pharmacy_status', ['pending', 'partial']);
                     });
                 });
             })
@@ -367,7 +486,7 @@ class AppointmentController extends Controller
             ->when($user?->hasAnyRole($unitScopedRoles), function ($query) {
                 $query->whereIn('status', ['checked_in', 'in_progress', 'nurse_done']);
             })
-            ->when($user?->hasAnyRole($unitScopedRoles), function ($query) use ($user) {
+            ->when($user?->hasAnyRole($unitScopedRoles) && !empty($user?->unit_id), function ($query) use ($user) {
                 $query->where('unit_id', $user->unit_id);
             })
             ->when($search !== '', function ($query) use ($search) {
@@ -387,7 +506,9 @@ class AppointmentController extends Controller
 
         $signedScanUrls = [];
         foreach ($appointments as $appointment) {
-            $signedScanUrls[$appointment->id] = URL::signedRoute('patient.flow.scan', ['appointment' => $appointment->id]);
+            $signedScanUrls[$appointment->id] = $isPharmacyUser
+                ? URL::signedRoute('patient.flow.scan', ['appointment' => $appointment->id])
+                : route('patient.flow.scan-patient', ['patient' => $appointment->patient_id]);
         }
 
         return view('patient_flow.scanner', compact('appointments', 'search', 'signedScanUrls'));

@@ -9,9 +9,9 @@
 
 <div class="row g-3">
     <div class="col-md-6">
-        <label class="form-label">Product *</label>
-        <select id="product_id_{{ $fieldKey }}" name="product_id" class="form-select" data-placeholder="Search product..." required>
-            <option value="">Search and select product...</option>
+        <label class="form-label">Medicine *</label>
+        <select id="product_id_{{ $fieldKey }}" name="product_id" class="form-select" data-placeholder="Search medicine..." required>
+            <option value="">Search and select medicine...</option>
             @foreach(($products ?? []) as $product)
                 <option
                     value="{{ $product->id }}"
@@ -43,7 +43,7 @@
     <div class="col-md-4">
         <label class="form-label">Unit</label>
         <input type="text" id="unit_{{ $fieldKey }}" name="unit" class="form-control" value="{{ $valueOrDefault('unit', $stock->unit ?? '') }}" readonly>
-        <small class="text-muted">Auto-filled from selected product</small>
+        <small class="text-muted">Auto-filled from selected medicine</small>
     </div>
     <div class="col-md-4">
         <label class="form-label">Expiry Date</label>

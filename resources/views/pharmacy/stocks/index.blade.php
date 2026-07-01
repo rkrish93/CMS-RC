@@ -27,7 +27,7 @@
     <div class="card-body">
         <form method="GET" class="row g-2 mb-3">
             <div class="col-md-5">
-                <input type="text" name="search" value="{{ $search }}" class="form-control" placeholder="Search product, medicine, or batch">
+                <input type="text" name="search" value="{{ $search }}" class="form-control" placeholder="Search medicine, code, or batch">
             </div>
             <div class="col-md-2">
                 <button class="btn btn-outline-primary w-100">Search</button>
@@ -35,14 +35,14 @@
         </form>
 
         <div class="alert alert-info py-2 mb-3">
-            Select a product to auto-fill medicine name, generic name, and unit from the product master.
+            Select a medicine to auto-fill medicine name, generic name, and unit from the medicine master.
         </div>
 
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead>
                     <tr>
-                        <th>Product</th>
+                        <th>Medicine</th>
                         <th>Generic</th>
                         <th>Unit</th>
                         <th>Batch</th>

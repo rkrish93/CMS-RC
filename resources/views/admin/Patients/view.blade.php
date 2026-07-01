@@ -4,6 +4,11 @@
 
 @section('page-actions')
     <div class="d-flex gap-2">
+        @can('patients-view')
+            <a href="{{ route('patients.qr-card', $patient->id) }}" class="btn btn-outline-primary">
+                <i class="mdi mdi-qrcode me-1"></i> Patient QR
+            </a>
+        @endcan
         @can('patients-edit')
             <a href="{{ route('patients.edit', $patient->id) }}" class="btn btn-gradient-info">
                 <i class="mdi mdi-pencil me-1"></i> Edit

@@ -142,7 +142,7 @@ class PatientController extends Controller
     $phone = '94' . $phone;
 
     //  STORE DATA
-    Patient::create([
+    $patient = Patient::create([
 
         'patient_code' => $patientCode,
 
@@ -168,8 +168,8 @@ class PatientController extends Controller
 
     ]);
 
-    return redirect()->route('patients.index')
-            ->with('success','Patient Registered Successfully');
+        return redirect()->route('patients.qr-card', $patient)
+            ->with('success','Patient registered successfully. Reusable QR generated.');
 
     } catch (Exception $e) {
         dd($e->getMessage());
@@ -336,4 +336,14 @@ class PatientController extends Controller
 
     return response()->json($patients);
 }
+
+    public function qrCard(Patient $patient)
+    {
+        abort_unless(auth()->user()?->can('patients-view'), 403);
+
+        $systemQrUrl = route('patient.flow.scan-patient', ['patient' => $patient->id]);
+        $qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=' . urlencode($systemQrUrl);
+
+        return view('admin.patients.qr-card', compact('patient', 'systemQrUrl', 'qrImageUrl'));
+    }
 }

@@ -121,7 +121,7 @@ class PharmacyStockController extends Controller
                     });
             })
             ->latest()
-            ->paginate(15)
+            ->paginate(10)
             ->withQueryString();
 
         $newPrescriptionCount = Consultation::query()
@@ -291,69 +291,41 @@ class PharmacyStockController extends Controller
             ->first();
 
         if (! $stock) {
-            $remainingRequested = $prescribedForMedicine ?? $requestedQuantity;
-            $sent = $this->sendShortageSms(
-                $record,
-                $medicineName,
-                $remainingRequested,
-                0,
-                $remainingRequested,
-                0
-            );
-
-            return ['ok' => false, 'message' => "Medicine not found in stock: {$medicineName}. " . ($sent ? 'Patient SMS sent via NotifyLK.' : 'SMS failed.')];
+            return [
+                'ok' => false,
+                'message' => "Medicine not found in stock: {$medicineName}. Use Send Shortage SMS to notify patient.",
+            ];
         }
 
         $availableStock = (int) $stock->quantity;
         if ($availableStock <= 0) {
-            $requested = $prescribedForMedicine ?? $requestedQuantity;
-            $sent = $this->sendShortageSms(
-                $record,
-                $medicineName,
-                $requested,
-                0,
-                $requested,
-                0
-            );
+            return [
+                'ok' => false,
+                'message' => "Out of stock for {$medicineName}. Use Send Shortage SMS to notify patient.",
+            ];
+        }
 
-            return ['ok' => false, 'message' => "Out of stock for {$medicineName}. " . ($sent ? 'Patient SMS sent via NotifyLK.' : 'SMS failed.')];
+        if ($requestedQuantity > $availableStock) {
+            return [
+                'ok' => false,
+                'message' => "Entered qty ({$requestedQuantity}) exceeds available stock ({$availableStock}) for {$medicineName}.",
+            ];
         }
 
         $prescribed = (int) ($record->prescribed_quantity ?? 0);
         $alreadyDispensed = (int) ($record->dispensed_quantity ?? 0);
 
-        if ($prescribedForMedicine !== null) {
-            $remainingPrescription = max($prescribedForMedicine - $alreadyDispensedForMedicine, 0);
-        } else {
-            $remainingPrescription = $prescribed > 0
-                ? max($prescribed - $alreadyDispensed, 0)
-                : $requestedQuantity;
-        }
-
-        if ($remainingPrescription <= 0) {
-            return ['ok' => false, 'message' => "Prescription already completed for {$medicineName}."];
-        }
-
-        $dispenseNow = min($requestedQuantity, $availableStock, $remainingPrescription);
+        $dispenseNow = min($requestedQuantity, $availableStock);
         $dispensedBreakdown[$normalizedMedicine] = $alreadyDispensedForMedicine + $dispenseNow;
         $newTotalDispensed = array_sum(array_map('intval', $dispensedBreakdown));
 
-        if ($prescribed > 0 && $newTotalDispensed > $prescribed) {
-            return ['ok' => false, 'message' => 'Given quantity cannot exceed prescribed quantity.'];
-        }
-
         if ($dispenseNow <= 0) {
-            return ['ok' => false, 'message' => 'Unable to dispense with current stock and prescription balance.'];
+            return ['ok' => false, 'message' => 'Unable to dispense with current stock.'];
         }
 
         $totalPrescribed = $prescribed;
         if (! empty($prescriptionItems)) {
             $totalPrescribed = array_sum($prescriptionItems);
-        }
-
-        $status = 'dispensed';
-        if ($totalPrescribed > 0) {
-            $status = $newTotalDispensed >= $totalPrescribed ? 'dispensed' : 'partial';
         }
 
         $stock->update([
@@ -375,26 +347,25 @@ class PharmacyStockController extends Controller
             'dispensed_quantity' => $newTotalDispensed,
             'dispensed_breakdown' => $dispensedBreakdown,
             'pharmacy_note' => trim(implode("\n", $noteParts)),
-            'pharmacy_status' => $status,
-            'dispensed_at' => $status === 'dispensed' ? now() : null,
+            'pharmacy_status' => 'partial',
+            'dispensed_at' => now(),
         ]);
+
+        $record = $record->refresh();
+        $remainingAfterSave = $this->calculateRemainingPrescriptionQuantity($record);
+        $status = $remainingAfterSave <= 0 ? 'dispensed' : 'partial';
+
+        if (($record->pharmacy_status ?? '') !== $status) {
+            $record->update([
+                'pharmacy_status' => $status,
+            ]);
+        }
+
+        $record = $record->refresh();
 
         $remainingForMedicine = $prescribedForMedicine !== null
             ? max($prescribedForMedicine - (int) ($dispensedBreakdown[$normalizedMedicine] ?? 0), 0)
             : max(((int) $record->prescribed_quantity) - $newTotalDispensed, 0);
-
-        if ($dispenseNow < $requestedQuantity || $remainingForMedicine > 0) {
-            $requestedForMsg = $prescribedForMedicine ?? $requestedQuantity;
-            $availableAfter = max($availableStock - $dispenseNow, 0);
-            $this->sendShortageSms(
-                $record,
-                $stock->medicine_name,
-                $requestedForMsg,
-                $dispenseNow,
-                $remainingForMedicine,
-                $availableAfter
-            );
-        }
 
         if ($status === 'dispensed') {
             return [
@@ -570,6 +541,8 @@ class PharmacyStockController extends Controller
                 $meta[$normalized] = [
                     'dosage' => [],
                     'duration' => [],
+                    'time_slot' => [],
+                    'food_timing' => [],
                 ];
             }
 
@@ -582,12 +555,31 @@ class PharmacyStockController extends Controller
             if ($duration !== '') {
                 $meta[$normalized]['duration'][$duration] = true;
             }
+
+            $timeSlots = $row['time_slot'] ?? [];
+            if (! is_array($timeSlots)) {
+                $timeSlots = [$timeSlots];
+            }
+
+            foreach ($timeSlots as $timeSlot) {
+                $timeSlot = trim((string) $timeSlot);
+                if ($timeSlot !== '') {
+                    $meta[$normalized]['time_slot'][$timeSlot] = true;
+                }
+            }
+
+            $foodTiming = trim((string) ($row['food_timing'] ?? ''));
+            if ($foodTiming !== '') {
+                $meta[$normalized]['food_timing'][$foodTiming] = true;
+            }
         }
 
         foreach ($meta as $key => $item) {
             $meta[$key] = [
                 'dosage' => implode(', ', array_keys($item['dosage'] ?? [])),
                 'duration' => implode(', ', array_keys($item['duration'] ?? [])),
+                'time_slot' => implode(', ', array_keys($item['time_slot'] ?? [])),
+                'food_timing' => implode(', ', array_keys($item['food_timing'] ?? [])),
             ];
         }
 
@@ -598,6 +590,8 @@ class PharmacyStockController extends Controller
     {
         $dosage = trim((string) ($meta['dosage'] ?? ''));
         $duration = trim((string) ($meta['duration'] ?? ''));
+        $timeSlot = trim((string) ($meta['time_slot'] ?? ''));
+        $foodTiming = trim((string) ($meta['food_timing'] ?? ''));
 
         $parts = [];
         if ($dosage !== '') {
@@ -608,11 +602,42 @@ class PharmacyStockController extends Controller
             $parts[] = "duration: {$duration}";
         }
 
+        if ($timeSlot !== '') {
+            $parts[] = 'time: ' . str_replace('_', ' ', $timeSlot);
+        }
+
+        if ($foodTiming !== '') {
+            $parts[] = 'food: ' . str_replace('_', ' ', $foodTiming);
+        }
+
         if (empty($parts)) {
             return '';
         }
 
         return ' (' . implode(', ', $parts) . ')';
+    }
+
+    private function calculateRemainingPrescriptionQuantity(Consultation $record): int
+    {
+        $items = $this->getPrescriptionItemsWithNames($record);
+        $dispensed = is_array($record->dispensed_breakdown) ? $record->dispensed_breakdown : [];
+
+        if (! empty($items)) {
+            $remaining = 0;
+
+            foreach ($items as $normalized => $itemData) {
+                $prescribedQty = (int) ($itemData['qty'] ?? 0);
+                $givenQty = (int) ($dispensed[$normalized] ?? 0);
+                $remaining += max($prescribedQty - $givenQty, 0);
+            }
+
+            return $remaining;
+        }
+
+        $prescribedQty = (int) ($record->prescribed_quantity ?? 0);
+        $givenQty = (int) ($record->dispensed_quantity ?? 0);
+
+        return max($prescribedQty - $givenQty, 0);
     }
 
     private function resolvePatientPhone(Consultation $record): string
@@ -655,6 +680,15 @@ class PharmacyStockController extends Controller
     private function dispatchSms(string $phone, string $message): bool
     {
         try {
+            $userId = trim((string) env('NOTIFY_USER_ID', env('NOTIFYLK_USER_ID')));
+            $apiKey = trim((string) env('NOTIFY_API_KEY', env('NOTIFYLK_API_KEY')));
+            $senderId = trim((string) env('NOTIFY_SENDER_ID', env('NOTIFYLK_SENDER_ID')));
+
+            if ($userId === '' || $apiKey === '' || $senderId === '') {
+                Log::warning('NotifyLK SMS configuration missing. Set NOTIFY_USER_ID/NOTIFY_API_KEY/NOTIFY_SENDER_ID or NOTIFYLK_* equivalents.');
+                return false;
+            }
+
             $response = NotifyLKService::send($phone, $message);
 
             if (! $response->successful()) {
@@ -755,7 +789,7 @@ class PharmacyStockController extends Controller
         abort_unless(auth()->user()?->can('pharmacy-stocks-create') || auth()->user()?->hasRole('Admin'), 403);
 
         $validated = $request->validate([
-            'product_id' => 'required|exists:products,id',
+            'product_id' => 'required|exists:medicines,id',
             'batch_no' => 'required|string|max:100',
             'quantity' => 'required|integer|min:0',
             'reorder_level' => 'required|integer|min:0',
@@ -782,7 +816,7 @@ class PharmacyStockController extends Controller
         $stock = PharmacyStock::findOrFail($id);
 
         $validated = $request->validate([
-            'product_id' => 'required|exists:products,id',
+            'product_id' => 'required|exists:medicines,id',
             'batch_no' => 'required|string|max:100',
             'quantity' => 'required|integer|min:0',
             'reorder_level' => 'required|integer|min:0',

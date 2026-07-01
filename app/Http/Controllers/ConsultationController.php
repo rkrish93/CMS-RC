@@ -87,10 +87,13 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
             'diagnosis' => 'required|string',
             'symptoms' => 'nullable|string',
             'prescription_items' => 'nullable|array',
-            'prescription_items.*.medicine_id' => 'nullable|exists:products,id',
+            'prescription_items.*.medicine_id' => 'nullable|exists:medicines,id',
             'prescription_items.*.medicine_name' => 'nullable|string|max:255',
             'prescription_items.*.duration' => 'nullable|string|max:100',
             'prescription_items.*.dosage' => 'nullable|string|max:100',
+            'prescription_items.*.time_slot' => 'nullable|array|min:1',
+            'prescription_items.*.time_slot.*' => 'nullable|in:morning,lunch,night',
+            'prescription_items.*.food_timing' => 'nullable|in:before_food,after_food',
             'notes' => 'nullable|string',
             'next_visit' => 'nullable|date|after_or_equal:today',
         ]);
@@ -105,6 +108,16 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
                     ? Product::find($item['medicine_id'])
                     : null;
 
+                $timeSlots = $item['time_slot'] ?? [];
+                if (! is_array($timeSlots)) {
+                    $timeSlots = [$timeSlots];
+                }
+
+                $timeSlots = array_values(array_filter(array_map(function ($slot) {
+                    $slot = trim((string) $slot);
+                    return in_array($slot, ['morning', 'lunch', 'night'], true) ? $slot : null;
+                }, $timeSlots)));
+
                 return [
                     'medicine_id' => $product?->id,
                     'product_code' => $product?->product_code,
@@ -112,6 +125,8 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
                     'generic_name' => $product?->generic_name,
                     'duration' => trim((string) ($item['duration'] ?? '')),
                     'dosage' => trim((string) ($item['dosage'] ?? '')),
+                    'time_slot' => $timeSlots,
+                    'food_timing' => trim((string) ($item['food_timing'] ?? '')),
                 ];
             })
             ->filter(function (array $item) {
@@ -135,6 +150,24 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
 
                 if ($item['duration'] !== '') {
                     $parts[] = $item['duration'];
+                }
+
+                $timeSlots = $item['time_slot'] ?? [];
+                if (! is_array($timeSlots)) {
+                    $timeSlots = [$timeSlots];
+                }
+
+                $timeSlots = array_values(array_filter(array_map(function ($slot) {
+                    $slot = trim((string) $slot);
+                    return $slot !== '' ? str_replace('_', ' ', $slot) : null;
+                }, $timeSlots)));
+
+                if (! empty($timeSlots)) {
+                    $parts[] = implode('/', $timeSlots);
+                }
+
+                if (($item['food_timing'] ?? '') !== '') {
+                    $parts[] = str_replace('_', ' ', (string) $item['food_timing']);
                 }
 
                 return implode(' | ', $parts);

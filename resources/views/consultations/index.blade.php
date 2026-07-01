@@ -97,6 +97,22 @@
                                                             @if(!empty($item['duration']))
                                                                 - {{ $item['duration'] }}
                                                             @endif
+                                                            @php
+                                                                $historyTimeSlots = $item['time_slot'] ?? [];
+                                                                if (!is_array($historyTimeSlots)) {
+                                                                    $historyTimeSlots = [$historyTimeSlots];
+                                                                }
+                                                                $historyTimeSlots = array_values(array_filter(array_map(function ($slot) {
+                                                                    $slot = trim((string) $slot);
+                                                                    return $slot !== '' ? ucfirst(str_replace('_', ' ', $slot)) : null;
+                                                                }, $historyTimeSlots)));
+                                                            @endphp
+                                                            @if(!empty($historyTimeSlots))
+                                                                - {{ implode(', ', $historyTimeSlots) }}
+                                                            @endif
+                                                            @if(!empty($item['food_timing']))
+                                                                - {{ str_replace('_', ' ', ucfirst($item['food_timing'])) }}
+                                                            @endif
                                                         </li>
                                                     @endforeach
                                                 </ul>
@@ -399,6 +415,8 @@
                                             <th style="min-width: 260px;">Medicine</th>
                                             <th style="min-width: 160px;">Dosage</th>
                                             <th style="min-width: 160px;">Duration</th>
+                                            <th style="min-width: 140px;">Time Slot</th>
+                                            <th style="min-width: 170px;">Food Timing</th>
                                             <th style="width: 56px;"></th>
                                         </tr>
                                     </thead>
@@ -420,6 +438,30 @@
                                             <td>
                                                 <input type="text" name="prescription_items[0][duration]" class="form-control" placeholder="5 days" required>
                                             </td>
+                                            <td>
+                                                <div class="time-slot-group">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input time-slot-checkbox" type="checkbox" name="prescription_items[0][time_slot][]" value="morning" id="time_slot_0_morning">
+                                                        <label class="form-check-label" for="time_slot_0_morning">Morning</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input time-slot-checkbox" type="checkbox" name="prescription_items[0][time_slot][]" value="lunch" id="time_slot_0_lunch">
+                                                        <label class="form-check-label" for="time_slot_0_lunch">Lunch</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input time-slot-checkbox" type="checkbox" name="prescription_items[0][time_slot][]" value="night" id="time_slot_0_night">
+                                                        <label class="form-check-label" for="time_slot_0_night">Night</label>
+                                                    </div>
+                                                </div>
+                                                <small class="text-muted">You can select multiple time slots.</small>
+                                            </td>
+                                            <td>
+                                                <select name="prescription_items[0][food_timing]" class="form-select" required>
+                                                    <option value="">Select</option>
+                                                    <option value="before_food">Before Food</option>
+                                                    <option value="after_food">After Food</option>
+                                                </select>
+                                            </td>
                                             <td class="text-center">
                                                 <button type="button" class="btn btn-sm btn-outline-danger js-remove-medicine-row" disabled>&times;</button>
                                             </td>
@@ -433,7 +475,7 @@
                             </button>
 
                             <small class="text-muted d-block mt-2">
-                                Search medicine by typing the first letters of the product name or code.
+                                Search medicine by typing the first letters of the medicine name or code.
                             </small>
 
                         </div>
@@ -675,11 +717,25 @@
             const medicineSelect = row.querySelector('.medicine-select');
             const dosageInput = row.querySelector('input[name*="[dosage]"]');
             const durationInput = row.querySelector('input[name*="[duration]"]');
+            const timeSlotInputs = row.querySelectorAll('input.time-slot-checkbox');
+            const foodTimingInput = row.querySelector('select[name*="[food_timing]"]');
             const removeButton = row.querySelector('.js-remove-medicine-row');
 
             if (medicineSelect) medicineSelect.name = `prescription_items[${index}][medicine_id]`;
             if (dosageInput) dosageInput.name = `prescription_items[${index}][dosage]`;
             if (durationInput) durationInput.name = `prescription_items[${index}][duration]`;
+            if (timeSlotInputs.length) {
+                timeSlotInputs.forEach(function(input) {
+                    const slot = input.value;
+                    input.name = `prescription_items[${index}][time_slot][]`;
+                    input.id = `time_slot_${index}_${slot}`;
+                    const label = input.closest('.form-check')?.querySelector('label');
+                    if (label) {
+                        label.setAttribute('for', input.id);
+                    }
+                });
+            }
+            if (foodTimingInput) foodTimingInput.name = `prescription_items[${index}][food_timing]`;
             if (removeButton) removeButton.disabled = index === 0;
 
             initMedicineSelect(medicineSelect);
@@ -706,6 +762,30 @@
             <td>
                 <input type="text" name="prescription_items[${rowCount}][duration]" class="form-control" placeholder="5 days" required>
             </td>
+            <td>
+                <div class="time-slot-group">
+                    <div class="form-check">
+                        <input class="form-check-input time-slot-checkbox" type="checkbox" name="prescription_items[${rowCount}][time_slot][]" value="morning" id="time_slot_${rowCount}_morning">
+                        <label class="form-check-label" for="time_slot_${rowCount}_morning">Morning</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input time-slot-checkbox" type="checkbox" name="prescription_items[${rowCount}][time_slot][]" value="lunch" id="time_slot_${rowCount}_lunch">
+                        <label class="form-check-label" for="time_slot_${rowCount}_lunch">Lunch</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input time-slot-checkbox" type="checkbox" name="prescription_items[${rowCount}][time_slot][]" value="night" id="time_slot_${rowCount}_night">
+                        <label class="form-check-label" for="time_slot_${rowCount}_night">Night</label>
+                    </div>
+                </div>
+                <small class="text-muted">You can select multiple time slots.</small>
+            </td>
+            <td>
+                <select name="prescription_items[${rowCount}][food_timing]" class="form-select" required>
+                    <option value="">Select</option>
+                    <option value="before_food">Before Food</option>
+                    <option value="after_food">After Food</option>
+                </select>
+            </td>
             <td class="text-center">
                 <button type="button" class="btn btn-sm btn-outline-danger js-remove-medicine-row">&times;</button>
             </td>
@@ -729,6 +809,34 @@
         });
 
         refreshMedicineRowNames();
+    }
+
+    const consultationForm = document.querySelector("form[action='{{ route('consultations.store') }}']");
+    if (consultationForm && medicineTableBody) {
+        consultationForm.addEventListener('submit', function(event) {
+            const rows = medicineTableBody.querySelectorAll('.medicine-row');
+            let hasTimeSlotError = false;
+
+            rows.forEach(function(row) {
+                const timeSlotInputs = row.querySelectorAll('input.time-slot-checkbox');
+                const checkedCount = row.querySelectorAll('input.time-slot-checkbox:checked').length;
+
+                if (timeSlotInputs.length) {
+                    const firstInput = timeSlotInputs[0];
+                    if (checkedCount === 0) {
+                        firstInput.setCustomValidity('Select at least one time slot.');
+                        hasTimeSlotError = true;
+                    } else {
+                        firstInput.setCustomValidity('');
+                    }
+                }
+            });
+
+            if (hasTimeSlotError) {
+                event.preventDefault();
+                consultationForm.reportValidity();
+            }
+        });
     }
 </script>
 

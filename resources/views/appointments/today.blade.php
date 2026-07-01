@@ -108,9 +108,20 @@ $columnCount--;
                                 @endif
 
                                 @if($canGenerateQr)
-                                <a href="{{ route('appointments.qr-pass', $appt->id) }}" class="btn btn-sm btn-outline-dark">
-                                    {{ $appt->status === 'pending' ? 'Check-in + QR' : 'QR Pass' }}
-                                </a>
+                                    @if($appt->status === 'pending')
+                                    <form method="POST" action="{{ route('appointments.check-in', $appt->id) }}" class="d-inline">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                                            Check-in
+                                        </button>
+                                    </form>
+                                    @endif
+
+                                    @if($appt->patient_id)
+                                    <a href="{{ route('patients.qr-card', $appt->patient_id) }}" class="btn btn-sm btn-outline-dark">
+                                        Patient QR
+                                    </a>
+                                    @endif
                                 @endif
 
                                 @if($canMarkNoShow && $appt->status === 'pending')

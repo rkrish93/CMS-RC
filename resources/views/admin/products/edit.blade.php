@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Edit Product')
+@section('title', 'Edit Medicine')
 
 @section('page-actions')
     <a href="{{ route('products.index') }}" class="btn btn-light">
@@ -14,7 +14,7 @@
     <div class="col-12">
         <div class="card">
             <div class="card-body">
-                <h4 class="card-title mb-4">Edit Product</h4>
+                <h4 class="card-title mb-4">Edit Medicine</h4>
 
                 <form method="POST" action="{{ route('products.update', $product) }}">
                     @csrf
@@ -22,7 +22,7 @@
 
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label">Product Code</label>
+                            <label class="form-label">Medicine Code</label>
                             <input type="text" name="product_code" value="{{ $product->product_code }}" class="form-control" required>
                             @error('product_code')
                                 <div class="text-danger small mt-1">{{ $message }}</div>
@@ -77,7 +77,7 @@
 
                         <div class="col-md-12">
                             <button type="submit" class="btn btn-gradient-primary">
-                                <i class="mdi mdi-check me-1"></i> Update Product
+                                <i class="mdi mdi-check me-1"></i> Update Medicine
                             </button>
                             <a href="{{ route('products.index') }}" class="btn btn-light">Cancel</a>
                         </div>

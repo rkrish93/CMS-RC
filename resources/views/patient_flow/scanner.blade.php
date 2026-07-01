@@ -50,6 +50,9 @@
                 </thead>
                 <tbody>
                     @forelse($appointments as $appointment)
+                        @php
+                            $isPharmacyDispensed = ($appointment->consultation->pharmacy_status ?? null) === 'dispensed';
+                        @endphp
                         <tr>
                             <td>{{ $appointment->token_no ?? '-' }}</td>
                             <td>{{ trim((optional($appointment->patient)->first_name ?? '') . ' ' . (optional($appointment->patient)->last_name ?? '')) ?: 'N/A' }}</td>
@@ -58,9 +61,15 @@
                             <td>{{ $appointment->appointment_time ?? 'N/A' }}</td>
                             <td>{{ ucfirst(str_replace('_', ' ', $appointment->status ?? 'pending')) }}</td>
                             <td class="text-end">
-                                <a href="{{ $signedScanUrls[$appointment->id] ?? '#' }}" class="btn btn-sm btn-outline-dark">
-                                    Open Scan
-                                </a>
+                                @if($isPharmacyDispensed)
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled>
+                                        Open Scan Disabled
+                                    </button>
+                                @else
+                                    <a href="{{ $signedScanUrls[$appointment->id] ?? '#' }}" class="btn btn-sm btn-outline-dark">
+                                        Open Scan
+                                    </a>
+                                @endif
                             </td>
                         </tr>
                     @empty

@@ -1,11 +1,11 @@
 @extends('layouts.app')
 
-@section('title', 'Products')
+@section('title', 'Medicines')
 
 @section('page-actions')
     @can('products-create')
         <a href="{{ route('products.create') }}" class="btn btn-gradient-primary shadow-sm">
-            <i class="mdi mdi-plus me-1"></i> Add Product
+            <i class="mdi mdi-plus me-1"></i> Add Medicine
         </a>
     @endcan
 @endsection
@@ -23,8 +23,8 @@
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
             <div>
-                <h4 class="card-title mb-1">Medicine Products</h4>
-                <p class="text-muted mb-0">Manage all medicines and products in the system.</p>
+                <h4 class="card-title mb-1">Medicine Master</h4>
+                <p class="text-muted mb-0">Manage all medicines in the system.</p>
             </div>
         </div>
 
@@ -43,7 +43,7 @@
             <table class="table table-hover align-middle">
                 <thead>
                     <tr>
-                        <th>Product Code</th>
+                        <th>Medicine Code</th>
                         <th>Medicine Name</th>
                         <th>Generic Name</th>
                         <th>Unit</th>
@@ -73,7 +73,7 @@
                                     <form action="{{ route('products.destroy', $product) }}" method="POST" class="d-inline">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this product?')">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this medicine?')">
                                             <i class="mdi mdi-delete"></i>
                                         </button>
                                     </form>
@@ -82,7 +82,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">No products found.</td>
+                            <td colspan="6" class="text-center text-muted py-4">No medicines found.</td>
                         </tr>
                     @endforelse
                 </tbody>

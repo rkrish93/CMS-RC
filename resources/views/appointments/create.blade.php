@@ -34,7 +34,15 @@
                     <label class="form-label">Patient</label>
                     <select name="patient_id" id="patient_select" class="form-control" required>
                         <option value="">Select or Search Patient</option>
+                        @if(isset($prefilledPatient) && $prefilledPatient)
+                            <option value="{{ $prefilledPatient->id }}" selected>
+                                {{ $prefilledPatient->patient_code }} - {{ trim(($prefilledPatient->first_name ?? '') . ' ' . ($prefilledPatient->last_name ?? '')) }} ({{ $prefilledPatient->phone }})
+                            </option>
+                        @endif
                     </select>
+                    @if(isset($prefilledPatient) && $prefilledPatient)
+                        <small class="text-success">Patient loaded from QR: {{ $prefilledPatient->patient_code }}</small>
+                    @endif
                 </div>
 
                 <!-- NEW PATIENT ALERT -->

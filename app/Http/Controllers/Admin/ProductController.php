@@ -49,7 +49,7 @@ class ProductController extends Controller
         abort_unless(auth()->user()?->can('products-create'), 403);
 
         $validated = $request->validate([
-            'product_code' => 'required|string|unique:products,product_code',
+            'product_code' => 'required|string|unique:medicines,product_code',
             'medicine_name' => 'required|string|max:255',
             'generic_name' => 'nullable|string|max:255',
             'description' => 'nullable|string',
@@ -60,7 +60,7 @@ class ProductController extends Controller
         Product::create($validated);
 
         return redirect()->route('products.index')
-                       ->with('success', 'Product created successfully.');
+                       ->with('success', 'Medicine created successfully.');
     }
 
     /**
@@ -91,7 +91,7 @@ class ProductController extends Controller
         abort_unless(auth()->user()?->can('products-edit'), 403);
 
         $validated = $request->validate([
-            'product_code' => 'required|string|unique:products,product_code,' . $product->id,
+            'product_code' => 'required|string|unique:medicines,product_code,' . $product->id,
             'medicine_name' => 'required|string|max:255',
             'generic_name' => 'nullable|string|max:255',
             'description' => 'nullable|string',
@@ -102,7 +102,7 @@ class ProductController extends Controller
         $product->update($validated);
 
         return redirect()->route('products.index')
-                       ->with('success', 'Product updated successfully.');
+                       ->with('success', 'Medicine updated successfully.');
     }
 
     /**
@@ -119,7 +119,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Search products for dropdown (API endpoint)
+        * Search medicines for dropdown (API endpoint)
      */
     public function search(Request $request)
     {
