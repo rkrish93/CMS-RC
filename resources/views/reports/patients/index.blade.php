@@ -60,41 +60,6 @@
     </div>
 </div>
 
-<div class="row g-3 mb-3">
-    <div class="col-md-3">
-        <div class="card h-100">
-            <div class="card-body">
-                <small class="text-muted">Total Patients</small>
-                <h4 class="mb-0">{{ $summary['total'] }}</h4>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card h-100">
-            <div class="card-body">
-                <small class="text-muted">Male</small>
-                <h4 class="mb-0">{{ $summary['male'] }}</h4>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card h-100">
-            <div class="card-body">
-                <small class="text-muted">Female</small>
-                <h4 class="mb-0">{{ $summary['female'] }}</h4>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card h-100">
-            <div class="card-body">
-                <small class="text-muted">Other</small>
-                <h4 class="mb-0">{{ $summary['other'] }}</h4>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="card">
     <div class="card-body">
         <div class="table-responsive">

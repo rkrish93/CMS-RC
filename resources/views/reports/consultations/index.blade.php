@@ -78,41 +78,6 @@
     </div>
 </div>
 
-<div class="row g-3 mb-3">
-    <div class="col-md-3">
-        <div class="card h-100">
-            <div class="card-body">
-                <small class="text-muted">Total Consultations</small>
-                <h4 class="mb-0">{{ $summary['total'] }}</h4>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card h-100">
-            <div class="card-body">
-                <small class="text-muted">Pending</small>
-                <h4 class="mb-0">{{ $summary['pending'] }}</h4>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card h-100">
-            <div class="card-body">
-                <small class="text-muted">Partial</small>
-                <h4 class="mb-0">{{ $summary['partial'] }}</h4>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card h-100">
-            <div class="card-body">
-                <small class="text-muted">Dispensed</small>
-                <h4 class="mb-0">{{ $summary['dispensed'] }}</h4>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="card">
     <div class="card-body">
         <div class="table-responsive">

@@ -41,27 +41,6 @@
 
         <hr>
 
-        <div class="row g-3 mb-3">
-            <div class="col-md-4">
-                <div class="border rounded p-2">
-                    <small class="text-muted d-block">Appointments</small>
-                    <h5 class="mb-0">{{ $patient->appointments_count }}</h5>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="border rounded p-2">
-                    <small class="text-muted d-block">Consultations</small>
-                    <h5 class="mb-0">{{ $patient->consultations_count }}</h5>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="border rounded p-2">
-                    <small class="text-muted d-block">Registered Date</small>
-                    <h5 class="mb-0">{{ optional($patient->created_at)->format('Y-m-d') }}</h5>
-                </div>
-            </div>
-        </div>
-
         <h6 class="mb-2">Recent Vitals</h6>
         <div class="table-responsive mb-3">
             <table class="table table-sm table-bordered align-middle mb-0">
