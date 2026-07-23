@@ -78,7 +78,7 @@
                     <td>{{ optional($appointment->patient)->phone ?? '-' }}</td>
                     <td>{{ optional($appointment->unit)->unit_name ?? '-' }}</td>
                     <td>{{ trim((optional(optional($appointment->consultation)->doctor)->fname ?? '') . ' ' . (optional(optional($appointment->consultation)->doctor)->lname ?? '')) ?: '-' }}</td>
-                    <td>{{ ucfirst(str_replace('_', ' ', $appointment->status ?? '-')) }}</td>
+                    <td>{{ (App\Enums\AppointmentStatus::fromValue($appointment->status) ?? App\Enums\AppointmentStatus::SCHEDULED)->getLabel() }}</td>
                 </tr>
             @empty
                 <tr>

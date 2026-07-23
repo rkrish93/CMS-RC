@@ -79,9 +79,17 @@ class PharmacyStockController extends Controller
         if ($sent) {
             $record->update([
                 'is_locked' => true,
+                'pharmacy_status' => 'dispensed',
+                'dispensed_at' => now(),
             ]);
 
-            return $redirect->with('success', 'Shortage SMS sent to patient via NotifyLK successfully.');
+            if ($record->appointment) {
+                $record->appointment->update([
+                    'status' => \App\Enums\AppointmentStatus::COMPLETED->value,
+                ]);
+            }
+
+            return $redirect->with('success', 'Shortage SMS sent to patient successfully.');
         }
 
         return $redirect->with('error', 'NotifyLK SMS sending failed. Check NotifyLK settings.');
@@ -242,6 +250,12 @@ class PharmacyStockController extends Controller
         }
 
         $record = $record->refresh();
+
+        if ($record->appointment) {
+            $record->appointment->update([
+                'status' => \App\Enums\AppointmentStatus::COMPLETED->value,
+            ]);
+        }
 
         $summary = count($successMessages) . ' medicine item(s) saved.';
 
@@ -437,10 +451,26 @@ class PharmacyStockController extends Controller
                     continue;
                 }
 
+                $duration = trim((string) ($row['duration'] ?? ''));
+                $days = 1;
+                if ($duration !== '' && preg_match('/(\d+)/', $duration, $m)) {
+                    $days = max((int) $m[1], 1);
+                }
+
+                $timeSlots = $row['time_slot'] ?? [];
+                if (! is_array($timeSlots)) {
+                    $timeSlots = array_filter([(string) $timeSlots]);
+                } else {
+                    $timeSlots = array_filter($timeSlots);
+                }
+                $slotCount = max(count($timeSlots), 1);
+
+                $calcQty = $days * $slotCount;
+
                 $normalized = $this->normalizeMedicineName($name);
                 $items[$normalized] = [
                     'name' => $items[$normalized]['name'] ?? $name,
-                    'qty' => (int) (($items[$normalized]['qty'] ?? 0) + 1),
+                    'qty' => (int) (($items[$normalized]['qty'] ?? 0) + $calcQty),
                 ];
             }
 
@@ -462,7 +492,9 @@ class PharmacyStockController extends Controller
         $dispensed = is_array($record->dispensed_breakdown) ? $record->dispensed_breakdown : [];
         $stockMap = $this->buildStockMap();
 
+        $hasAnyShortage = false;
         $parts = [];
+
         foreach ($items as $normalized => $itemData) {
             $prescribedQty = (int) ($itemData['qty'] ?? 0);
             $displayName = (string) ($itemData['name'] ?? $normalized);
@@ -470,28 +502,31 @@ class PharmacyStockController extends Controller
             $given = (int) ($dispensed[$normalized] ?? 0);
             $remaining = max($prescribedQty - $given, 0);
 
-            if ($remaining <= 0) {
-                continue;
-            }
-
             $stock = (int) ($stockMap[$normalized] ?? 0);
             $detailSuffix = $this->formatDoseDurationDetails($metaByMedicine[$normalized] ?? []);
-            if ($stock <= 0) {
-                $parts[] = "{$displayName}{$detailSuffix}: not available (need {$remaining})";
-                continue;
-            }
 
-            if ($stock < $remaining) {
-                $parts[] = "{$displayName}{$detailSuffix}: need {$remaining}, available {$stock}";
+            if ($remaining <= 0) {
+                $parts[] = "{$displayName}{$detailSuffix}: Given";
+            } elseif ($stock <= 0) {
+                $hasAnyShortage = true;
+                $parts[] = "{$displayName}{$detailSuffix}: OUT OF STOCK (Need {$remaining})";
+            } elseif ($stock < $remaining) {
+                $hasAnyShortage = true;
+                $parts[] = "{$displayName}{$detailSuffix}: Shortage (Available {$stock}, Need {$remaining})";
+            } else {
+                $parts[] = "{$displayName}{$detailSuffix}: Available ({$stock} in stock)";
             }
         }
 
-        if (empty($parts)) {
+        if (! $hasAnyShortage || empty($parts)) {
             return false;
         }
 
-        $message = 'CMS-RC Pharmacy: Some prescribed medicines are currently unavailable. Prescription details - '
-            . implode('; ', array_slice($parts, 0, 4))
+        $patientName = trim((optional($record->patient)->first_name ?? '') . ' ' . (optional($record->patient)->last_name ?? ''));
+        $patientStr = $patientName !== '' ? " for {$patientName}" : '';
+
+        $message = "CMS-RC Pharmacy Notice{$patientStr}: Prescription details - "
+            . implode('; ', $parts)
             . '. Please contact pharmacy.';
 
         return $this->dispatchSms($phone, $message);

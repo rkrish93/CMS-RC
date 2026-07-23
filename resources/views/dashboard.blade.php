@@ -45,7 +45,7 @@
     @if($user?->can('appointments-view') || $user?->can('pharmacy-prescriptions-view') || $user?->hasAnyRole(['Receptionist', 'Admin', 'Doctor', 'Nurse', 'Mid wife', 'Midwife', 'Pharmacist']))
         <div>
             <a href="{{ route('patient.flow.scanner') }}" class="btn btn-dark">
-                <i class="mdi mdi-qrcode-scan me-1"></i> Scan Patient QR
+                <i class="mdi mdi-qrcode-scan me-1"></i> Today Queue
             </a>
         </div>
     @endif
@@ -84,7 +84,7 @@
                 </div>
             </div>
 
-    
+
         @endcan
 
         @can('appointments-view')
@@ -181,32 +181,29 @@
                 </div>
             </div>
         </div>
-    @elseif($user->hasRole('Nurse') || $user->hasRole('Admin'))
+    @elseif($user->hasAnyRole(['Nurse', 'Mid wife', 'Midwife']))
         <div class="card mb-4">
             <div class="card-body">
-                <h4 class="card-title">Nurse Tasks</h4>
-                <p class="text-muted mb-3">Nurse-specific workflow and patient follow-up.</p>
+                <h4 class="card-title">Nurse & Midwife Tasks</h4>
+                <p class="text-muted mb-3">Quick access for patient care, vitals collection, and queue management.</p>
                 <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ route('patient.flow.scanner') }}" class="btn btn-outline-dark">
+                        <i class="mdi mdi-account-clock-outline me-1"></i> Today Queue
+                    </a>
+                    @can('vitals-view')
+                        <a href="{{ route('vitals.index') }}" class="btn btn-outline-primary">
+                            <i class="mdi mdi-heart-pulse me-1"></i> My Vitals List
+                        </a>
+                    @endcan
                     @can('patients-view')
-                        <a href="{{ route('patients.index') }}" class="btn btn-outline-success">Patient List</a>
+                        <a href="{{ route('patients.index') }}" class="btn btn-outline-success">
+                            <i class="mdi mdi-account-multiple me-1"></i> Patient List
+                        </a>
                     @endcan
                     @can('consultations-view')
-                        <a href="{{ route('consultations.index') }}" class="btn btn-outline-primary">Review Consultations</a>
-                    @endcan
-                </div>
-            </div>
-        </div>
-    @elseif($user->hasRole('Mid wife') || $user->hasRole('Nurse') || $user->hasRole('Admin'))
-        <div class="card mb-4">
-            <div class="card-body">
-                <h4 class="card-title">Midwife Care</h4>
-                <p class="text-muted mb-3">Quick access for maternal care and consultations.</p>
-                <div class="d-flex flex-wrap gap-2">
-                    @can('patients-view')
-                        <a href="{{ route('patients.index') }}" class="btn btn-outline-info">Patient List</a>
-                    @endcan
-                    @can('consultations-view')
-                        <a href="{{ route('consultations.index') }}" class="btn btn-outline-primary">Open Consultations</a>
+                        <a href="{{ route('consultations.index') }}" class="btn btn-outline-info">
+                            <i class="mdi mdi-stethoscope me-1"></i> Review Consultations
+                        </a>
                     @endcan
                 </div>
             </div>
@@ -488,8 +485,11 @@
                                             <td class="fw-semibold">{{ $q->patient->first_name ?? 'N/A' }}</td>
                                             <td>{{ $q->appointment_time ?? 'N/A' }}</td>
                                             <td>
-                                                <span class="badge bg-{{ $q->status === 'completed' ? 'success' : ($q->status === 'pending' ? 'warning' : 'secondary') }}">
-                                                    {{ ucfirst(str_replace('_', ' ', $q->status ?? 'pending')) }}
+                                                @php
+                                                    $queueStatus = App\Enums\AppointmentStatus::fromValue($q->status) ?? App\Enums\AppointmentStatus::SCHEDULED;
+                                                @endphp
+                                                <span class="badge bg-{{ $queueStatus->getBadgeColor() }}">
+                                                    {{ $queueStatus->getLabel() }}
                                                 </span>
                                             </td>
                                         </tr>

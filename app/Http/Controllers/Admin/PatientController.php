@@ -251,6 +251,9 @@ class PatientController extends Controller
     public function edit(string $id)
     {
         abort_unless(auth()->user()?->can('patients-edit'), 403);
+        if (auth()->user()?->hasAnyRole(['Nurse', 'Mid wife', 'Midwife'])) {
+            abort(403);
+        }
 
         $patient = Patient::findOrFail($id);
         return view('admin.patients.edit', compact('patient'));
@@ -262,6 +265,9 @@ class PatientController extends Controller
     public function update(Request $request, string $id)
     {
          abort_unless($request->user()?->can('patients-edit'), 403);
+         if ($request->user()?->hasAnyRole(['Nurse', 'Mid wife', 'Midwife'])) {
+             abort(403);
+         }
 
          $patient = Patient::findOrFail($id);
 

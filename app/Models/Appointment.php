@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AppointmentStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -17,6 +18,47 @@ class Appointment extends Model
         'notes',
         'status'
     ];
+
+    public static function normalizeStatus(?string $status): string
+    {
+        return AppointmentStatus::fromValue($status)?->value ?? AppointmentStatus::SCHEDULED->value;
+    }
+
+    public static function validStatuses(): array
+    {
+        return AppointmentStatus::values();
+    }
+
+    public function getStatusLabelAttribute(): string
+    {
+        return (AppointmentStatus::fromValue($this->status) ?? AppointmentStatus::SCHEDULED)->getLabel();
+    }
+
+    public function getStatusBadgeColorAttribute(): string
+    {
+        return (AppointmentStatus::fromValue($this->status) ?? AppointmentStatus::SCHEDULED)->getBadgeColor();
+    }
+
+    public function canTransitionTo(?string $status): bool
+    {
+        $current = AppointmentStatus::fromValue($this->status) ?? AppointmentStatus::SCHEDULED;
+        $target = AppointmentStatus::fromValue($status);
+
+        return $target !== null && $current->canTransitionTo($target);
+    }
+
+    public function transitionTo(?string $status): bool
+    {
+        $target = AppointmentStatus::fromValue($status);
+
+        if ($target === null || ! $this->canTransitionTo($target->value)) {
+            return false;
+        }
+
+        $this->status = $target->value;
+
+        return $this->save();
+    }
     public function patient()
     {
         return $this->belongsTo(Patient::class);

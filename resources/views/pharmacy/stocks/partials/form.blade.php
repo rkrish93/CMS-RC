@@ -7,60 +7,97 @@
     };
 @endphp
 
-<div class="row g-3">
-    <div class="col-md-6">
-        <label class="form-label">Medicine *</label>
-        <select id="product_id_{{ $fieldKey }}" name="product_id" class="form-select" data-placeholder="Search medicine..." required>
-            <option value="">Search and select medicine...</option>
-            @foreach(($products ?? []) as $product)
-                <option
-                    value="{{ $product->id }}"
-                    @selected(isset($stock) && (string) $stock->product_id === (string) $product->id)
-                    data-medicine-name="{{ $product->medicine_name }}"
-                    data-generic-name="{{ $product->generic_name }}"
-                    data-unit="{{ $product->unit }}"
-                    data-expiry-date="{{ $product->expiry_date ? \Illuminate\Support\Carbon::parse($product->expiry_date)->format('Y-m-d') : '' }}"
-                    data-product-code="{{ $product->product_code }}"
-                >
-                    {{ $product->product_code }} - {{ $product->medicine_name }}{{ $product->generic_name ? ' (' . $product->generic_name . ')' : '' }}
-                </option>
-            @endforeach
-        </select>
-        <small class="text-muted">Search by code, name or generic name</small>
+<div class="stock-form-container">
+    <!-- Section 1: Medicine & Batch Selection -->
+    <div class="form-section-card mb-3">
+        <div class="form-section-title mb-2 fw-semibold text-dark d-flex align-items-center gap-2">
+            <i class="mdi mdi-pill text-primary fs-5"></i> Medicine & Batch Information
+        </div>
+        <div class="row g-3">
+            <div class="col-md-7">
+                <label class="form-label fw-medium text-secondary">Medicine <span class="text-danger">*</span></label>
+                <select id="product_id_{{ $fieldKey }}" name="product_id" class="form-select form-select-custom" data-placeholder="Search medicine by name or code..." required>
+                    <option value="">Search and select medicine...</option>
+                    @foreach(($products ?? []) as $product)
+                        <option
+                            value="{{ $product->id }}"
+                            @selected(isset($stock) && (string) $stock->product_id === (string) $product->id)
+                            data-medicine-name="{{ $product->medicine_name }}"
+                            data-generic-name="{{ $product->generic_name }}"
+                            data-unit="{{ $product->unit }}"
+                            data-expiry-date="{{ $product->expiry_date ? \Illuminate\Support\Carbon::parse($product->expiry_date)->format('Y-m-d') : '' }}"
+                            data-product-code="{{ $product->product_code }}"
+                        >
+                            {{ $product->product_code }} - {{ $product->medicine_name }}{{ $product->generic_name ? ' (' . $product->generic_name . ')' : '' }}
+                        </option>
+                    @endforeach
+                </select>
+                <div class="form-text small text-muted">Search by code, name or generic name</div>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label fw-medium text-secondary">Batch No <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light text-muted"><i class="mdi mdi-barcode"></i></span>
+                    <input type="text" name="batch_no" class="form-control" value="{{ $valueOrDefault('batch_no', $stock->batch_no ?? '') }}" placeholder="e.g. BAT-2026-001" autocomplete="off" required>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="col-md-6">
-        <label class="form-label">Batch No *</label>
-        <input type="text" name="batch_no" class="form-control" value="{{ $valueOrDefault('batch_no', $stock->batch_no ?? '') }}" autocomplete="off" required>
+
+    <!-- Section 2: Auto-filled Medicine Details -->
+    <div class="form-section-card mb-3 p-3 bg-light rounded-3 border-0">
+        <div class="form-section-title mb-2 fw-medium text-muted small text-uppercase tracking-wider">
+            Auto-Filled Medicine Details
+        </div>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label small text-secondary">Medicine Name</label>
+                <input type="text" id="medicine_name_{{ $fieldKey }}" name="medicine_name" class="form-control bg-white" value="{{ $valueOrDefault('medicine_name', $stock->medicine_name ?? '') }}" placeholder="Auto-filled" readonly>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small text-secondary">Generic Name</label>
+                <input type="text" id="generic_name_{{ $fieldKey }}" name="generic_name" class="form-control bg-white" value="{{ $valueOrDefault('generic_name', $stock->generic_name ?? '') }}" placeholder="Auto-filled" readonly>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small text-secondary">Unit</label>
+                <input type="text" id="unit_{{ $fieldKey }}" name="unit" class="form-control bg-white" value="{{ $valueOrDefault('unit', $stock->unit ?? '') }}" placeholder="Auto-filled" readonly>
+            </div>
+        </div>
     </div>
-    <div class="col-md-4">
-        <label class="form-label">Medicine Name</label>
-        <input type="text" id="medicine_name_{{ $fieldKey }}" name="medicine_name" class="form-control" value="{{ $valueOrDefault('medicine_name', $stock->medicine_name ?? '') }}" readonly>
-    </div>
-    <div class="col-md-4">
-        <label class="form-label">Generic Name</label>
-        <input type="text" id="generic_name_{{ $fieldKey }}" name="generic_name" class="form-control" value="{{ $valueOrDefault('generic_name', $stock->generic_name ?? '') }}" readonly>
-    </div>
-    <div class="col-md-4">
-        <label class="form-label">Unit</label>
-        <input type="text" id="unit_{{ $fieldKey }}" name="unit" class="form-control" value="{{ $valueOrDefault('unit', $stock->unit ?? '') }}" readonly>
-        <small class="text-muted">Auto-filled from selected medicine</small>
-    </div>
-    <div class="col-md-4">
-        <label class="form-label">Expiry Date</label>
-        <input type="date" id="expiry_date_{{ $fieldKey }}" name="expiry_date" class="form-control" value="{{ $valueOrDefault('expiry_date', isset($stock) && $stock->expiry_date ? $stock->expiry_date->format('Y-m-d') : '') }}" autocomplete="off">
-    </div>
-    <div class="col-md-4">
-        <label class="form-label">Quantity *</label>
-        <input type="number" min="0" name="quantity" class="form-control" value="{{ $valueOrDefault('quantity', $stock->quantity ?? 0) }}" autocomplete="off" required>
-    </div>
-    <div class="col-md-4">
-        <label class="form-label">Reorder Level *</label>
-        <input type="number" min="0" name="reorder_level" class="form-control" value="{{ $valueOrDefault('reorder_level', $stock->reorder_level ?? 10) }}" autocomplete="off" required>
-    </div>
-    <div class="col-md-4 d-flex align-items-end">
-        <div class="form-check">
-            <input type="checkbox" class="form-check-input" id="is_active_{{ $stock->id ?? 'new' }}" name="is_active" value="1" @checked($valueOrDefault('is_active', $stock->is_active ?? true))>
-            <label class="form-check-label" for="is_active_{{ $stock->id ?? 'new' }}">Active</label>
+
+    <!-- Section 3: Quantity, Expiry & Status -->
+    <div class="form-section-card">
+        <div class="form-section-title mb-2 fw-semibold text-dark d-flex align-items-center gap-2">
+            <i class="mdi mdi-cube-outline text-primary fs-5"></i> Inventory & Status
+        </div>
+        <div class="row g-3 align-items-center">
+            <div class="col-md-4">
+                <label class="form-label fw-medium text-secondary">Expiry Date</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light text-muted"><i class="mdi mdi-calendar"></i></span>
+                    <input type="date" id="expiry_date_{{ $fieldKey }}" name="expiry_date" class="form-control" value="{{ $valueOrDefault('expiry_date', isset($stock) && $stock->expiry_date ? $stock->expiry_date->format('Y-m-d') : '') }}" autocomplete="off">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-medium text-secondary">Quantity <span class="text-danger">*</span></label>
+                <input type="number" min="0" name="quantity" class="form-control" value="{{ $valueOrDefault('quantity', $stock->quantity ?? 0) }}" autocomplete="off" required>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-medium text-secondary">Reorder Level <span class="text-danger">*</span></label>
+                <input type="number" min="0" name="reorder_level" class="form-control" value="{{ $valueOrDefault('reorder_level', $stock->reorder_level ?? 10) }}" autocomplete="off" required>
+            </div>
+            <div class="col-12 mt-3 pt-2 border-top">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="fw-semibold text-dark d-block">Item Status</span>
+                        <small class="text-muted">Enable to make this stock item active for dispensing.</small>
+                    </div>
+                    <div class="form-check form-switch m-0">
+                        <input type="checkbox" class="form-check-input" style="width: 2.5em; height: 1.3em; cursor: pointer;" id="is_active_{{ $stock->id ?? 'new' }}" name="is_active" value="1" @checked($valueOrDefault('is_active', $stock->is_active ?? true))>
+                        <label class="form-check-label ms-2 fw-medium" for="is_active_{{ $stock->id ?? 'new' }}">Active</label>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

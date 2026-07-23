@@ -97,16 +97,11 @@
                             <td><span class="code-pill">{{ $app->token_no ?? 'N/A' }}</span></td>
                             <td>
                                 @php
-                                    $statusClass = match($app->status) {
-                                        'pending' => 'warning',
-                                        'in_progress', 'in_Progress' => 'primary',
-                                        'nurse_done' => 'dark',
-                                        'completed' => 'success',
-                                        default => 'secondary',
-                                    };
-                                    $statusLabel = $app->status === 'nurse_done'
-                                        ? 'Nurse Done'
-                                        : ucfirst(str_replace('_', ' ', $app->status ?? 'pending'));
+                                    $isPharmacyDispensed = in_array($app->consultation->pharmacy_status ?? null, ['dispensed', 'partial'])
+                                        || $app->status === App\Enums\AppointmentStatus::COMPLETED->value;
+                                    $status = App\Enums\AppointmentStatus::fromValue($app->status) ?? App\Enums\AppointmentStatus::SCHEDULED;
+                                    $statusClass = $isPharmacyDispensed ? 'success' : $status->getBadgeColor();
+                                    $statusLabel = $isPharmacyDispensed ? 'Completed' : $status->getLabel();
                                 @endphp
                                 <span class="badge bg-{{ $statusClass }}">
                                     {{ $statusLabel }}

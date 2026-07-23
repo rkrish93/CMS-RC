@@ -703,16 +703,18 @@
                     @endcan
 
                     @can('vitals-view')
+                        @unless(auth()->user()->hasRole('Doctor'))
                         <li class="nav-item {{ request()->routeIs('vitals.index') ? 'active' : '' }}">
                             <a class="nav-link" href="{{ route('vitals.index') }}">
                                 <i class="mdi mdi-heart-pulse"></i>
                                 <span class="menu-title">Vitals</span>
                             </a>
                         </li>
+                        @endunless
                     @endcan
 
                     @can('menu-appointments')
-                        @unless(auth()->user()->hasAnyRole(['Nurse', 'Mid wife', 'Midwife']))
+                        @unless(auth()->user()->hasAnyRole(['Nurse', 'Mid wife', 'Midwife', 'Doctor']))
                         <li class="nav-item {{ $appointmentsActive ? 'active' : '' }}">
                             <a class="nav-link" data-bs-toggle="collapse" href="#appointmentsMenu" role="button" aria-expanded="{{ $appointmentsActive ? 'true' : 'false' }}" aria-controls="appointmentsMenu">
                                 <i class="mdi mdi-calendar-clock-outline"></i>
@@ -728,18 +730,18 @@
                                     <li class="nav-item"><a class="nav-link {{ request()->routeIs('appointments.create') ? 'active' : '' }}" href="{{ route('appointments.create') }}">Add Appointment</a></li>
                                     @endcan
                                     <li class="nav-item"><a class="nav-link {{ request()->routeIs('appointments.index') ? 'active' : '' }}" href="{{ route('appointments.index') }}">All Appointments</a></li>
-                                    <li class="nav-item"><a class="nav-link {{ request()->routeIs('appointments.today') ? 'active' : '' }}" href="{{ route('appointments.today') }}">Today Queue</a></li>
+                                     <li class="nav-item"><a class="nav-link {{ request()->routeIs('appointments.today') ? 'active' : '' }}" href="{{ route('appointments.today') }}">Today Queue</a></li>
                                 </ul>
                             </div>
                         </li>
                         @endunless
                     @endcan
 
-                    @if(auth()->user()?->can('appointments-view') || auth()->user()?->can('pharmacy-prescriptions-view') || auth()->user()?->hasAnyRole(['Receptionist', 'Admin', 'Doctor', 'Nurse', 'Mid wife', 'Midwife', 'Pharmacist']))
+                    @if(!auth()->user()?->hasRole('Receptionist') && (auth()->user()?->can('appointments-view') || auth()->user()?->can('pharmacy-prescriptions-view') || auth()->user()?->hasAnyRole(['Admin', 'Doctor', 'Nurse', 'Mid wife', 'Midwife', 'Pharmacist'])))
                         <li class="nav-item {{ $patientFlowActive ? 'active' : '' }}">
                             <a class="nav-link {{ $patientFlowActive ? 'active' : '' }}" href="{{ route('patient.flow.scanner') }}">
                                 <i class="mdi mdi-qrcode-scan"></i>
-                                <span class="menu-title">Scan Patient QR</span>
+                                <span class="menu-title">Today Queue</span>
                             </a>
                         </li>
                     @endif
@@ -769,16 +771,6 @@
                                 <span class="badge bg-danger ms-auto">{{ $pharmacyPrescriptionNotifications }}</span>
                             </a>
                         </li>
-
-                        @can('pharmacy-prescriptions-view')
-                            <li class="nav-item {{ $pharmacyPrescriptionActive ? 'active' : '' }}">
-                                <a class="nav-link {{ $pharmacyPrescriptionActive ? 'active' : '' }}" href="{{ route('pharmacy.prescriptions.index') }}">
-                                    <i class="mdi mdi-clipboard-text-outline"></i>
-                                    <span class="menu-title">Pharmacy Prescriptions</span>
-                                    <span class="badge bg-danger ms-auto">{{ $pharmacyPrescriptionNotifications }}</span>
-                                </a>
-                            </li>
-                        @endcan
                     @endcan
 
                

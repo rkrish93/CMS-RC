@@ -55,80 +55,14 @@
                 <a href="{{ route('patients.show', $appointment->patient->id) }}" class="btn btn-outline-primary w-100 mt-4">
                     <i class="mdi mdi-eye me-1"></i> View Full Profile
                 </a>
+               
                 @endif
 
-                <div class="mt-4">
-                    <h5 class="mb-3">Medical History</h5>
-
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover align-middle mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="min-width: 120px;">Date</th>
-                                    <th style="min-width: 160px;">Diagnosis</th>
-                                    <th>Symptoms</th>
-                                    <th style="min-width: 220px;">Prescription</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($oldConsultations as $consultation)
-                                    <tr>
-                                        <td>
-                                            <small class="text-muted d-block">{{ $consultation->created_at->format('d M Y') }}</small>
-                                            <small>{{ $consultation->created_at->format('H:i') }}</small>
-                                        </td>
-                                        <td>{{ $consultation->diagnosis ?? '-' }}</td>
-                                        <td>
-                                            @if(!empty($consultation->symptoms))
-                                                {{ is_array($consultation->symptoms) ? implode(', ', $consultation->symptoms) : $consultation->symptoms }}
-                                            @else
-                                                -
-                                            @endif
-                                        </td>
-                                        <td>
-                                            @if(!empty($consultation->prescription_items))
-                                                <ul class="mb-0 ps-3 small">
-                                                    @foreach($consultation->prescription_items as $item)
-                                                        <li>
-                                                            {{ $item['medicine_name'] ?? 'Medicine' }}
-                                                            @if(!empty($item['dosage']))
-                                                                - {{ $item['dosage'] }}
-                                                            @endif
-                                                            @if(!empty($item['duration']))
-                                                                - {{ $item['duration'] }}
-                                                            @endif
-                                                            @php
-                                                                $historyTimeSlots = $item['time_slot'] ?? [];
-                                                                if (!is_array($historyTimeSlots)) {
-                                                                    $historyTimeSlots = [$historyTimeSlots];
-                                                                }
-                                                                $historyTimeSlots = array_values(array_filter(array_map(function ($slot) {
-                                                                    $slot = trim((string) $slot);
-                                                                    return $slot !== '' ? ucfirst(str_replace('_', ' ', $slot)) : null;
-                                                                }, $historyTimeSlots)));
-                                                            @endphp
-                                                            @if(!empty($historyTimeSlots))
-                                                                - {{ implode(', ', $historyTimeSlots) }}
-                                                            @endif
-                                                            @if(!empty($item['food_timing']))
-                                                                - {{ str_replace('_', ' ', ucfirst($item['food_timing'])) }}
-                                                            @endif
-                                                        </li>
-                                                    @endforeach
-                                                </ul>
-                                            @else
-                                                -
-                                            @endif
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="4" class="text-center text-muted py-3">No medical history found.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="mt-4 p-3 bg-light rounded border text-center">
+                    <div class="small text-muted mb-1">Past Records: <strong>{{ $oldConsultations->count() }} Visits</strong></div>
+                    <button type="button" class="btn btn-sm btn-outline-primary mt-1" data-bs-toggle="modal" data-bs-target="#medicalHistoryModal">
+                        <i class="mdi mdi-history me-1"></i> View Medical History Modal
+                    </button>
                 </div>
             </div>
         </div>
@@ -248,9 +182,10 @@
                             <input type="number"
                                 name="bmi"
                                 id="vitals_bmi"
-                                class="form-control"
+                                class="form-control bg-light"
                                 step="0.1"
-                                placeholder="Auto">
+                                placeholder="Auto"
+                                readonly>
                         </div>
 
                     </div>
@@ -839,6 +774,107 @@
         });
     }
 </script>
+
+{{-- MEDICAL HISTORY MODAL --}}
+<div class="modal fade" id="medicalHistoryModal" tabindex="-1" aria-labelledby="medicalHistoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-light py-3">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark mb-1" id="medicalHistoryModalLabel">
+                        <i class="mdi mdi-history text-primary me-2"></i>Patient Medical & Vitals History
+                    </h5>
+                    <small class="text-muted">
+                        Patient: <strong>{{ trim((optional($appointment->patient)->first_name ?? '') . ' ' . (optional($appointment->patient)->last_name ?? '')) }}</strong>
+                        | Code: <strong>{{ optional($appointment->patient)->patient_code ?? 'N/A' }}</strong>
+                    </small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                
+
+                <!-- Section 2: Medical Consultations & Prescription History -->
+                <div>
+                    <h6 class="text-uppercase text-primary fw-bold mb-3 small tracking-wider">
+                        <i class="mdi mdi-medical-bag text-primary me-1"></i> Consultation & Prescription History
+                    </h6>
+                    <div class="table-responsive border rounded-3">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="min-width: 140px;">Date & Time</th>
+                                    <th style="min-width: 150px;">Diagnosis</th>
+                                    <th style="min-width: 150px;">Symptoms</th>
+                                    <th style="min-width: 280px;">Prescription Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($oldConsultations as $consultation)
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold text-dark">{{ $consultation->created_at?->format('d M Y') }}</div>
+                                            <small class="text-muted">{{ $consultation->created_at?->format('h:i A') }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="fw-semibold text-dark">{{ $consultation->diagnosis ?: '-' }}</span>
+                                        </td>
+                                        <td>
+                                            @if(!empty($consultation->symptoms))
+                                                <span class="badge bg-light text-dark border">{{ is_array($consultation->symptoms) ? implode(', ', $consultation->symptoms) : $consultation->symptoms }}</span>
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if(!empty($consultation->prescription_items))
+                                                <div class="d-flex flex-column gap-1">
+                                                    @foreach($consultation->prescription_items as $pItem)
+                                                        <div class="p-2 bg-light rounded border-start border-3 border-primary small">
+                                                            <strong>{{ $pItem['medicine_name'] ?? 'Medicine' }}</strong>
+                                                            @if(!empty($pItem['dosage']))
+                                                                <span class="badge bg-white text-secondary border ms-1">{{ $pItem['dosage'] }}</span>
+                                                            @endif
+                                                            @if(!empty($pItem['duration']))
+                                                                <span class="badge bg-white text-secondary border ms-1">{{ $pItem['duration'] }}</span>
+                                                            @endif
+                                                            @php
+                                                                $slots = $pItem['time_slot'] ?? [];
+                                                                if (!is_array($slots)) $slots = [$slots];
+                                                                $slots = array_filter(array_map('trim', $slots));
+                                                            @endphp
+                                                            @if(!empty($slots))
+                                                                <span class="badge bg-white text-info border ms-1">{{ implode(', ', array_map('ucfirst', $slots)) }}</span>
+                                                            @endif
+                                                            @if(!empty($pItem['food_timing']))
+                                                                <span class="badge bg-white text-primary border ms-1">{{ str_replace('_', ' ', ucfirst($pItem['food_timing'])) }}</span>
+                                                            @endif
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            @elseif(!empty($consultation->prescription))
+                                                <span class="font-monospace small">{{ $consultation->prescription }}</span>
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-3">No consultation history found.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @endsection
 

@@ -10,9 +10,11 @@
             </a>
         @endcan
         @can('patients-edit')
-            <a href="{{ route('patients.edit', $patient->id) }}" class="btn btn-gradient-info">
-                <i class="mdi mdi-pencil me-1"></i> Edit
-            </a>
+            @unless(auth()->user()?->hasAnyRole(['Nurse', 'Mid wife', 'Midwife', 'Doctor']))
+                <a href="{{ route('patients.edit', $patient->id) }}" class="btn btn-gradient-info">
+                    <i class="mdi mdi-pencil me-1"></i> Edit
+                </a>
+            @endunless
         @endcan
         <a href="{{ route('patients.index') }}" class="btn btn-light">
             <i class="mdi mdi-arrow-left me-1"></i> Back

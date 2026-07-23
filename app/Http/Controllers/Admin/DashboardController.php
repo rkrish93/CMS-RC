@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\AppointmentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Patient;
@@ -16,59 +17,51 @@ class DashboardController extends Controller
 {
     public function index()
     {
-      $todayVitals = Vital::whereDate(
-        'created_at',
-        today()
-    )
-    ->get();
+        $user = auth()->user();
+        $isNurseOrMidwife = $user?->hasAnyRole(['Nurse', 'Mid wife', 'Midwife']);
 
-$avgTemp = $todayVitals->count()
-    ? round($todayVitals->avg('temp'), 1)
-    : null;
+        $todayVitalsQuery = Vital::whereDate('created_at', today());
+        if ($isNurseOrMidwife) {
+            $todayVitalsQuery->where('created_by', $user->id);
+        }
+        $todayVitals = $todayVitalsQuery->get();
 
-$avgPulse = $todayVitals->count()
-    ? round($todayVitals->avg('pulse'))
-    : null;
+        $avgTemp = $todayVitals->count()
+            ? round($todayVitals->avg('temp'), 1)
+            : null;
 
-$alerts = $todayVitals
-    ->filter(function ($v) {
+        $avgPulse = $todayVitals->count()
+            ? round($todayVitals->avg('pulse'))
+            : null;
 
-        return (
-            $v->temp > 37.5 ||
-            $v->pulse > 100
-        );
+        $alerts = $todayVitals
+            ->filter(function ($v) {
+                return (
+                    $v->temp > 37.5 ||
+                    $v->pulse > 100
+                );
+            })
+            ->count();
 
-    })
-    ->count();
+        $latestVitalsQuery = Vital::with('patient')->latest();
+        if ($isNurseOrMidwife) {
+            $latestVitalsQuery->where('created_by', $user->id);
+        }
 
-
-$latestVitals = Vital::with('patient')
-
-    ->latest()
-
-    ->take(5)
-
-    ->get()
-
-    ->map(function ($v) {
-
-        return [
-
-            'patient' =>
-                optional($v->patient)->first_name . ' ' .
-                optional($v->patient)->last_name,
-
-            'bp' => $v->bp,
-
-            'temp' => $v->temp,
-
-            'pulse' => $v->pulse,
-
-            'time' => $v->created_at->format('Y-m-d H:i'),
-
-        ];
-
-    });
+        $latestVitals = $latestVitalsQuery
+            ->take(5)
+            ->get()
+            ->map(function ($v) {
+                return [
+                    'patient' =>
+                        optional($v->patient)->first_name . ' ' .
+                        optional($v->patient)->last_name,
+                    'bp' => $v->bp,
+                    'temp' => $v->temp,
+                    'pulse' => $v->pulse,
+                    'time' => $v->created_at->format('Y-m-d H:i'),
+                ];
+            });
 
         $lowStocks = PharmacyStock::query()
             ->whereColumn('quantity', '<=', 'reorder_level')
@@ -96,10 +89,10 @@ $latestVitals = Vital::with('patient')
             'patients' => Patient::count(),
             'todayAppointments' => Appointment::whereDate('appointment_date', today())->count(),
 
-            'waiting' => Appointment::where('status', 'pending')
+            'waiting' => Appointment::where('status', AppointmentStatus::SCHEDULED->value)
                             ->whereDate('appointment_date', today())->count(),
 
-            'completed' => Appointment::where('status', 'completed')
+            'completed' => Appointment::where('status', AppointmentStatus::COMPLETED->value)
                             ->whereDate('appointment_date', today())->count(),
 
             'todayQueue' => Appointment::with('patient')

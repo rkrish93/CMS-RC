@@ -9,53 +9,23 @@
 @endsection
 
 @section('content')
+@if(session('success') || session('error') || (($consultationId ?? 0) > 0))
 <div class="card mb-3">
     <div class="card-body">
         @if(session('success'))
-            <div class="alert alert-success mb-3">{{ session('success') }}</div>
+            <div class="alert alert-success mb-2">{{ session('success') }}</div>
         @endif
 
         @if(session('error'))
-            <div class="alert alert-danger mb-3">{{ session('error') }}</div>
+            <div class="alert alert-danger mb-2">{{ session('error') }}</div>
         @endif
-
-        @if(($newPrescriptionCount ?? 0) > 0)
-            <div class="alert alert-warning mb-3">
-                <strong>New Notification:</strong>
-                {{ $newPrescriptionCount }} new doctor prescription(s) added in the last 6 hours.
-            </div>
-        @endif
-
-        <form method="GET" class="row g-2 align-items-center prescription-filter-row">
-            @if(($consultationId ?? 0) > 0)
-                <input type="hidden" name="consultation_id" value="{{ $consultationId }}">
-            @endif
-            <div class="col-md-6">
-                <input type="text" name="search" class="form-control" value="{{ $search }}" placeholder="Search by patient code, name, or prescription text">
-            </div>
-            <div class="col-md-3">
-                <select name="status" class="form-select">
-                    <option value="">All Status</option>
-                    <option value="pending" @selected(($status ?? '') === 'pending')>Pending</option>
-                    <option value="partial" @selected(($status ?? '') === 'partial')>Partial</option>
-                    <option value="dispensed" @selected(($status ?? '') === 'dispensed')>Dispensed</option>
-                </select>
-            </div>
-            <div class="col-md-2 d-grid">
-                <button class="btn btn-primary">Search</button>
-            </div>
-            <div class="col-md-1 d-grid">
-                <a href="{{ route('pharmacy.prescriptions.index') }}" class="btn btn-outline-secondary">Reset</a>
-            </div>
-        </form>
 
         @if(($consultationId ?? 0) > 0)
-            <div class="alert alert-info mt-3 mb-0">
-                Showing pharmacy record opened from scanned patient QR.
-            </div>
+         
         @endif
     </div>
 </div>
+@endif
 
 <div class="card">
     <div class="card-body">
@@ -64,321 +34,381 @@
             <small class="text-muted">Doctor prescription, stock, dispensing, and shortage communication</small>
         </div>
 
-        <div class="table-responsive">
-            <table class="table table-hover table-sm align-middle prescription-table">
-                <thead>
-                    <tr>
-                        <th class="text-nowrap">Date</th>
-                        <th class="text-nowrap">Patient Code</th>
-                        <th class="text-nowrap">Patient Name</th>
-                        <th class="text-nowrap">Doctor</th>
-                        <th class="text-nowrap">Doctor Prescription</th>
-                        <th class="text-nowrap">Medicine Details</th>
-                        <th class="text-nowrap">Status</th>
-                        <th class="text-end text-nowrap">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($prescriptions as $item)
-                        @php
-                            $statusName = $item->pharmacy_status ?? 'pending';
-                            $isDispensed = $statusName === 'dispensed';
-                            $isPartial = $statusName === 'partial';
-                            $isPending = $statusName === 'pending';
-                            $isLocked = (bool) ($item->is_locked ?? false);
-                            $prescribedQty = (int) ($item->prescribed_quantity ?? 0);
-                            $givenQty = (int) ($item->dispensed_quantity ?? 0);
-                            $remainingQty = $prescribedQty > 0 ? max($prescribedQty - $givenQty, 0) : 0;
-                            $dispensedBreakdown = is_array($item->dispensed_breakdown ?? null) ? $item->dispensed_breakdown : [];
-                            $items = [];
-                            $prescriptionRows = is_array($item->prescription_items ?? null) ? $item->prescription_items : [];
-                            $hasStockShortage = false;
+        <div class="prescription-cards-container">
+            <div class="row g-3">
+                @forelse($prescriptions as $item)
+                    @php
+                        $statusName = $item->pharmacy_status ?? 'pending';
+                        $isDispensed = $statusName === 'dispensed';
+                        $isPartial = $statusName === 'partial';
+                        $isPending = $statusName === 'pending';
+                        $isLocked = (bool) ($item->is_locked ?? false);
+                        $prescribedQty = (int) ($item->prescribed_quantity ?? 0);
+                        $givenQty = (int) ($item->dispensed_quantity ?? 0);
+                        $remainingQty = $prescribedQty > 0 ? max($prescribedQty - $givenQty, 0) : 0;
+                        $dispensedBreakdown = is_array($item->dispensed_breakdown ?? null) ? $item->dispensed_breakdown : [];
+                        $items = [];
+                        $prescriptionRows = is_array($item->prescription_items ?? null) ? $item->prescription_items : [];
+                        $hasStockShortage = false;
 
-                            if (!empty($prescriptionRows)) {
-                                $itemsByKey = [];
+                        if (!empty($prescriptionRows)) {
+                            $itemsByKey = [];
 
-                                foreach ($prescriptionRows as $prescriptionRow) {
-                                    $medicineName = trim((string) ($prescriptionRow['medicine_name'] ?? ''));
-                                    if ($medicineName === '') {
-                                        continue;
-                                    }
-
-                                    $key = strtolower(preg_replace('/\s+/', '', $medicineName));
-
-                                    if (!isset($itemsByKey[$key])) {
-                                        $itemsByKey[$key] = [
-                                            'name' => $medicineName,
-                                            'dosage_list' => [],
-                                            'duration_list' => [],
-                                            'time_slot_list' => [],
-                                            'food_timing_list' => [],
-                                            'prescribed' => 0,
-                                        ];
-                                    }
-
-                                    $itemsByKey[$key]['prescribed']++;
-
-                                    $dosage = trim((string) ($prescriptionRow['dosage'] ?? ''));
-                                    if ($dosage !== '') {
-                                        $itemsByKey[$key]['dosage_list'][$dosage] = true;
-                                    }
-
-                                    $duration = trim((string) ($prescriptionRow['duration'] ?? ''));
-                                    if ($duration !== '') {
-                                        $itemsByKey[$key]['duration_list'][$duration] = true;
-                                    }
-
-                                    $timeSlots = $prescriptionRow['time_slot'] ?? [];
-                                    if (!is_array($timeSlots)) {
-                                        $timeSlots = [$timeSlots];
-                                    }
-
-                                    foreach ($timeSlots as $timeSlot) {
-                                        $timeSlot = trim((string) $timeSlot);
-                                        if ($timeSlot !== '') {
-                                            $itemsByKey[$key]['time_slot_list'][$timeSlot] = true;
-                                        }
-                                    }
-
-                                    $foodTiming = trim((string) ($prescriptionRow['food_timing'] ?? ''));
-                                    if ($foodTiming !== '') {
-                                        $itemsByKey[$key]['food_timing_list'][$foodTiming] = true;
-                                    }
+                            foreach ($prescriptionRows as $prescriptionRow) {
+                                $medicineName = trim((string) ($prescriptionRow['medicine_name'] ?? ''));
+                                if ($medicineName === '') {
+                                    continue;
                                 }
 
-                                foreach ($itemsByKey as $key => $row) {
-                                    $givenPerItem = (int) ($dispensedBreakdown[$key] ?? 0);
-                                    $stockAvailable = (int) (($stockByMedicine[$key] ?? 0));
-                                    $prescribedForItem = (int) ($row['prescribed'] ?? 0);
-                                    $remainingForItem = max($prescribedForItem - $givenPerItem, 0);
+                                $key = strtolower(preg_replace('/\s+/', '', $medicineName));
 
-                                    $items[] = [
-                                        'name' => (string) ($row['name'] ?? $key),
-                                        'dosage' => implode(', ', array_keys($row['dosage_list'] ?? [])),
-                                        'duration' => implode(', ', array_keys($row['duration_list'] ?? [])),
-                                        'time_slot' => implode(', ', array_keys($row['time_slot_list'] ?? [])),
-                                        'food_timing' => implode(', ', array_keys($row['food_timing_list'] ?? [])),
-                                        'prescribed' => $prescribedForItem,
-                                        'given' => $givenPerItem,
-                                        'remaining' => $remainingForItem,
-                                        'stock' => $stockAvailable,
-                                        'dispense_limit' => min($remainingForItem, max($stockAvailable, 0)),
+                                if (!isset($itemsByKey[$key])) {
+                                    $itemsByKey[$key] = [
+                                        'name' => $medicineName,
+                                        'dosage_list' => [],
+                                        'duration_list' => [],
+                                        'time_slot_list' => [],
+                                        'food_timing_list' => [],
+                                        'prescribed' => 0,
                                     ];
-
-                                    if ($stockAvailable <= 0 || $stockAvailable < $remainingForItem) {
-                                        $hasStockShortage = true;
-                                    }
-                                }
-                            } else {
-                                $itemsByKey = [];
-                                preg_match_all('/(?:^|[,;\n\r]|\s{1,})([A-Za-z0-9][A-Za-z0-9\s\-\/.\(\)]*?)\s*[-:]\s*(\d+)/u', (string) ($item->prescription ?? ''), $matches, PREG_SET_ORDER);
-                                foreach ($matches as $match) {
-                                    $name = trim((string) ($match[1] ?? ''));
-                                    $qty = (int) ($match[2] ?? 0);
-                                    if ($name !== '' && $qty > 0) {
-                                        $key = strtolower(preg_replace('/\s+/', '', $name));
-                                        $itemsByKey[$key] = [
-                                            'name' => $itemsByKey[$key]['name'] ?? $name,
-                                            'prescribed' => (int) (($itemsByKey[$key]['prescribed'] ?? 0) + $qty),
-                                        ];
-                                    }
                                 }
 
-                                foreach ($itemsByKey as $key => $row) {
-                                    $givenPerItem = (int) ($dispensedBreakdown[$key] ?? 0);
-                                    $stockAvailable = (int) (($stockByMedicine[$key] ?? 0));
-                                    $prescribedForItem = (int) ($row['prescribed'] ?? 0);
-                                    $remainingForItem = max($prescribedForItem - $givenPerItem, 0);
+                                $duration = trim((string) ($prescriptionRow['duration'] ?? ''));
+                                $days = 1;
+                                if ($duration !== '' && preg_match('/(\d+)/', $duration, $m)) {
+                                    $days = max((int) $m[1], 1);
+                                }
 
-                                    $items[] = [
-                                        'name' => (string) ($row['name'] ?? $key),
-                                        'dosage' => '',
-                                        'duration' => '',
-                                        'time_slot' => '',
-                                        'food_timing' => '',
-                                        'prescribed' => $prescribedForItem,
-                                        'given' => $givenPerItem,
-                                        'remaining' => $remainingForItem,
-                                        'stock' => $stockAvailable,
-                                        'dispense_limit' => min($remainingForItem, max($stockAvailable, 0)),
-                                    ];
+                                $timeSlots = $prescriptionRow['time_slot'] ?? [];
+                                if (!is_array($timeSlots)) {
+                                    $timeSlots = array_filter([(string) $timeSlots]);
+                                } else {
+                                    $timeSlots = array_filter($timeSlots);
+                                }
+                                $slotCount = max(count($timeSlots), 1);
 
-                                    if ($stockAvailable <= 0 || $stockAvailable < $remainingForItem) {
-                                        $hasStockShortage = true;
+                                $calcQty = $days * $slotCount;
+                                $itemsByKey[$key]['prescribed'] += $calcQty;
+
+                                $dosage = trim((string) ($prescriptionRow['dosage'] ?? ''));
+                                if ($dosage !== '') {
+                                    $itemsByKey[$key]['dosage_list'][$dosage] = true;
+                                }
+
+                                if ($duration !== '') {
+                                    $itemsByKey[$key]['duration_list'][$duration] = true;
+                                }
+
+                                foreach ($timeSlots as $timeSlot) {
+                                    $timeSlot = trim((string) $timeSlot);
+                                    if ($timeSlot !== '') {
+                                        $itemsByKey[$key]['time_slot_list'][$timeSlot] = true;
                                     }
+                                }
+
+                                $foodTiming = trim((string) ($prescriptionRow['food_timing'] ?? ''));
+                                if ($foodTiming !== '') {
+                                    $itemsByKey[$key]['food_timing_list'][$foodTiming] = true;
                                 }
                             }
 
-                            $encodedAllItems = base64_encode((string) json_encode(array_values($items)));
-                        @endphp
-                        <tr>
-                            <td>{{ $item->created_at->format('Y-m-d H:i') }}</td>
-                            <td>{{ optional($item->patient)->patient_code ?? 'N/A' }}</td>
-                            <td>
-                                {{ trim((optional($item->patient)->first_name ?? '') . ' ' . (optional($item->patient)->last_name ?? '')) ?: 'N/A' }}
-                            </td>
-                            <td>
-                                {{ trim((optional($item->doctor)->fname ?? '') . ' ' . (optional($item->doctor)->lname ?? '')) ?: (optional($item->doctor)->name ?? 'N/A') }}
-                            </td>
-                            <td class="prescription-cell" style="min-width: 320px">
-                                @if(count($items))
-                                    <div class="d-flex flex-column gap-2">
-                                        @foreach($items as $med)
-                                            <div class="prescription-summary-card">
-                                                <div class="fw-semibold">{{ $med['name'] }}</div>
-                                                @if(!empty($med['dosage']) || !empty($med['duration']) || !empty($med['time_slot']) || !empty($med['food_timing']))
-                                                    <div class="small text-muted">
-                                                        @if(!empty($med['dosage']))
-                                                            <span class="me-2">Dosage: {{ $med['dosage'] }}</span>
-                                                        @endif
-                                                        @if(!empty($med['duration']))
-                                                            <span class="me-2">Duration: {{ $med['duration'] }}</span>
-                                                        @endif
-                                                        @if(!empty($med['time_slot']))
-                                                            <span class="me-2">Time: {{ str_replace('_', ' ', $med['time_slot']) }}</span>
-                                                        @endif
-                                                        @if(!empty($med['food_timing']))
-                                                            <span>Food: {{ str_replace('_', ' ', $med['food_timing']) }}</span>
-                                                        @endif
+                            foreach ($itemsByKey as $key => $row) {
+                                $givenPerItem = (int) ($dispensedBreakdown[$key] ?? 0);
+                                $stockAvailable = (int) (($stockByMedicine[$key] ?? 0));
+                                $prescribedForItem = (int) ($row['prescribed'] ?? 0);
+                                $remainingForItem = max($prescribedForItem - $givenPerItem, 0);
+
+                                $items[] = [
+                                    'name' => (string) ($row['name'] ?? $key),
+                                    'dosage' => implode(', ', array_keys($row['dosage_list'] ?? [])),
+                                    'duration' => implode(', ', array_keys($row['duration_list'] ?? [])),
+                                    'time_slot' => implode(', ', array_keys($row['time_slot_list'] ?? [])),
+                                    'food_timing' => implode(', ', array_keys($row['food_timing_list'] ?? [])),
+                                    'prescribed' => $prescribedForItem,
+                                    'given' => $givenPerItem,
+                                    'remaining' => $remainingForItem,
+                                    'stock' => $stockAvailable,
+                                    'dispense_limit' => min($remainingForItem, max($stockAvailable, 0)),
+                                ];
+
+                                if ($stockAvailable <= 0 || $stockAvailable < $remainingForItem) {
+                                    $hasStockShortage = true;
+                                }
+                            }
+                        } else {
+                            $itemsByKey = [];
+                            preg_match_all('/(?:^|[,;\n\r]|\s{1,})([A-Za-z0-9][A-Za-z0-9\s\-\/.\(\)]*?)\s*[-:]\s*(\d+)/u', (string) ($item->prescription ?? ''), $matches, PREG_SET_ORDER);
+                            foreach ($matches as $match) {
+                                $name = trim((string) ($match[1] ?? ''));
+                                $qty = (int) ($match[2] ?? 0);
+                                if ($name !== '' && $qty > 0) {
+                                    $key = strtolower(preg_replace('/\s+/', '', $name));
+                                    $itemsByKey[$key] = [
+                                        'name' => $itemsByKey[$key]['name'] ?? $name,
+                                        'prescribed' => (int) (($itemsByKey[$key]['prescribed'] ?? 0) + $qty),
+                                    ];
+                                }
+                            }
+
+                            foreach ($itemsByKey as $key => $row) {
+                                $givenPerItem = (int) ($dispensedBreakdown[$key] ?? 0);
+                                $stockAvailable = (int) (($stockByMedicine[$key] ?? 0));
+                                $prescribedForItem = (int) ($row['prescribed'] ?? 0);
+                                $remainingForItem = max($prescribedForItem - $givenPerItem, 0);
+
+                                $items[] = [
+                                    'name' => (string) ($row['name'] ?? $key),
+                                    'dosage' => '',
+                                    'duration' => '',
+                                    'time_slot' => '',
+                                    'food_timing' => '',
+                                    'prescribed' => $prescribedForItem,
+                                    'given' => $givenPerItem,
+                                    'remaining' => $remainingForItem,
+                                    'stock' => $stockAvailable,
+                                    'dispense_limit' => min($remainingForItem, max($stockAvailable, 0)),
+                                ];
+
+                                if ($stockAvailable <= 0 || $stockAvailable < $remainingForItem) {
+                                    $hasStockShortage = true;
+                                }
+                            }
+                        }
+
+                        $encodedAllItems = base64_encode((string) json_encode(array_values($items)));
+                    @endphp
+
+                    <div class="col-12">
+                        <div class="card border shadow-sm rounded-3 prescription-queue-card overflow-hidden">
+                            <!-- Card Header -->
+                            <div class="card-header bg-white py-3 px-4 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-3">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="avatar-circle bg-primary-subtle text-primary fw-bold rounded-circle d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; font-size: 18px;">
+                                        <i class="mdi mdi-account text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <h5 class="mb-0 fw-bold text-dark">{{ trim((optional($item->patient)->first_name ?? '') . ' ' . (optional($item->patient)->last_name ?? '')) ?: 'N/A' }}</h5>
+                                            <span class="badge bg-light text-primary border border-primary-subtle rounded-pill font-monospace px-2 py-1">
+                                                {{ optional($item->patient)->patient_code ?? 'N/A' }}
+                                            </span>
+                                        </div>
+                                        <div class="small text-muted mt-1">
+                                            <i class="mdi mdi-doctor me-1 text-secondary"></i>Dr. {{ trim((optional($item->doctor)->fname ?? '') . ' ' . (optional($item->doctor)->lname ?? '')) ?: (optional($item->doctor)->name ?? 'N/A') }}
+                                            <span class="mx-2 text-muted">•</span>
+                                            <i class="mdi mdi-clock-outline me-1 text-secondary"></i>{{ $item->created_at->format('d M Y, h:i A') }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="status-pill status-{{ $statusName }} px-3 py-1 fw-semibold text-uppercase" style="border-radius: 999px;">
+                                        {{ ucfirst($statusName) }}
+                                    </span>
+                                    @if($isLocked)
+                                        <span class="badge bg-danger text-white px-2 py-1" title="Locked after SMS sent">
+                                            <i class="mdi mdi-lock me-1"></i>Locked
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
+
+                            @if(! $isDispensed)
+                                <!-- Form wrapper for dispensing -->
+                                <form action="{{ route('pharmacy.prescriptions.dispense', $item->id) }}" method="POST" autocomplete="off" class="js-dispense-card-form">
+                                    @csrf
+                                    <!-- Card Body -->
+                                    <div class="card-body p-4">
+                                        <div class="row g-4">
+                                            <!-- Left Column: Doctor Prescription (Checked) -->
+                                            <div class="col-lg-6 border-end-lg">
+                                                <h6 class="text-uppercase text-muted fw-semibold mb-3 small tracking-wider">
+                                                    <i class="mdi mdi-clipboard-text-outline me-1 text-primary"></i> Doctor Prescription (Checked)
+                                                </h6>
+                                                @if(count($items))
+                                                    <div class="d-flex flex-column gap-2">
+                                                        @foreach($items as $med)
+                                                            <div class="p-3 bg-light rounded-3 border-start border-4 border-primary shadow-xs">
+                                                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                                                    <span class="fw-bold text-dark fs-6">{{ $med['name'] }}</span>
+                                                                    <span class="badge bg-white text-dark border font-monospace">P:{{ $med['prescribed'] }} / G:{{ $med['given'] }} / R:{{ $med['remaining'] }}</span>
+                                                                </div>
+                                                                @if(!empty($med['dosage']) || !empty($med['duration']) || !empty($med['time_slot']) || !empty($med['food_timing']))
+                                                                    <div class="d-flex flex-wrap gap-2 mt-2">
+                                                                        @if(!empty($med['dosage']))
+                                                                            <span class="badge bg-white text-secondary border px-2 py-1"><i class="mdi mdi-needle me-1 text-info"></i>Dosage: {{ $med['dosage'] }}</span>
+                                                                        @endif
+                                                                        @if(!empty($med['duration']))
+                                                                            <span class="badge bg-white text-secondary border px-2 py-1"><i class="mdi mdi-calendar-range me-1 text-warning"></i>Duration: {{ $med['duration'] }}</span>
+                                                                        @endif
+                                                                        @if(!empty($med['time_slot']))
+                                                                            <span class="badge bg-white text-secondary border px-2 py-1"><i class="mdi mdi-clock-fast me-1 text-success"></i>Time: {{ str_replace('_', ' ', $med['time_slot']) }}</span>
+                                                                        @endif
+                                                                        @if(!empty($med['food_timing']))
+                                                                            <span class="badge bg-white text-secondary border px-2 py-1"><i class="mdi mdi-food-apple me-1 text-primary"></i>Food: {{ str_replace('_', ' ', $med['food_timing']) }}</span>
+                                                                        @endif
+                                                                    </div>
+                                                                @endif
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
+                                                @else
+                                                    <div class="p-3 bg-light rounded-3 text-dark font-monospace">
+                                                        {{ $item->prescription }}
                                                     </div>
                                                 @endif
                                             </div>
-                                        @endforeach
-                                    </div>
-                                @else
-                                    <div class="prescription-text">{{ $item->prescription }}</div>
-                                @endif
-                            </td>
-                            <td class="medicine-qty-cell" style="min-width:260px">
-                                @if(count($items))
-                                    <div class="d-flex flex-column gap-1">
-                                        @foreach($items as $med)
-                                            <div class="medicine-line hospital-medicine-line">
-                                                <div>
-                                                    <strong>{{ $med['name'] }}</strong>
-                                                    <div class="small text-muted">
-                                                        P:{{ $med['prescribed'] }} / G:{{ $med['given'] }} / R:{{ $med['remaining'] }}
+
+                                            <!-- Right Column: Give Medicines & Note -->
+                                            <div class="col-lg-6">
+                                                <h6 class="text-uppercase text-muted fw-semibold mb-3 small tracking-wider">
+                                                    <i class="mdi mdi-pill me-1 text-primary"></i> Give Medicines
+                                                </h6>
+
+                                                @if(count($items))
+                                                    <div class="d-flex flex-column gap-3 mb-3">
+                                                        @foreach($items as $idx => $med)
+                                                            @php
+                                                                $canGiveItem = $med['stock'] > 0 && $med['remaining'] > 0;
+                                                                $maxGive = $canGiveItem ? min($med['remaining'], $med['stock']) : 0;
+                                                            @endphp
+                                                            <div class="p-3 border rounded-3 bg-white shadow-xs">
+                                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                                    <div>
+                                                                        <div class="fw-bold text-dark">{{ $med['name'] }}</div>
+                                                                        <div class="small text-muted mt-1">
+                                                                            <span>Remaining: <strong>{{ $med['remaining'] }}</strong></span>
+                                                                            <span class="mx-1">•</span>
+                                                                            <span>Stock: <strong class="{{ $med['stock'] > 0 ? 'text-success' : 'text-danger' }}">{{ $med['stock'] }}</strong></span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div>
+                                                                        @if($med['stock'] <= 0)
+                                                                            <span class="badge bg-danger text-white">Out of Stock</span>
+                                                                        @elseif($med['remaining'] <= 0)
+                                                                            <span class="badge bg-success text-white">Given</span>
+                                                                        @endif
+                                                                    </div>
+                                                                </div>
+
+                                                                <input type="hidden" name="medicines[{{ $idx }}][medicine_name]" value="{{ $med['name'] }}">
+                                                                <div class="d-flex align-items-center gap-2 mt-2">
+                                                                    <label class="small text-muted mb-0 me-1">Dispense Qty:</label>
+                                                                    <input type="number"
+                                                                           name="medicines[{{ $idx }}][dispense_quantity]"
+                                                                           class="form-control form-control-sm js-qty-input"
+                                                                           value="{{ $maxGive }}"
+                                                                           min="0"
+                                                                           max="{{ $maxGive }}"
+                                                                           placeholder="0"
+                                                                           style="width: 110px;"
+                                                                           @disabled($isLocked || !$canGiveItem)>
+                                                                    <button type="button"
+                                                                            class="btn btn-sm btn-outline-primary js-fill-max-btn"
+                                                                            data-max="{{ $maxGive }}"
+                                                                            @disabled($isLocked || !$canGiveItem)>
+                                                                        Max Qty ({{ $maxGive }})
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        @endforeach
                                                     </div>
+                                                @else
+                                                    <div class="p-3 border rounded-3 bg-white mb-3">
+                                                        <div class="small text-muted mb-2">Enter medicine name & quantity manually:</div>
+                                                        <div class="row g-2">
+                                                            <div class="col-8">
+                                                                <input type="text" class="form-control form-control-sm" name="medicine_name" placeholder="Medicine name" required @disabled($isLocked)>
+                                                            </div>
+                                                            <div class="col-4">
+                                                                <input type="number" min="1" class="form-control form-control-sm" name="dispense_quantity" placeholder="Qty" required @disabled($isLocked)>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @endif
+
+                                                <div class="mt-3">
+                                                    <label class="form-label small text-muted fw-semibold">Pharmacy Note (optional)</label>
+                                                    <textarea name="pharmacy_note" rows="2" class="form-control form-control-sm" placeholder="Add optional pharmacy note for patient..." @disabled($isLocked)></textarea>
                                                 </div>
-                                                <small class="stock-pill {{ $med['stock'] > 0 ? 'stock-pill-ok' : 'stock-pill-out' }}">
-                                                    Stock {{ $med['stock'] }}{{ $med['stock'] <= 0 ? ' - Out' : '' }}
-                                                </small>
                                             </div>
-                                        @endforeach
+                                        </div>
                                     </div>
-                                @else
-                                    <span class="text-muted">Use format Name-Qty</span>
-                                @endif
-                            </td>
-                            <td>
-                                <span class="status-pill status-{{ $statusName }}">
-                                    {{ ucfirst($statusName) }}
-                                </span>
-                                @if($isLocked)
-                                    <div><small class="text-danger fw-semibold">Locked after SMS</small></div>
-                                    <div><small class="text-muted">Why disabled: SMS already sent to patient. No further Add Given/SMS allowed.</small></div>
-                                @endif
-                                @if($item->dispensed_at)
-                                    <div><small class="text-muted">Given Time: {{ $item->dispensed_at->format('Y-m-d H:i') }}</small></div>
-                                @endif
-                            </td>
-                            <td class="text-end">
-                                @if(! $isDispensed)
-                                    @can('pharmacy-prescriptions-dispense')
-                                        <div class="d-inline-flex flex-column align-items-end gap-2 prescription-actions prescription-actions-wrap">
-                                            @if($isPending || $isPartial)
-                                                <button
-                                                    type="button"
-                                                    class="btn btn-sm btn-success btn-give-medicine js-open-dispense-modal"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#giveMedicineModal"
-                                                    data-action-url="{{ route('pharmacy.prescriptions.dispense', $item->id) }}"
-                                                    data-locked="{{ $isLocked ? '1' : '0' }}"
-                                                    data-patient="{{ trim((optional($item->patient)->first_name ?? '') . ' ' . (optional($item->patient)->last_name ?? '')) ?: 'N/A' }}"
-                                                    data-patient-code="{{ optional($item->patient)->patient_code ?? 'N/A' }}"
-                                                    data-doctor="{{ trim((optional($item->doctor)->fname ?? '') . ' ' . (optional($item->doctor)->lname ?? '')) ?: (optional($item->doctor)->name ?? 'N/A') }}"
-                                                    data-all-items="{{ $encodedAllItems }}"
-                                                    data-fallback-max="{{ $prescribedQty > 0 ? $remainingQty : 99999 }}"
-                                                    @disabled($isLocked)
-                                                    title="{{ $isLocked ? 'Disabled: SMS already sent and prescription is locked.' : ($isPartial ? 'Complete remaining medicines' : '') }}">
-                                                    {{ $isPartial ? 'Give Remaining Medicine' : 'Give Medicine' }}
-                                                </button>
-                                            @endif
 
-                                            @if($hasStockShortage || $isPending || $isPartial)
-                                                <form action="{{ route('pharmacy.prescriptions.send-sms', $item->id) }}" method="POST" class="d-inline-flex js-sms-form">
-                                                    @csrf
-                                                    <button type="submit" class="btn btn-sm btn-outline-primary btn-shortage-sms js-send-sms-btn" @disabled($isLocked) title="{{ $isLocked ? 'Disabled: SMS already sent and prescription is locked.' : 'Send shortage SMS to patient' }}">Send Shortage SMS</button>
-                                                </form>
-                                            @endif
-
-                                            @if(!($hasStockShortage || $isPending || $isPartial))
-                                                <div class="text-muted small text-end">No shortage SMS needed.</div>
-                                            @endif
-
+                                    <!-- Card Footer Actions -->
+                                    <div class="card-footer bg-light py-3 px-4 border-top d-flex flex-wrap justify-content-between align-items-center gap-3">
+                                        <div>
                                             @if($isLocked)
-                                                <div class="text-muted text-end" style="font-size:12px;">This row is permanently locked after SMS.</div>
+                                                <small class="text-danger fw-semibold d-flex align-items-center gap-1">
+                                                    <i class="mdi mdi-information-outline"></i> Prescription is permanently locked after sending SMS.
+                                                </small>
                                             @endif
                                         </div>
-                                    @endcan
-                                @endif
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="8" class="text-center text-muted py-4">No prescriptions found.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                                        <div class="d-flex align-items-center gap-2 ms-auto">
+                                            @can('pharmacy-prescriptions-dispense')
+                                                @if($hasStockShortage || $isPending || $isPartial)
+                                                    <button type="button" class="btn btn-outline-warning text-dark btn-sm px-3 js-trigger-sms" data-action="{{ route('pharmacy.prescriptions.send-sms', $item->id) }}" @disabled($isLocked) title="{{ $isLocked ? 'Disabled: SMS already sent' : 'Send shortage SMS to patient' }}">
+                                                        <i class="mdi mdi-cellphone-message me-1"></i> Send Shortage SMS
+                                                    </button>
+                                                @endif
+
+                                                <button type="submit" class="btn btn-success btn-gradient-primary btn-sm px-4 fw-semibold js-submit-dispense-btn" @disabled($isLocked)>
+                                                    <i class="mdi mdi-pill me-1"></i> {{ $isPartial ? 'Save Remaining Medicine' : 'Add Given / Save Medicine' }}
+                                                </button>
+                                            @endcan
+                                        </div>
+                                    </div>
+                                </form>
+                            @else
+                                <!-- Display only if already dispensed -->
+                                <div class="card-body p-4">
+                                    <div class="row g-4">
+                                        <div class="col-lg-7 border-end-lg">
+                                            <h6 class="text-uppercase text-muted fw-semibold mb-3 small tracking-wider">
+                                                <i class="mdi mdi-pill me-1 text-primary"></i> Doctor Prescribed Medicines
+                                            </h6>
+                                            <div class="d-flex flex-column gap-2">
+                                                @foreach($items as $med)
+                                                    <div class="p-3 bg-light rounded-3 border-start border-4 border-success shadow-xs">
+                                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                                            <span class="fw-bold text-dark fs-6">{{ $med['name'] }}</span>
+                                                            <span class="badge bg-white text-success border">Given: {{ $med['given'] }}</span>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-5 d-flex align-items-center justify-content-center">
+                                            <div class="text-center p-4">
+                                                <i class="mdi mdi-check-circle-outline display-4 text-success mb-2"></i>
+                                                <h5 class="fw-bold text-dark">Dispensing Completed</h5>
+                                                @if($item->dispensed_at)
+                                                    <p class="text-muted small mb-0">Dispensed at: {{ $item->dispensed_at->format('d M Y, h:i A') }}</p>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-light py-3 px-4 border-top text-end">
+                                    <span class="badge bg-success text-white px-3 py-2 border rounded-pill fs-7">
+                                        <i class="mdi mdi-check-circle me-1"></i> Dispensing Completed
+                                    </span>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                @empty
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm p-5 text-center text-muted">
+                            <i class="mdi mdi-file-document-outline display-4 mb-2 text-secondary"></i>
+                            <h5>No prescriptions found</h5>
+                            <p class="mb-0">All active doctor prescriptions will appear here in queue format.</p>
+                        </div>
+                    </div>
+                @endforelse
+            </div>
         </div>
 
         {{ $prescriptions->links() }}
-    </div>
-</div>
-
-<div class="modal fade" id="giveMedicineModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content pharmacy-give-modal">
-            <form id="giveMedicineForm" method="POST" autocomplete="off">
-                @csrf
-                <div class="modal-header border-0 pb-2">
-                    <div>
-                        <h4 class="modal-title mb-1">Pharmacy Give Medicine</h4>
-                        <small class="text-muted">Review doctor prescription and enter given quantities</small>
-                        <div id="modalVisitSummary" class="small text-muted mt-1"></div>
-                        <div class="mt-2">
-                            <span id="modalSelectedCount" class="badge bg-primary">Selected: 0</span>
-                        </div>
-                    </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <div class="prescription-template-box h-100">
-                                <label class="form-label mb-2">Doctor Prescription (Checked)</label>
-                                <div id="modalDoctorPrescriptionList" class="doctor-prescription-list border rounded p-2 bg-light"></div>
-                            </div>
-                        </div>
-
-                        <div class="col-12">
-                            <div class="prescription-template-box h-100">
-                                <label class="form-label mb-2">Give Medicines</label>
-                                <div id="modalGiveMedicineRows" class="border rounded p-2 mb-3"></div>
-
-                                <label for="modal_pharmacy_note" class="form-label">Pharmacy Note (optional)</label>
-                                <textarea id="modal_pharmacy_note" name="pharmacy_note" rows="3" class="form-control"></textarea>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer border-0 pt-2">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="modalGiveBtn">Add Given</button>
-                </div>
-            </form>
-        </div>
     </div>
 </div>
 @endsection
@@ -629,322 +659,73 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const lockFormControls = (form) => {
-        if (!form) {
-            return;
-        }
-
-        const controls = form.querySelectorAll('select, input, button');
-        controls.forEach((control) => {
-            if (control.tagName === 'INPUT') {
-                const inputType = (control.getAttribute('type') || '').toLowerCase();
-                const inputName = control.getAttribute('name') || '';
-
-                // Keep CSRF and hidden method/state inputs enabled so Laravel receives them.
-                if (inputType === 'hidden' || inputName === '_token' || inputName === '_method') {
-                    return;
-                }
+    // Fill Max Quantity button handler
+    document.addEventListener('click', function (e) {
+        const fillBtn = e.target.closest('.js-fill-max-btn');
+        if (fillBtn) {
+            const maxVal = fillBtn.dataset.max;
+            const input = fillBtn.previousElementSibling;
+            if (input && maxVal !== undefined) {
+                input.value = maxVal;
             }
-
-            control.disabled = true;
-        });
-    };
-
-    const giveMedicineForm = document.getElementById('giveMedicineForm');
-    const giveMedicineModalEl = document.getElementById('giveMedicineModal');
-    const modalGiveMedicineRows = document.getElementById('modalGiveMedicineRows');
-    const modalSelectedCount = document.getElementById('modalSelectedCount');
-    const modalPharmacyNote = document.getElementById('modal_pharmacy_note');
-    const modalGiveBtn = document.getElementById('modalGiveBtn');
-    const modalDoctorPrescriptionList = document.getElementById('modalDoctorPrescriptionList');
-    const modalVisitSummary = document.getElementById('modalVisitSummary');
-
-    const updateModalSubmitState = (isLocked, hasManualEntry = false) => {
-        if (!modalGiveBtn || !modalGiveMedicineRows) {
-            return;
         }
 
-        const rows = Array.from(modalGiveMedicineRows.querySelectorAll('.give-row'));
-        const selectedCount = rows.filter((row) => Number(row.querySelector('.js-give-qty-input')?.value || 0) > 0).length;
-        const hasSelectedQty = selectedCount > 0;
+        const smsBtn = e.target.closest('.js-trigger-sms');
+        if (smsBtn) {
+            const actionUrl = smsBtn.dataset.action;
+            if (!actionUrl || smsBtn.disabled) return;
 
-        if (modalSelectedCount) {
-            modalSelectedCount.textContent = `Selected: ${selectedCount}`;
-        }
+            if (confirm('Send shortage SMS notification to patient?')) {
+                smsBtn.disabled = true;
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = actionUrl;
 
-        const noteId = 'modalSelectionHint';
-        let hint = document.getElementById(noteId);
+                const csrf = document.createElement('input');
+                csrf.type = 'hidden';
+                csrf.name = '_token';
+                csrf.value = @json(csrf_token());
+                form.appendChild(csrf);
 
-        if (isLocked || hasSelectedQty || hasManualEntry) {
-            modalGiveBtn.disabled = isLocked;
-            if (hint) {
-                hint.remove();
+                document.body.appendChild(form);
+                form.submit();
             }
-            return;
         }
-
-        modalGiveBtn.disabled = true;
-
-        if (!hint) {
-            hint = document.createElement('div');
-            hint.id = noteId;
-            hint.className = 'small text-danger mt-2';
-            hint.textContent = 'Select at least one medicine with quantity greater than zero.';
-            modalGiveMedicineRows.appendChild(hint);
-        }
-    };
-
-    const resetGiveModal = () => {
-        if (!giveMedicineForm) {
-            return;
-        }
-
-        giveMedicineForm.action = '';
-
-        if (modalPharmacyNote) {
-            modalPharmacyNote.value = '';
-            modalPharmacyNote.disabled = false;
-        }
-
-        if (modalGiveBtn) {
-            modalGiveBtn.disabled = false;
-            modalGiveBtn.textContent = 'Add Given';
-        }
-
-        if (modalDoctorPrescriptionList) {
-            modalDoctorPrescriptionList.innerHTML = '';
-        }
-
-        if (modalVisitSummary) {
-            modalVisitSummary.textContent = '';
-        }
-
-        if (modalSelectedCount) {
-            modalSelectedCount.textContent = 'Selected: 0';
-        }
-
-        if (modalGiveMedicineRows) {
-            modalGiveMedicineRows.innerHTML = '';
-            modalGiveMedicineRows.classList.add('give-medicine-rows');
-        }
-    };
-
-    if (giveMedicineModalEl) {
-        giveMedicineModalEl.addEventListener('hidden.bs.modal', function () {
-            resetGiveModal();
-        });
-    }
-
-    document.querySelectorAll('.js-open-dispense-modal').forEach((button) => {
-        button.addEventListener('click', function () {
-            if (!giveMedicineForm) {
-                return;
-            }
-
-            resetGiveModal();
-
-            const isLocked = button.dataset.locked === '1';
-            const actionUrl = button.dataset.actionUrl || '';
-            const fallbackMax = parseInt(button.dataset.fallbackMax || '99999', 10);
-            const patientName = button.dataset.patient || 'N/A';
-            const patientCode = button.dataset.patientCode || 'N/A';
-            const doctorName = button.dataset.doctor || 'N/A';
-            let allItems = [];
-
-            try {
-                const encoded = button.dataset.allItems || '';
-                allItems = encoded ? JSON.parse(atob(encoded)) : [];
-            } catch (e) {
-                allItems = [];
-            }
-
-            giveMedicineForm.action = actionUrl;
-
-            if (modalVisitSummary) {
-                modalVisitSummary.textContent = `Patient: ${patientName} (${patientCode}) | Doctor: ${doctorName}`;
-            }
-            let hasDispensableRows = false;
-
-            if (allItems.length > 0) {
-                const selectableRowControls = [];
-
-                allItems.forEach((med, index) => {
-                    const itemRow = document.createElement('label');
-                    itemRow.className = 'doctor-prescription-item mb-2';
-                    itemRow.innerHTML = `
-                        <span>
-                            <strong>${med.name}</strong>
-                            ${med.dosage ? `<span class="d-block text-muted">Dosage: ${med.dosage}</span>` : ''}
-                            ${med.duration ? `<span class="d-block text-muted">Duration: ${med.duration}</span>` : ''}
-                            ${med.time_slot ? `<span class="d-block text-muted">Time: ${String(med.time_slot).replace(/_/g, ' ')}</span>` : ''}
-                            ${med.food_timing ? `<span class="d-block text-muted">Food: ${String(med.food_timing).replace(/_/g, ' ')}</span>` : ''}
-                            <span class="d-block">P:${med.prescribed} / G:${med.given} / R:${med.remaining}</span>
-                        </span>
-                    `;
-                    modalDoctorPrescriptionList.appendChild(itemRow);
-
-                    const row = document.createElement('div');
-                    row.className = 'give-row';
-
-                    const canGive = Number(med.stock || 0) > 0 && Number(med.remaining || 0) > 0;
-                    const defaultGiveQty = canGive ? Number(med.stock || 0) : 0;
-                    const initialGiveQty = 0;
-                    if (canGive) {
-                        hasDispensableRows = true;
-                    }
-
-                    row.innerHTML = `
-                        <div class="give-row-content small">
-                            <div><strong>${med.name}</strong></div>
-                            ${med.dosage ? `<div class="text-muted">Dosage: ${med.dosage}</div>` : ''}
-                            ${med.duration ? `<div class="text-muted">Duration: ${med.duration}</div>` : ''}
-                            ${med.time_slot ? `<div class="text-muted">Time: ${String(med.time_slot).replace(/_/g, ' ')}</div>` : ''}
-                            ${med.food_timing ? `<div class="text-muted">Food: ${String(med.food_timing).replace(/_/g, ' ')}</div>` : ''}
-                            <div class="text-muted">Remaining: ${med.remaining} | Stock: ${med.stock}</div>
-                            <input type="hidden" name="medicines[${index}][medicine_name]" value="${med.name}">
-                            <input type="hidden" class="js-give-qty-value" name="medicines[${index}][dispense_quantity]" value="">
-                            <div class="mt-2 d-flex align-items-center gap-2">
-                                <label class="small text-muted mb-0" for="give_qty_${index}">Qty</label>
-                                <input id="give_qty_${index}" type="text" class="form-control form-control-sm js-give-qty-input" max="${defaultGiveQty || 1}" value="" placeholder="Qty" autocomplete="off" inputmode="numeric" pattern="[0-9]*" ${canGive ? '' : 'disabled'} style="width:110px;">
-                            </div>
-                        </div>
-                        <div>
-                            <button type="button" class="btn btn-sm ${canGive ? 'btn-outline-success js-give-toggle' : 'btn-outline-danger'}" ${canGive ? '' : 'disabled'}>
-                                ${canGive ? `Enter Qty (Stock ${defaultGiveQty || 0})` : 'Out of stock'}
-                            </button>
-                        </div>
-                    `;
-
-                    const qtyInput = row.querySelector('.js-give-qty-input');
-                    const toggleButton = row.querySelector('.js-give-toggle');
-                    const qtyValueInput = row.querySelector('.js-give-qty-value');
-                    const rowDetails = row.querySelector('.give-row-content');
-                    const clampQtyValue = () => {
-                        if (!qtyInput || !qtyValueInput) {
-                            return 0;
-                        }
-
-                        let currentQty = Number(qtyInput.value || 0);
-
-                        if (!Number.isFinite(currentQty) || currentQty <= 0) {
-                            qtyInput.value = '';
-                            qtyValueInput.value = '';
-                            return 0;
-                        }
-
-                        qtyInput.value = String(currentQty);
-                        qtyValueInput.value = String(currentQty);
-                        return currentQty;
-                    };
-
-                    const syncGiveState = () => {
-                        if (!qtyInput || !toggleButton) {
-                            return;
-                        }
-
-                        const selectedQty = clampQtyValue() > 0;
-                        toggleButton.textContent = selectedQty ? `Qty Selected (${qtyInput.value})` : 'Enter Qty';
-                        toggleButton.classList.toggle('btn-success', selectedQty);
-                        toggleButton.classList.toggle('btn-outline-success', !selectedQty);
-                        toggleButton.setAttribute('aria-pressed', selectedQty ? 'true' : 'false');
-                        updateModalSubmitState(isLocked, false);
-                    };
-
-                    if (toggleButton) {
-                        toggleButton.addEventListener('click', function () {
-                            return;
-                        });
-
-                        qtyInput.addEventListener('input', function () {
-                            const maxQty = Number(this.getAttribute('max') || '0');
-                            const currentQty = Number(this.value || 0);
-
-                            if (maxQty > 0 && currentQty > maxQty) {
-                                this.value = String(maxQty);
-                            }
-
-                            clampQtyValue();
-                            updateModalSubmitState(isLocked, false);
-                        });
-
-                        if (rowDetails) {
-                            rowDetails.style.cursor = canGive ? 'pointer' : 'default';
-                            rowDetails.addEventListener('click', function () {
-                                return;
-                            });
-                        }
-
-                        if (canGive) {
-                            selectableRowControls.push({ qtyInput, syncGiveState });
-                        }
-
-                        syncGiveState();
-                    }
-
-                    modalGiveMedicineRows.appendChild(row);
-                });
-
-                if (!hasDispensableRows && modalGiveMedicineRows) {
-                    const helper = document.createElement('div');
-                    helper.className = 'small text-muted mt-2';
-                    helper.textContent = 'No remaining quantity available to give for this prescription.';
-                    modalGiveMedicineRows.appendChild(helper);
-                }
-
-                updateModalSubmitState(isLocked, false);
-            } else {
-                modalDoctorPrescriptionList.innerHTML = '<span class="text-muted small">No parsed doctor prescription items.</span>';
-
-                modalGiveMedicineRows.innerHTML = `
-                    <div class="small text-muted mb-2">Could not parse doctor prescription items. Enter manual medicine and quantity.</div>
-                    <div class="d-flex gap-2">
-                        <input type="text" class="form-control form-control-sm" name="medicine_name" placeholder="Medicine name" required>
-                        <input type="hidden" class="js-give-qty-value" name="dispense_quantity" value="">
-                        <input type="text" class="form-control form-control-sm js-give-qty-input" value="" placeholder="Qty" autocomplete="off" inputmode="numeric" pattern="[0-9]*" required style="width:95px;">
-                    </div>
-                `;
-
-                updateModalSubmitState(isLocked, true);
-            }
-
-            [modalPharmacyNote].forEach((control) => {
-                control.disabled = isLocked;
-            });
-
-            if (allItems.length > 0 && !hasDispensableRows) {
-                updateModalSubmitState(isLocked, false);
-            }
-
-            modalGiveMedicineRows.querySelectorAll('input, select, textarea, button').forEach((control) => {
-                control.disabled = isLocked || control.disabled;
-            });
-        });
     });
 
-    if (giveMedicineForm) {
-        giveMedicineForm.addEventListener('submit', function () {
-            if (modalGiveBtn) {
-                modalGiveBtn.disabled = true;
-                modalGiveBtn.textContent = 'Saving...';
-            }
-        });
-    }
-
-    document.querySelectorAll('.js-sms-form').forEach((smsForm) => {
-        smsForm.addEventListener('submit', function () {
-            lockFormControls(smsForm);
-
-            const row = smsForm.closest('tr');
-            if (!row) {
-                return;
-            }
-
-            const giveBtn = row.querySelector('.js-open-dispense-modal');
-            if (giveBtn) {
-                giveBtn.disabled = true;
+    // Form submit state handler for inline card forms
+    document.querySelectorAll('.js-dispense-card-form').forEach(function (form) {
+        form.addEventListener('submit', function () {
+            const submitBtn = form.querySelector('.js-submit-dispense-btn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="mdi mdi-loading mdi-spin me-1"></i> Saving...';
             }
         });
     });
 });
 </script>
+@endpush
+
+@push('styles')
+<style>
+    .prescription-queue-card {
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        border-color: #e2e8f0 !important;
+    }
+    .prescription-queue-card:hover {
+        box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.06) !important;
+    }
+    @media (min-width: 992px) {
+        .border-end-lg {
+            border-right: 1px solid #e2e8f0 !important;
+        }
+    }
+    .fs-7 {
+        font-size: 0.8rem !important;
+    }
+    .tracking-wider {
+        letter-spacing: 0.05em !important;
+    }
+</style>
 @endpush

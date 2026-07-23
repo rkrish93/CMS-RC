@@ -18,7 +18,7 @@ $canOpenAppointment = $queueUser?->can('consultations-create')
 || $queueUser?->hasAnyRole(['Doctor', 'Admin']);
 $canGenerateQr = $queueUser?->hasAnyRole(['Receptionist', 'Admin']);
 $canMarkNoShow = $queueUser?->hasAnyRole(['Receptionist', 'Admin']);
-$showActionColumn = $canOpenAppointment || $canGenerateQr;
+$showActionColumn = $queueUser?->hasAnyRole(['Receptionist', 'Admin']);
 $disableOpenAfterVitals = $queueUser?->hasAnyRole(['Nurse', 'Mid wife']);
 $columnCount = $showActionColumn ? 6 : 5;
 if ($hideUnitColumn) {
@@ -64,25 +64,13 @@ $columnCount--;
                     @forelse($appointments as $appt)
                     @php
                     $vitalsRecorded = ($appt->vitals_count ?? 0) > 0;
-                    $disabled = in_array($appt->status, ['completed', 'cancelled'])
-                    || ($disableOpenAfterVitals && $vitalsRecorded);
-                    $actionLabel = $disableOpenAfterVitals && $vitalsRecorded ? 'Vitals Done' : 'Open';
-                    $statusClass = match($appt->status) {
-                    'pending' => 'warning',
-                    'checked_in' => 'info',
-                    'in_progress', 'in_Progress' => 'primary',
-                    'nurse_done' => 'dark',
-                    'completed' => 'success',
-                    'no_show' => 'secondary',
-                    default => 'secondary',
-                    };
-                    $statusLabel = match($appt->status) {
-                    'pending' => 'Waiting',
-                    'checked_in' => 'Checked In',
-                    'nurse_done' => 'Nurse Done',
-                    'no_show' => 'No Show',
-                    default => ucfirst(str_replace('_', ' ', $appt->status ?? 'pending')),
-                    };
+                    $isPharmacyDispensed = in_array($appt->consultation->pharmacy_status ?? null, ['dispensed', 'partial'])
+                        || $appt->status === App\Enums\AppointmentStatus::COMPLETED->value;
+                    $status = App\Enums\AppointmentStatus::fromValue($appt->status) ?? App\Enums\AppointmentStatus::SCHEDULED;
+                    $disabled = in_array($status->value, [App\Enums\AppointmentStatus::CANCELLED->value, App\Enums\AppointmentStatus::NO_SHOW->value]);
+                    $actionLabel = 'Open';
+                    $statusClass = $isPharmacyDispensed ? 'success' : $status->getBadgeColor();
+                    $statusLabel = $isPharmacyDispensed ? 'Completed' : $status->getLabel();
                     @endphp
                     <tr>
                         <td><span class="token-pill">{{ $appt->token_no ?? 'N/A' }}</span></td>
@@ -100,15 +88,15 @@ $columnCount--;
                         <td class="text-end">
                             <div class="d-flex justify-content-end gap-2 flex-wrap">
                                 @if($canOpenAppointment)
-                                <a href="{{ route('consultations.create', $appt->id) }}"
+                                <a href="{{ $signedScanUrls[$appt->id] ?? route('patient.flow.scan-patient', ['patient' => $appt->patient_id]) }}"
                                     class="btn btn-sm btn-gradient-primary {{ $disabled ? 'disabled' : '' }}"
                                     @if($disabled) aria-disabled="true" tabindex="-1" @endif>
                                     {{ $actionLabel }}
                                 </a>
                                 @endif
 
-                                @if($canGenerateQr)
-                                    @if($appt->status === 'pending')
+                                 @if($canGenerateQr)
+                                    @if($status->value === App\Enums\AppointmentStatus::SCHEDULED->value)
                                     <form method="POST" action="{{ route('appointments.check-in', $appt->id) }}" class="d-inline">
                                         @csrf
                                         <button type="submit" class="btn btn-sm btn-outline-primary">
@@ -117,20 +105,7 @@ $columnCount--;
                                     </form>
                                     @endif
 
-                                    @if($appt->patient_id)
-                                    <a href="{{ route('patients.qr-card', $appt->patient_id) }}" class="btn btn-sm btn-outline-dark">
-                                        Patient QR
-                                    </a>
-                                    @endif
-                                @endif
-
-                                @if($canMarkNoShow && $appt->status === 'pending')
-                                <form method="POST" action="{{ route('appointments.no-show', $appt->id) }}" class="d-inline">
-                                    @csrf
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Mark this appointment as no-show?')">
-                                        No Show
-                                    </button>
-                                </form>
+                                    
                                 @endif
                             </div>
                         </td>

@@ -183,7 +183,7 @@
                     <tr>
                         <td>{{ optional($appointment->appointment_date)->format('Y-m-d') ?? $appointment->appointment_date }}</td>
                         <td>{{ $appointment->appointment_time ?? '-' }}</td>
-                        <td>{{ ucfirst(str_replace('_', ' ', $appointment->status ?? '-')) }}</td>
+                        <td>{{ (App\Enums\AppointmentStatus::fromValue($appointment->status) ?? App\Enums\AppointmentStatus::SCHEDULED)->getLabel() }}</td>
                     </tr>
                 @empty
                     <tr><td colspan="3" class="muted">No appointments found.</td></tr>

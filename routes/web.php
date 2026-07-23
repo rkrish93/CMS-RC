@@ -111,8 +111,9 @@ Route::middleware(['auth'])->group(function () {
             ->name('appointments.check-in');
         Route::post('appointments/{appointment}/no-show', [AppointmentController::class, 'markNoShow'])
             ->name('appointments.no-show');
-        Route::get('patient-flow/scanner', [AppointmentController::class, 'qrScanner'])
+        Route::get('today-queue-scanner', [AppointmentController::class, 'qrScanner'])
             ->name('patient.flow.scanner');
+        Route::get('patient-flow/scanner', fn() => redirect()->route('patient.flow.scanner'));
         Route::get('patient-flow/scan-patient/{patient}', [AppointmentController::class, 'scanByPatientQr'])
             ->name('patient.flow.scan-patient');
         Route::get('patient-flow/scan/{appointment}', [AppointmentController::class, 'scanPatientFlow'])
