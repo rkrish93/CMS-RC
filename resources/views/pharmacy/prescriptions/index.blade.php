@@ -346,7 +346,7 @@
                         @endphp
 
                         <tr>
-                            <!-- Rx # / Date -->
+                         
                             <td>
                                 <span class="fw-bold text-dark font-monospace">#-{{ $item->id }}</span>
                                 <div class="small text-muted" style="font-size: 11px;">
