@@ -768,10 +768,21 @@
                             <a class="nav-link {{ $pharmacyActive ? 'active' : '' }}" href="{{ route('pharmacy-stocks.index') }}">
                                 <i class="mdi mdi-pill"></i>
                                 <span class="menu-title">Pharmacy Stock</span>
-                                <span class="badge bg-danger ms-auto">{{ $pharmacyPrescriptionNotifications }}</span>
                             </a>
                         </li>
                     @endcan
+
+                    @if(auth()->user()?->hasRole('Pharmacist') || auth()->user()?->hasRole('Admin') || auth()->user()?->can('pharmacy-prescriptions-view'))
+                        <li class="nav-item {{ $pharmacyPrescriptionActive ? 'active' : '' }}">
+                            <a class="nav-link {{ $pharmacyPrescriptionActive ? 'active' : '' }}" href="{{ route('pharmacy.prescriptions.index') }}">
+                                <i class="mdi mdi-clipboard-text-outline"></i>
+                                <span class="menu-title">All Prescriptions</span>
+                                @if(($pharmacyPrescriptionNotifications ?? 0) > 0)
+                                    <span class="badge bg-danger ms-auto">{{ $pharmacyPrescriptionNotifications }}</span>
+                                @endif
+                            </a>
+                        </li>
+                    @endif
 
                
 

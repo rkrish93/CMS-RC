@@ -9,493 +9,548 @@
     $canViewDashboard = $user->hasRole('Receptionist') || $user->can('dashboard-view');
 @endphp
 
-<div class="dashboard-header d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4 gap-3 p-4 rounded-3 shadow-sm bg-white">
-    <div>
-        <h2 class="mb-1">Dashboard</h2>
-        <p class="text-muted mb-0">
-            Welcome back, {{ $user->name }}. Role: {{ $user->getRoleNames()->first() ?? 'Unknown' }}
-            @if($user->hasAnyRole(['Doctor', 'Nurse', 'Mid wife', 'Midwife']))
-                @if($user->unit)
-                    | Unit: <strong>{{ $user->unit->unit_name }}</strong>
-                @endif
+<!-- Modern Hero / Welcome Header -->
+<div class="dashboard-hero card border-0 mb-4 overflow-hidden shadow-sm">
+    <div class="card-body p-4 position-relative">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="hero-avatar flex-shrink-0">
+                    <span class="avatar-text">{{ strtoupper(substr($user->name, 0, 1)) }}</span>
+                </div>
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                        <h2 class="fw-bold mb-0 text-dark fs-3">Welcome back, {{ $user->name }} 👋</h2>
+                        @php
+                            $roleName = $user->getRoleNames()->first() ?? 'User';
+                            $roleBadgeClass = match($roleName) {
+                                'Doctor' => 'bg-primary-subtle text-primary border border-primary-subtle',
+                                'Nurse' => 'bg-success-subtle text-success border border-success-subtle',
+                                'Pharmacist' => 'bg-warning-subtle text-warning-emphasis border border-warning-subtle',
+                                'Admin' => 'bg-dark text-white',
+                                'Receptionist' => 'bg-purple-subtle text-purple border border-purple-subtle',
+                                'PHI' => 'bg-info-subtle text-info-emphasis border border-info-subtle',
+                                default => 'bg-secondary-subtle text-secondary border border-secondary-subtle'
+                            };
+                        @endphp
+                        <span class="badge rounded-pill px-3 py-2 fw-semibold {{ $roleBadgeClass }}">
+                            <i class="mdi mdi-shield-account me-1"></i>{{ $roleName }} Dashboard
+                        </span>
+                    </div>
+                    <p class="text-muted mb-0 fs-14">
+                        @if($user->hasAnyRole(['Doctor', 'Nurse', 'Mid wife', 'Midwife']) && $user->unit)
+                            Unit: <strong class="text-dark">{{ $user->unit->unit_name }}</strong> &bull;
+                        @endif
+                        Clinic Management System &bull; {{ date('l, F j, Y') }}
+                    </p>
+                </div>
+            </div>
+
+            @if($user?->can('appointments-view') || $user?->can('pharmacy-prescriptions-view') || $user?->hasAnyRole(['Receptionist', 'Admin', 'Doctor', 'Nurse', 'Mid wife', 'Midwife', 'Pharmacist']))
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{{ route('patient.flow.scanner') }}" class="btn btn-primary shadow-sm rounded-3 d-inline-flex align-items-center gap-2 fw-semibold px-4 py-2">
+                        <i class="mdi mdi-qrcode-scan fs-5"></i>
+                        <span>Today Queue</span>
+                    </a>
+                </div>
             @endif
-        </p>
-    </div>
-
-    <div>
-        @if($user->hasRole('Doctor'))
-            <span class="badge bg-primary">Doctor Dashboard</span>
-        @elseif($user->hasRole('Nurse'))
-            <span class="badge bg-success">Nurse Dashboard</span>
-        @elseif($user->hasRole('Mid wife'))
-            <span class="badge bg-info text-white">Mid wife Dashboard</span>
-        @elseif($user->hasRole('PHI'))
-            <span class="badge bg-info">PHI Dashboard</span>
-        @elseif($user->hasRole('Pharmacist'))
-            <span class="badge bg-warning text-dark">Pharmacist Dashboard</span>
-        @elseif($user->hasRole('Receptionist'))
-            <span class="badge bg-purple text-white">Receptionist Dashboard</span>
-        @elseif($user->hasRole('Admin'))
-            <span class="badge bg-dark">Admin Dashboard</span>
-        @else
-            <span class="badge bg-secondary">General Dashboard</span>
-        @endif
-    </div>
-
-    @if($user?->can('appointments-view') || $user?->can('pharmacy-prescriptions-view') || $user?->hasAnyRole(['Receptionist', 'Admin', 'Doctor', 'Nurse', 'Mid wife', 'Midwife', 'Pharmacist']))
-        <div>
-            <a href="{{ route('patient.flow.scanner') }}" class="btn btn-dark">
-                <i class="mdi mdi-qrcode-scan me-1"></i> Today Queue
-            </a>
         </div>
-    @endif
+    </div>
 </div>
 
 @if($canViewDashboard)
-    <div class="row">
+    <!-- Dynamic Stat Cards -->
+    <div class="row g-3 mb-4">
         @can('patients-view')
-            <div class="col-md-6 col-xl-3 grid-margin stretch-card">
-                <div class="card stat-card">
-                    <div class="card-body">
+            <div class="col-sm-6 col-xl-3">
+                <div class="stat-card-v2 primary p-3">
+                    <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <p class="stat-label">Total Patients</p>
-                            <h2 class="stat-value">{{ $patients ?? 0 }}</h2>
+                            <p class="stat-label mb-1">Total Patients</p>
+                            <h3 class="stat-value mb-0">{{ number_format($patients ?? 0) }}</h3>
                         </div>
-                        <span class="stat-icon text-primary">
-                            <i class="mdi mdi-account-multiple"></i>
-                        </span>
+                        <div class="stat-icon-wrapper">
+                            <i class="mdi mdi-account-group-outline"></i>
+                        </div>
                     </div>
                 </div>
             </div>
         @endcan
 
         @can('menu-users')
-            <div class="col-md-6 col-xl-3 grid-margin stretch-card">
-                <div class="card stat-card">
-                    <div class="card-body">
+            <div class="col-sm-6 col-xl-3">
+                <div class="stat-card-v2 dark p-3">
+                    <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <p class="stat-label">Total Users</p>
-                            <h2 class="stat-value">{{ $users ?? 0 }}</h2>
+                            <p class="stat-label mb-1">Total System Users</p>
+                            <h3 class="stat-value mb-0">{{ number_format($users ?? 0) }}</h3>
                         </div>
-                        <span class="stat-icon text-dark">
-                            <i class="mdi mdi-account-group"></i>
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-
-        @endcan
-
-        @can('appointments-view')
-            <div class="col-md-6 col-xl-3 grid-margin stretch-card">
-                <div class="card stat-card">
-                    <div class="card-body">
-                        <div>
-                            <p class="stat-label">Today Appointments</p>
-                            <h2 class="stat-value">{{ $todayAppointments ?? 0 }}</h2>
+                        <div class="stat-icon-wrapper">
+                            <i class="mdi mdi-badge-account-outline"></i>
                         </div>
-                        <span class="stat-icon text-success">
-                            <i class="mdi mdi-calendar-check"></i>
-                        </span>
                     </div>
                 </div>
             </div>
         @endcan
 
         @can('appointments-view')
-            <div class="col-md-6 col-xl-3 grid-margin stretch-card">
-                <div class="card stat-card">
-                    <div class="card-body">
+            <div class="col-sm-6 col-xl-3">
+                <div class="stat-card-v2 success p-3">
+                    <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <p class="stat-label">Waiting Queue</p>
-                            <h2 class="stat-value">{{ $waiting ?? 0 }}</h2>
+                            <p class="stat-label mb-1">Today Appointments</p>
+                            <h3 class="stat-value mb-0">{{ number_format($todayAppointments ?? 0) }}</h3>
                         </div>
-                        <span class="stat-icon text-warning">
-                            <i class="mdi mdi-timer-sand"></i>
-                        </span>
+                        <div class="stat-icon-wrapper">
+                            <i class="mdi mdi-calendar-check-outline"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endcan
+
+        @can('appointments-view')
+            <div class="col-sm-6 col-xl-3">
+                <div class="stat-card-v2 warning p-3">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <p class="stat-label mb-1">Waiting Queue</p>
+                            <h3 class="stat-value mb-0">{{ number_format($waiting ?? 0) }}</h3>
+                        </div>
+                        <div class="stat-icon-wrapper">
+                            <i class="mdi mdi-account-clock-outline"></i>
+                        </div>
                     </div>
                 </div>
             </div>
         @endcan
 
         @can('units-view')
-            <div class="col-md-6 col-xl-3 grid-margin stretch-card">
-                <div class="card stat-card">
-                    <div class="card-body">
+            <div class="col-sm-6 col-xl-3">
+                <div class="stat-card-v2 purple p-3">
+                    <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <p class="stat-label">Units</p>
-                            <h2 class="stat-value">{{ $units ?? 0 }}</h2>
+                            <p class="stat-label mb-1">Active Units</p>
+                            <h3 class="stat-value mb-0">{{ number_format($units ?? 0) }}</h3>
                         </div>
-                        <span class="stat-icon text-secondary">
-                            <i class="mdi mdi-office-building"></i>
-                        </span>
+                        <div class="stat-icon-wrapper">
+                            <i class="mdi mdi-office-building-outline"></i>
+                        </div>
                     </div>
                 </div>
             </div>
         @endcan
 
-
-
         @can('reports-view')
-            <div class="col-md-6 col-xl-3 grid-margin stretch-card">
-                <div class="card stat-card">
-                    <div class="card-body">
+            <div class="col-sm-6 col-xl-3">
+                <div class="stat-card-v2 info p-3">
+                    <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <p class="stat-label">Completed Today</p>
-                            <h2 class="stat-value">{{ $completed ?? 0 }}</h2>
+                            <p class="stat-label mb-1">Completed Today</p>
+                            <h3 class="stat-value mb-0">{{ number_format($completed ?? 0) }}</h3>
                         </div>
-                        <span class="stat-icon text-info">
-                            <i class="mdi mdi-check-circle"></i>
-                        </span>
+                        <div class="stat-icon-wrapper">
+                            <i class="mdi mdi-checkbox-marked-circle-outline"></i>
+                        </div>
                     </div>
                 </div>
             </div>
         @endcan
     </div>
 
+    <!-- Role Specific Action Hub -->
     @if($user->hasRole('Admin'))
-        <div class="card mb-4">
-            <div class="card-body">
-                <h4 class="card-title">Admin Overview</h4>
-                <p class="text-muted mb-3">Full system access and management shortcuts.</p>
-                <div class="d-flex flex-wrap gap-2">
-                    <a href="{{ route('users.index') }}" class="btn btn-outline-dark">Manage Users</a>
-                    <a href="{{ route('roles.index') }}" class="btn btn-outline-secondary">Manage Roles</a>
-                    <a href="{{ route('permissions.index') }}" class="btn btn-outline-secondary">Manage Permissions</a>
+        <div class="action-hub-card p-4 mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div>
+                    <h5 class="fw-bold mb-1 text-dark">Admin Quick Overview & Shortcut Panel</h5>
+                    <p class="text-muted fs-14 mb-0">System administration and user role configurations.</p>
                 </div>
+                <span class="badge bg-dark rounded-pill px-3 py-2">System Admin</span>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{ route('users.index') }}" class="action-btn-pill action-btn-dark">
+                    <i class="mdi mdi-account-cog-outline"></i> Manage Users
+                </a>
+                <a href="{{ route('roles.index') }}" class="action-btn-pill action-btn-primary">
+                    <i class="mdi mdi-shield-key-outline"></i> Manage Roles
+                </a>
+                <a href="{{ route('permissions.index') }}" class="action-btn-pill action-btn-purple">
+                    <i class="mdi mdi-lock-pattern"></i> Manage Permissions
+                </a>
             </div>
         </div>
-    @elseif($user->hasRole('Doctor') || $user->hasRole('Admin'))
-        <div class="card mb-4">
-            <div class="card-body">
-                <h4 class="card-title">Doctor Quick Actions</h4>
-                <p class="text-muted mb-3">These items are visible only to doctors.</p>
-                <div class="d-flex flex-wrap gap-2">
-                    @can('consultations-view')
-                        <a href="{{ route('consultations.index') }}" class="btn btn-outline-primary">View Consultations</a>
-                    @endcan
-                    @can('appointments-view')
-                        <a href="{{ route('appointments.today') }}" class="btn btn-outline-success">Open Today&apos;s Queue</a>
-                    @endcan
+
+    @elseif($user->hasRole('Doctor'))
+        <div class="action-hub-card p-4 mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div>
+                    <h5 class="fw-bold mb-1 text-dark">Doctor Quick Actions</h5>
+                    <p class="text-muted fs-14 mb-0">Direct access to patient consultations and clinical queue.</p>
                 </div>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2">Doctor Panel</span>
             </div>
-        </div>
-    @elseif($user->hasAnyRole(['Nurse', 'Mid wife', 'Midwife']))
-        <div class="card mb-4">
-            <div class="card-body">
-                <h4 class="card-title">Nurse & Midwife Tasks</h4>
-                <p class="text-muted mb-3">Quick access for patient care, vitals collection, and queue management.</p>
-                <div class="d-flex flex-wrap gap-2">
-                    <a href="{{ route('patient.flow.scanner') }}" class="btn btn-outline-dark">
-                        <i class="mdi mdi-account-clock-outline me-1"></i> Today Queue
+            <div class="d-flex flex-wrap gap-2">
+                @can('consultations-view')
+                    <a href="{{ route('consultations.index') }}" class="action-btn-pill action-btn-primary">
+                        <i class="mdi mdi-stethoscope"></i> View Consultations
                     </a>
-                    @can('vitals-view')
-                        <a href="{{ route('vitals.index') }}" class="btn btn-outline-primary">
-                            <i class="mdi mdi-heart-pulse me-1"></i> My Vitals List
-                        </a>
-                    @endcan
-                    @can('patients-view')
-                        <a href="{{ route('patients.index') }}" class="btn btn-outline-success">
-                            <i class="mdi mdi-account-multiple me-1"></i> Patient List
-                        </a>
-                    @endcan
-                    @can('consultations-view')
-                        <a href="{{ route('consultations.index') }}" class="btn btn-outline-info">
-                            <i class="mdi mdi-stethoscope me-1"></i> Review Consultations
-                        </a>
-                    @endcan
-                </div>
+                @endcan
+                @can('appointments-view')
+                    <a href="{{ route('appointments.today') }}" class="action-btn-pill action-btn-success">
+                        <i class="mdi mdi-calendar-today"></i> Open Today's Queue
+                    </a>
+                @endcan
             </div>
         </div>
 
-        {{-- Midwife System Vitals Check --}}
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div>
-                        <h4 class="card-title mb-1">System Vitals Check</h4>
-                        <p class="text-muted mb-0">Summary of recent vitals collected today.</p>
-                    </div>
-                    @if(auth()->user()->can('vitals-view') || auth()->user()->hasRole('Admin'))
-                        <a href="{{ route('vitals.index') }}" class="btn btn-sm btn-primary">View Full Vitals</a>
-                    @endif
+    @elseif($user->hasAnyRole(['Nurse', 'Mid wife', 'Midwife']))
+        <div class="action-hub-card p-4 mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div>
+                    <h5 class="fw-bold mb-1 text-dark">Nurse & Midwife Portal</h5>
+                    <p class="text-muted fs-14 mb-0">Quick access for patient care, vitals collection, and queue management.</p>
                 </div>
+                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2">Clinical Care</span>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{ route('patient.flow.scanner') }}" class="action-btn-pill action-btn-dark">
+                    <i class="mdi mdi-account-clock-outline"></i> Today Queue
+                </a>
+                @can('vitals-view')
+                    <a href="{{ route('vitals.index') }}" class="action-btn-pill action-btn-primary">
+                        <i class="mdi mdi-heart-pulse"></i> My Vitals List
+                    </a>
+                @endcan
+                @can('patients-view')
+                    <a href="{{ route('patients.index') }}" class="action-btn-pill action-btn-success">
+                        <i class="mdi mdi-account-multiple-outline"></i> Patient List
+                    </a>
+                @endcan
+            </div>
+        </div>
 
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <div class="p-3 bg-white rounded-3 shadow-sm">
-                            <small class="text-muted">Avg Temperature (°C)</small>
-                            <div class="h3 mb-0">{{ $vitalsSummary['avg_temp'] ?? '—' }}</div>
+        <!-- System Vitals Check Card -->
+        <div class="dashboard-card p-4 mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div>
+                    <h5 class="fw-bold mb-1 text-dark">System Vitals Overview</h5>
+                    <p class="text-muted fs-14 mb-0">Summary of recent patient vitals recorded today.</p>
+                </div>
+                @if(auth()->user()->can('vitals-view') || auth()->user()->hasRole('Admin'))
+                    <a href="{{ route('vitals.index') }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                        View Full Vitals <i class="mdi mdi-arrow-right ms-1"></i>
+                    </a>
+                @endif
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="p-3 rounded-3 bg-light border border-light-subtle d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-muted fs-13 d-block mb-1 fw-semibold">Avg Temperature (°C)</span>
+                            <span class="fs-4 fw-bold text-dark">{{ $vitalsSummary['avg_temp'] ?? '—' }}</span>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="p-3 bg-white rounded-3 shadow-sm">
-                            <small class="text-muted">Avg Pulse</small>
-                            <div class="h3 mb-0">{{ $vitalsSummary['avg_pulse'] ?? '—' }}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="p-3 bg-white rounded-3 shadow-sm">
-                            <small class="text-muted">Alerts Today</small>
-                            <div class="h3 mb-0 text-danger">{{ $vitalsSummary['alerts'] ?? 0 }}</div>
+                        <div class="p-2 rounded-circle bg-warning-subtle text-warning fs-4">
+                            <i class="mdi mdi-thermometer"></i>
                         </div>
                     </div>
                 </div>
+                <div class="col-md-4">
+                    <div class="p-3 rounded-3 bg-light border border-light-subtle d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-muted fs-13 d-block mb-1 fw-semibold">Avg Pulse Rate</span>
+                            <span class="fs-4 fw-bold text-dark">{{ $vitalsSummary['avg_pulse'] ?? '—' }}</span>
+                        </div>
+                        <div class="p-2 rounded-circle bg-danger-subtle text-danger fs-4">
+                            <i class="mdi mdi-heart-pulse"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 rounded-3 bg-light border border-light-subtle d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-muted fs-13 d-block mb-1 fw-semibold">Vitals Alerts Today</span>
+                            <span class="fs-4 fw-bold text-danger">{{ $vitalsSummary['alerts'] ?? 0 }}</span>
+                        </div>
+                        <div class="p-2 rounded-circle bg-danger text-white fs-4">
+                            <i class="mdi mdi-alert-circle-outline"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                <h6 class="mb-2">Latest Vitals</h6>
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead>
+            <h6 class="fw-bold mb-3 text-dark fs-14 text-uppercase tracking-wider">Latest Vitals Records</h6>
+            <div class="table-responsive rounded-3 border">
+                <table class="table custom-table">
+                    <thead>
+                        <tr>
+                            <th>Patient Name</th>
+                            <th>BP</th>
+                            <th>Temp (°C)</th>
+                            <th>Pulse</th>
+                            <th>SpO₂ (%)</th>
+                            <th>Sugar (mg/dL)</th>
+                            <th>Wt / Ht / BMI</th>
+                            <th>Resp Rate</th>
+                            <th>Recorded Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($latestVitals ?? [] as $lv)
                             <tr>
-                                <th>Patient</th>
-                                <th>BP</th>
-                                <th>Temp (°C)</th>
-                                <th>Pulse</th>
-                                <th>Time</th>
+                                <td class="fw-semibold text-dark">{{ $lv['patient'] }}</td>
+                                <td><span class="badge bg-light text-dark border px-2 py-1">{{ $lv['bp'] ?? '—' }}</span></td>
+                                <td>{{ $lv['temp'] ? $lv['temp'] . ' °C' : '—' }}</td>
+                                <td>{{ $lv['pulse'] ? $lv['pulse'] . ' bpm' : '—' }}</td>
+                                <td>
+                                    @if(isset($lv['spo2']) && $lv['spo2'])
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle">{{ $lv['spo2'] }}%</span>
+                                    @else
+                                        —
+                                    @endif
+                                </td>
+                                <td>{{ isset($lv['sugar']) && $lv['sugar'] ? $lv['sugar'] . ' mg/dL' : '—' }}</td>
+                                <td>
+                                    @php
+                                        $wtHtBmi = [];
+                                        if (isset($lv['weight']) && $lv['weight']) $wtHtBmi[] = $lv['weight'] . 'kg';
+                                        if (isset($lv['height']) && $lv['height']) $wtHtBmi[] = $lv['height'] . 'cm';
+                                        if (isset($lv['bmi']) && $lv['bmi']) $wtHtBmi[] = 'BMI ' . $lv['bmi'];
+                                    @endphp
+                                    {{ count($wtHtBmi) > 0 ? implode(' / ', $wtHtBmi) : '—' }}
+                                </td>
+                                <td>{{ isset($lv['resp_rate']) && $lv['resp_rate'] ? $lv['resp_rate'] . ' /min' : '—' }}</td>
+                                <td class="text-muted fs-13">{{ $lv['time'] ?? '—' }}</td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($latestVitals ?? [] as $lv)
-                                <tr>
-                                    <td>{{ $lv['patient'] }}</td>
-                                    <td>{{ $lv['bp'] ?? '—' }}</td>
-                                    <td>{{ $lv['temp'] ?? '—' }}</td>
-                                    <td>{{ $lv['pulse'] ?? '—' }}</td>
-                                    <td>{{ $lv['time'] ?? '—' }}</td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="5" class="text-center text-muted">No vitals available.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
+                        @empty
+                            <tr>
+                                <td colspan="9" class="text-center text-muted py-4">No vitals data recorded today.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
+
     @elseif($user->hasRole('PHI'))
-        <div class="card mb-4">
-            <div class="card-body">
-                <h4 class="card-title">PHI Summary</h4>
-                <p class="text-muted mb-3">Public health data and unit monitoring links.</p>
-                <div class="d-flex flex-wrap gap-2">
-                    @can('analytics-view')
-                        <a href="#" class="btn btn-outline-info">View Analytics</a>
-                    @endcan
-                    @can('units-view')
-                        <a href="{{ route('units.index') }}" class="btn btn-outline-secondary">Manage Units</a>
-                    @endcan
+        <div class="action-hub-card p-4 mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div>
+                    <h5 class="fw-bold mb-1 text-dark">PHI Public Health Panel</h5>
+                    <p class="text-muted fs-14 mb-0">Public health data monitoring and facility units overview.</p>
                 </div>
+                <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-3 py-2">PHI Hub</span>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                @can('analytics-view')
+                    <a href="#" class="action-btn-pill action-btn-purple">
+                        <i class="mdi mdi-chart-box-outline"></i> View Analytics
+                    </a>
+                @endcan
+                @can('units-view')
+                    <a href="{{ route('units.index') }}" class="action-btn-pill action-btn-dark">
+                        <i class="mdi mdi-office-building-cog-outline"></i> Manage Units
+                    </a>
+                @endcan
             </div>
         </div>
+
     @elseif($user->hasRole('Pharmacist') || $user->hasRole('Admin'))
-        <div class="card mb-4">
-            <div class="card-body">
-                <h4 class="card-title">Pharmacist Panel</h4>
-                <p class="text-muted mb-3">Medication and consultation summary views.</p>
-                <div class="d-flex flex-wrap gap-2">
-                    @can('consultations-view')
-                        <a href="{{ route('consultations.index') }}" class="btn btn-outline-warning">Consultation List</a>
-                    @endcan
-                    @can('patients-view')
-                        <a href="{{ route('patients.index') }}" class="btn btn-outline-success">Patient Records</a>
-                    @endcan
-                    @can('pharmacy-stocks-view')
-                        <a href="{{ route('pharmacy-stocks.index') }}" class="btn btn-outline-primary">Manage Pharmacy Stock</a>
-                    @endcan
-                    @can('pharmacy-prescriptions-view')
-                        <a href="{{ route('pharmacy.prescriptions.index') }}" class="btn btn-outline-dark">Prescription View</a>
-                    @endcan
+        <div class="action-hub-card p-4 mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div>
+                    <h5 class="fw-bold mb-1 text-dark">Pharmacist Operations Panel</h5>
+                    <p class="text-muted fs-14 mb-0">Medication distribution, stock inventory, and consultation prescriptions.</p>
                 </div>
+                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-3 py-2">
+                    <i class="mdi mdi-pill me-1"></i>Pharmacy Operations
+                </span>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                @can('consultations-view')
+                    <a href="{{ route('consultations.index') }}" class="action-btn-pill action-btn-warning">
+                        <i class="mdi mdi-clipboard-list-outline"></i> Consultation List
+                    </a>
+                @endcan
+                @can('patients-view')
+                    <a href="{{ route('patients.index') }}" class="action-btn-pill action-btn-success">
+                        <i class="mdi mdi-folder-account-outline"></i> Patient Records
+                    </a>
+                @endcan
+                @can('pharmacy-stocks-view')
+                    <a href="{{ route('pharmacy-stocks.index') }}" class="action-btn-pill action-btn-primary">
+                        <i class="mdi mdi-package-variant-closed"></i> Manage Pharmacy Stock
+                    </a>
+                @endcan
+                @can('pharmacy-prescriptions-view')
+                    <a href="{{ route('pharmacy.prescriptions.index') }}" class="action-btn-pill action-btn-dark">
+                        <i class="mdi mdi-rx"></i> Prescription View
+                    </a>
+                @endcan
             </div>
         </div>
 
         @can('pharmacy-dashboard-view')
-            <div class="card mb-4">
-                <div class="card-body">
-                    @if(($newPrescriptionNotificationCount ?? 0) > 0)
-                        <div class="alert alert-warning d-flex align-items-center justify-content-between mb-3">
+            <div class="dashboard-card p-4 mb-4">
+                @if(($newPrescriptionNotificationCount ?? 0) > 0)
+                    <div class="alert alert-warning border border-warning-subtle rounded-3 d-flex align-items-center justify-content-between mb-4 p-3 shadow-sm">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="p-2 rounded-circle bg-warning text-dark fs-5">
+                                <i class="mdi mdi-bell-ring-outline"></i>
+                            </div>
                             <div>
-                                <strong>Prescription Notification:</strong>
-                                {{ $newPrescriptionNotificationCount }} new doctor prescription(s) in the last 6 hours.
+                                <strong class="d-block text-dark mb-0">New Prescriptions Alert</strong>
+                                <span class="fs-14 text-muted">{{ $newPrescriptionNotificationCount }} new prescription(s) issued by doctors in the last 6 hours.</span>
                             </div>
-                            @can('pharmacy-prescriptions-view')
-                                <a href="{{ route('pharmacy.prescriptions.index') }}" class="btn btn-sm btn-dark">Open Prescriptions</a>
-                            @endcan
                         </div>
-                    @endif
+                        @can('pharmacy-prescriptions-view')
+                            <a href="{{ route('pharmacy.prescriptions.index') }}" class="btn btn-sm btn-dark rounded-pill px-3 fw-semibold">
+                                View Prescriptions <i class="mdi mdi-arrow-right ms-1"></i>
+                            </a>
+                        @endcan
+                    </div>
+                @endif
 
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-4">
-                            <div class="p-3 bg-light rounded-3 border">
-                                <small class="text-muted">Total Stock Items</small>
-                                <div class="h3 mb-0">{{ $pharmacySummary['total_items'] ?? 0 }}</div>
+                <!-- Pharmacy KPI Summary -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-3 bg-light border border-light-subtle d-flex align-items-center justify-content-between">
+                            <div>
+                                <span class="text-muted fs-13 d-block mb-1 fw-semibold">Total Stock Items</span>
+                                <span class="fs-3 fw-bold text-dark">{{ number_format($pharmacySummary['total_items'] ?? 0) }}</span>
                             </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="p-3 bg-light rounded-3 border">
-                                <small class="text-muted">Low Stock Items</small>
-                                <div class="h3 mb-0 text-danger">{{ $pharmacySummary['low_stock'] ?? 0 }}</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="p-3 bg-light rounded-3 border">
-                                <small class="text-muted">Today Prescriptions</small>
-                                <div class="h3 mb-0 text-primary">{{ $pharmacySummary['active_prescriptions'] ?? 0 }}</div>
+                            <div class="p-3 rounded-3 bg-primary-subtle text-primary fs-4">
+                                <i class="mdi mdi-pill"></i>
                             </div>
                         </div>
                     </div>
-
-                    <div class="row g-3">
-                        <div class="col-lg-6">
-                            <h6 class="mb-2">Low Stock Medicines</h6>
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th>Medicine</th>
-                                            <th>Qty</th>
-                                            <th>Reorder</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @forelse($lowStocks ?? [] as $stock)
-                                            <tr>
-                                                <td>{{ $stock->medicine_name }}</td>
-                                                <td>{{ $stock->quantity }}</td>
-                                                <td>{{ $stock->reorder_level }}</td>
-                                            </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="3" class="text-center text-muted">No low-stock items.</td>
-                                            </tr>
-                                        @endforelse
-                                    </tbody>
-                                </table>
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-3 bg-light border border-light-subtle d-flex align-items-center justify-content-between">
+                            <div>
+                                <span class="text-muted fs-13 d-block mb-1 fw-semibold">Low Stock Items</span>
+                                <span class="fs-3 fw-bold text-danger">{{ number_format($pharmacySummary['low_stock'] ?? 0) }}</span>
+                            </div>
+                            <div class="p-3 rounded-3 bg-danger-subtle text-danger fs-4">
+                                <i class="mdi mdi-alert-outline"></i>
                             </div>
                         </div>
-
-                        <div class="col-lg-6">
-                            <h6 class="mb-2">Latest Prescriptions</h6>
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Patient Code</th>
-                                            <th>Doctor</th>
-                                            <th>Qty (P/G/R)</th>
-                                            <th>Status</th>
-                                            <th>Prescription</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @forelse($pendingPrescriptions ?? [] as $consult)
-                                            @php
-                                                $statusName = $consult->pharmacy_status ?? 'pending';
-                                                $isDispensed = $statusName === 'dispensed';
-                                                $prescribedQty = (int) ($consult->prescribed_quantity ?? 0);
-                                                $givenQty = (int) ($consult->dispensed_quantity ?? 0);
-                                                $remainingQty = $prescribedQty > 0 ? max($prescribedQty - $givenQty, 0) : 0;
-                                            @endphp
-                                            <tr>
-                                                <td>{{ $consult->created_at->format('Y-m-d') }}</td>
-                                                <td>{{ optional($consult->patient)->patient_code ?? 'N/A' }}</td>
-                                                <td>{{ optional($consult->doctor)->name ?? 'N/A' }}</td>
-                                                <td>{{ $prescribedQty > 0 ? $prescribedQty : '-' }}/{{ $givenQty }}/{{ $prescribedQty > 0 ? $remainingQty : '-' }}</td>
-                                                <td>
-                                                    <span class="badge bg-{{ $isDispensed ? 'success' : ($statusName === 'partial' ? 'info' : 'warning') }}">
-                                                        {{ ucfirst($statusName) }}
-                                                    </span>
-                                                </td>
-                                                <td>{{ \Illuminate\Support\Str::limit($consult->prescription, 40) }}</td>
-                                            </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="6" class="text-center text-muted">No prescriptions recorded.</td>
-                                            </tr>
-                                        @endforelse
-                                    </tbody>
-                                </table>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-3 bg-light border border-light-subtle d-flex align-items-center justify-content-between">
+                            <div>
+                                <span class="text-muted fs-13 d-block mb-1 fw-semibold">Today Prescriptions</span>
+                                <span class="fs-3 fw-bold text-success">{{ number_format($pharmacySummary['active_prescriptions'] ?? 0) }}</span>
+                            </div>
+                            <div class="p-3 rounded-3 bg-success-subtle text-success fs-4">
+                                <i class="mdi mdi-script-text-outline"></i>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        @endcan
-    @elseif($user->hasRole('Receptionist') || $user->hasRole('Admin'))
-        <div class="card mb-4">
-            <div class="card-body">
-                <h4 class="card-title">Receptionist Dashboard</h4>
-                <p class="text-muted mb-3">Quick access for booking and patient registration.</p>
-                <div class="d-flex flex-wrap gap-2">
-                    @can('patients-create')
-                        <a href="{{ route('patients.create') }}" class="btn btn-outline-primary">Add Patient</a>
-                    @endcan
-                    @can('appointments-create')
-                        <a href="{{ route('appointments.create') }}" class="btn btn-outline-success">New Appointment</a>
-                    @endcan
-                </div>
-            </div>
-        </div>
-    @endif
 
-    <div class="row">
-        @can('appointments-view')
-            <div class="col-lg-7 grid-margin stretch-card">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                <h4 class="card-title mb-1">Weekly Appointments</h4>
-                                <p class="text-muted mb-0">Appointment activity across the week.</p>
-                            </div>
+                <!-- Low Stock & Latest Prescriptions Split -->
+                <div class="row g-4">
+                    <div class="col-lg-5">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h6 class="fw-bold mb-0 text-dark fs-15">
+                                <i class="mdi mdi-alert-circle text-danger me-1"></i> Low Stock Medicines
+                            </h6>
+                            <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 fs-12">Action Needed</span>
                         </div>
-                        <canvas id="appointmentChart" height="120"></canvas>
-                    </div>
-                </div>
-            </div>
-        @endcan
-
-        @can('appointments-view')
-            <div class="col-lg-5 grid-margin stretch-card">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                <h4 class="card-title mb-1">Today's Queue</h4>
-                                <p class="text-muted mb-0">Current appointment flow.</p>
-                            </div>
-                            <a href="{{ route('appointments.today') }}" class="btn btn-sm btn-light">Open Queue</a>
-                        </div>
-
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle">
+                        <div class="table-responsive rounded-3 border">
+                            <table class="table custom-table">
                                 <thead>
                                     <tr>
-                                        <th>Patient</th>
-                                        <th>Time</th>
-                                        <th>Status</th>
+                                        <th>Medicine Name</th>
+                                        <th class="text-center">Current Qty</th>
+                                        <th class="text-center">Reorder Level</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse($todayQueue as $q)
+                                    @forelse($lowStocks ?? [] as $stock)
                                         <tr>
-                                            <td class="fw-semibold">{{ $q->patient->first_name ?? 'N/A' }}</td>
-                                            <td>{{ $q->appointment_time ?? 'N/A' }}</td>
-                                            <td>
-                                                @php
-                                                    $queueStatus = App\Enums\AppointmentStatus::fromValue($q->status) ?? App\Enums\AppointmentStatus::SCHEDULED;
-                                                @endphp
-                                                <span class="badge bg-{{ $queueStatus->getBadgeColor() }}">
-                                                    {{ $queueStatus->getLabel() }}
+                                            <td class="fw-semibold text-dark">{{ $stock->medicine_name }}</td>
+                                            <td class="text-center">
+                                                <span class="badge bg-danger-subtle text-danger fw-bold px-2 py-1">
+                                                    {{ $stock->quantity }}
                                                 </span>
+                                            </td>
+                                            <td class="text-center text-muted fw-semibold">{{ $stock->reorder_level }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="3" class="text-center text-muted py-4">
+                                                <i class="mdi mdi-check-circle-outline text-success fs-4 d-block mb-1"></i>
+                                                All stock levels are healthy.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-7">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h6 class="fw-bold mb-0 text-dark fs-15">
+                                <i class="mdi mdi-history me-1 text-primary"></i> Latest Prescriptions Activity
+                            </h6>
+                            @can('pharmacy-prescriptions-view')
+                                <a href="{{ route('pharmacy.prescriptions.index') }}" class="fs-13 text-primary text-decoration-none fw-semibold">
+                                    View All <i class="mdi mdi-chevron-right"></i>
+                                </a>
+                            @endcan
+                        </div>
+                        <div class="table-responsive rounded-3 border">
+                            <table class="table custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Patient Code</th>
+                                        <th>Doctor</th>
+                                        <th class="text-center">Qty (P/G/R)</th>
+                                        <th>Status</th>
+                                        <th>Prescription</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($pendingPrescriptions ?? [] as $consult)
+                                        @php
+                                            $statusName = $consult->pharmacy_status ?? 'pending';
+                                            $isDispensed = $statusName === 'dispensed';
+                                            $prescribedQty = (int) ($consult->prescribed_quantity ?? 0);
+                                            $givenQty = (int) ($consult->dispensed_quantity ?? 0);
+                                            $remainingQty = $prescribedQty > 0 ? max($prescribedQty - $givenQty, 0) : 0;
+                                        @endphp
+                                        <tr>
+                                            <td class="text-muted fs-13">{{ $consult->created_at->format('Y-m-d') }}</td>
+                                            <td><span class="badge bg-light text-dark border font-monospace">{{ optional($consult->patient)->patient_code ?? 'N/A' }}</span></td>
+                                            <td class="fw-semibold text-dark">{{ optional($consult->doctor)->name ?? 'N/A' }}</td>
+                                            <td class="text-center font-monospace fs-13">
+                                                {{ $prescribedQty > 0 ? $prescribedQty : '-' }}/{{ $givenQty }}/{{ $prescribedQty > 0 ? $remainingQty : '-' }}
+                                            </td>
+                                            <td>
+                                                @if($isDispensed)
+                                                    <span class="status-pill status-dispensed">
+                                                        <span class="status-pill-dot"></span> Dispensed
+                                                    </span>
+                                                @elseif($statusName === 'partial')
+                                                    <span class="status-pill status-partial">
+                                                        <span class="status-pill-dot"></span> Partial
+                                                    </span>
+                                                @else
+                                                    <span class="status-pill status-pending">
+                                                        <span class="status-pill-dot"></span> Pending
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td class="text-muted fs-13" title="{{ $consult->prescription }}">
+                                                {{ \Illuminate\Support\Str::limit($consult->prescription, 30) }}
                                             </td>
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="3" class="text-center text-muted py-4">No appointments in queue.</td>
+                                            <td colspan="6" class="text-center text-muted py-4">No recent prescriptions recorded.</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
@@ -505,10 +560,115 @@
                 </div>
             </div>
         @endcan
+
+    @elseif($user->hasRole('Receptionist') || $user->hasRole('Admin'))
+        <div class="action-hub-card p-4 mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div>
+                    <h5 class="fw-bold mb-1 text-dark">Reception Desk Overview</h5>
+                    <p class="text-muted fs-14 mb-0">Quick actions for patient registration and queue scheduling.</p>
+                </div>
+                <span class="badge bg-purple-subtle text-purple border border-purple-subtle rounded-pill px-3 py-2">Reception Hub</span>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                @can('patients-create')
+                    <a href="{{ route('patients.create') }}" class="action-btn-pill action-btn-primary">
+                        <i class="mdi mdi-account-plus-outline"></i> Add New Patient
+                    </a>
+                @endcan
+                @can('appointments-create')
+                    <a href="{{ route('appointments.create') }}" class="action-btn-pill action-btn-success">
+                        <i class="mdi mdi-calendar-plus"></i> New Appointment
+                    </a>
+                @endcan
+            </div>
+        </div>
+    @endif
+
+    <!-- Analytics & Queue Grid -->
+    <div class="row g-4">
+        @can('appointments-view')
+            <div class="col-lg-7">
+                <div class="dashboard-card p-4 h-100">
+                    <div class="d-flex align-items-center justify-content-between mb-4">
+                        <div>
+                            <h5 class="fw-bold mb-1 text-dark">Weekly Appointments Activity</h5>
+                            <p class="text-muted fs-14 mb-0">Appointment throughput across the current week.</p>
+                        </div>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 fs-12">
+                            <i class="mdi mdi-chart-line me-1"></i> Live Metrics
+                        </span>
+                    </div>
+                    <div class="position-relative" style="height: 260px;">
+                        <canvas id="appointmentChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        @endcan
+
+        @can('appointments-view')
+            <div class="col-lg-5">
+                <div class="dashboard-card p-4 h-100">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-1 text-dark">Today's Appointment Queue</h5>
+                            <p class="text-muted fs-14 mb-0">Live flow of patient appointments today.</p>
+                        </div>
+                        <a href="{{ route('appointments.today') }}" class="btn btn-sm btn-outline-dark rounded-pill px-3">
+                            Open Queue <i class="mdi mdi-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+
+                    <div class="table-responsive rounded-3 border">
+                        <table class="table custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Patient Name</th>
+                                    <th>Time</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($todayQueue as $q)
+                                    <tr>
+                                        <td class="fw-semibold text-dark">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="avatar-sm-circle bg-light text-primary fw-bold fs-12 d-flex align-items-center justify-content-center rounded-circle" style="width: 28px; height: 28px;">
+                                                    {{ strtoupper(substr($q->patient->first_name ?? 'P', 0, 1)) }}
+                                                </div>
+                                                <span>{{ $q->patient->first_name ?? 'N/A' }} {{ $q->patient->last_name ?? '' }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="text-muted fs-13">{{ $q->appointment_time ?? 'N/A' }}</td>
+                                        <td>
+                                            @php
+                                                $queueStatus = App\Enums\AppointmentStatus::fromValue($q->status) ?? App\Enums\AppointmentStatus::SCHEDULED;
+                                            @endphp
+                                            <span class="badge bg-{{ $queueStatus->getBadgeColor() }}-subtle text-{{ $queueStatus->getBadgeColor() }} border border-{{ $queueStatus->getBadgeColor() }}-subtle rounded-pill px-2.5 py-1">
+                                                {{ $queueStatus->getLabel() }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted py-4">
+                                            <i class="mdi mdi-calendar-blank-outline fs-4 d-block mb-1"></i>
+                                            No appointments scheduled in queue for today.
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        @endcan
     </div>
 @else
-    <div class="alert alert-warning">
-        You do not have permission to view dashboard details. Please contact your administrator.
+    <div class="alert alert-warning border border-warning-subtle rounded-3 p-4 text-center">
+        <i class="mdi mdi-shield-alert-outline fs-1 text-warning d-block mb-2"></i>
+        <h5 class="fw-bold text-dark">Dashboard Access Restricted</h5>
+        <p class="text-muted mb-0">You do not have permission to view dashboard details. Please contact your system administrator.</p>
     </div>
 @endif
 
@@ -519,6 +679,10 @@
 const ctx = document.getElementById('appointmentChart');
 
 if (ctx) {
+    const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 240);
+    gradient.addColorStop(0, 'rgba(37, 99, 235, 0.25)');
+    gradient.addColorStop(1, 'rgba(37, 99, 235, 0.0)');
+
     new Chart(ctx, {
         type: 'line',
         data: {
@@ -527,31 +691,51 @@ if (ctx) {
                 label: 'Appointments',
                 data: {!! json_encode($chartData ?? [10,20,15,30,25,18]) !!},
                 borderColor: '#2563eb',
-                backgroundColor: 'rgba(37, 99, 235, 0.12)',
+                backgroundColor: gradient,
                 borderWidth: 3,
                 fill: true,
-                tension: 0.35,
-                pointRadius: 4,
-                pointBackgroundColor: '#2563eb'
+                tension: 0.4,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: '#2563eb',
+                pointBorderWidth: 3
             }]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
                     display: false
+                },
+                tooltip: {
+                    backgroundColor: '#0f172a',
+                    titleFont: { size: 13, weight: 'bold' },
+                    bodyFont: { size: 13 },
+                    padding: 12,
+                    cornerRadius: 8,
+                    displayColors: false
                 }
             },
             scales: {
                 y: {
                     beginAtZero: true,
                     grid: {
-                        color: '#eef2f7'
+                        color: '#f1f5f9'
+                    },
+                    ticks: {
+                        color: '#64748b',
+                        font: { size: 12 }
                     }
                 },
                 x: {
                     grid: {
                         display: false
+                    },
+                    ticks: {
+                        color: '#64748b',
+                        font: { size: 12 }
                     }
                 }
             }
@@ -563,100 +747,265 @@ if (ctx) {
 
 @push('styles')
 <style>
-    .dashboard-header {
-        border: 1px solid #e8edf2;
-        background: #ffffff;
+    /* CMS Dashboard Custom Aesthetic Design System */
+    .dashboard-hero {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border: 1px solid rgba(226, 232, 240, 0.8) !important;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.05);
     }
 
-    .dashboard-header h2 {
-        font-size: 2rem;
-        font-weight: 700;
-    }
-
-    .dashboard-header p {
-        margin-bottom: 0;
-    }
-
-    .stat-card {
-        border: none;
-        border-radius: 1.25rem;
-        overflow: hidden;
-        box-shadow: 0 18px 50px rgba(15, 23, 42, 0.06);
-        background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(249,250,251,0.99) 100%);
-    }
-
-    .stat-card .card-body {
+    .hero-avatar {
+        width: 54px;
+        height: 54px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        color: #ffffff;
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 18px;
-        min-height: 130px;
-    }
-
-    .stat-label {
-        margin-bottom: 8px;
-        color: #67748e;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
+        justify-content: center;
+        font-size: 22px;
         font-weight: 700;
+        box-shadow: 0 8px 18px -4px rgba(37, 99, 235, 0.4);
     }
 
-    .stat-value {
-        margin: 0;
-        color: #111827;
-        font-size: 2.25rem;
-        font-weight: 800;
+    .stat-card-v2 {
+        border: 1px solid #e2e8f0;
+        border-radius: 18px;
+        background: #ffffff;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03);
     }
 
-    .stat-icon {
-        width: 55px;
-        height: 55px;
-        display: inline-flex;
+    .stat-card-v2:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 16px 32px -8px rgba(15, 23, 42, 0.08);
+        border-color: #cbd5e1;
+    }
+
+    .stat-card-v2 .stat-icon-wrapper {
+        width: 50px;
+        height: 50px;
+        border-radius: 14px;
+        display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 18px;
-        background: rgba(248, 250, 252, 0.95);
-        font-size: 28px;
-        box-shadow: inset 0 1px 3px rgba(15, 23, 42, 0.08);
+        font-size: 24px;
+        flex-shrink: 0;
     }
 
-    .card-title {
-        font-weight: 700;
+    .stat-card-v2.primary .stat-icon-wrapper {
+        background: rgba(37, 99, 235, 0.1);
+        color: #2563eb;
+    }
+
+    .stat-card-v2.success .stat-icon-wrapper {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+    }
+
+    .stat-card-v2.warning .stat-icon-wrapper {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+    }
+
+    .stat-card-v2.info .stat-icon-wrapper {
+        background: rgba(6, 182, 212, 0.1);
+        color: #06b6d4;
+    }
+
+    .stat-card-v2.purple .stat-icon-wrapper {
+        background: rgba(139, 92, 246, 0.1);
+        color: #8b5cf6;
+    }
+
+    .stat-card-v2.dark .stat-icon-wrapper {
+        background: rgba(30, 41, 59, 0.1);
+        color: #1e293b;
+    }
+
+    .stat-card-v2 .stat-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #0f172a;
         letter-spacing: -0.02em;
+        line-height: 1.1;
     }
 
-    .card-body p.text-muted {
-        font-size: 0.95rem;
+    .stat-card-v2 .stat-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #64748b;
     }
 
-    .card.mb-4 {
-        border: none;
-        border-radius: 1.25rem;
-        box-shadow: 0 18px 70px rgba(15, 23, 42, 0.05);
+    /* Action Hub Cards & Pill Buttons */
+    .action-hub-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 18px;
+        background: #ffffff;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.03);
     }
 
-    .table-responsive {
-        border-radius: 1rem;
-        overflow: hidden;
+    .action-btn-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+        text-decoration: none;
     }
 
-    .table {
+    .action-btn-pill:hover {
+        transform: translateY(-2px);
+    }
+
+    .action-btn-primary {
+        background: #eff6ff;
+        color: #1d4ed8;
+        border: 1px solid #bfdbfe;
+    }
+    .action-btn-primary:hover {
+        background: #2563eb;
+        color: #ffffff;
+        border-color: #2563eb;
+    }
+
+    .action-btn-success {
+        background: #ecfdf5;
+        color: #047857;
+        border: 1px solid #a7f3d0;
+    }
+    .action-btn-success:hover {
+        background: #10b981;
+        color: #ffffff;
+        border-color: #10b981;
+    }
+
+    .action-btn-warning {
+        background: #fffbeb;
+        color: #b45309;
+        border: 1px solid #fde68a;
+    }
+    .action-btn-warning:hover {
+        background: #f59e0b;
+        color: #ffffff;
+        border-color: #f59e0b;
+    }
+
+    .action-btn-dark {
+        background: #f8fafc;
+        color: #334155;
+        border: 1px solid #cbd5e1;
+    }
+    .action-btn-dark:hover {
+        background: #1e293b;
+        color: #ffffff;
+        border-color: #1e293b;
+    }
+
+    .action-btn-purple {
+        background: #f5f3ff;
+        color: #6d28d9;
+        border: 1px solid #ddd6fe;
+    }
+    .action-btn-purple:hover {
+        background: #7c3aed;
+        color: #ffffff;
+        border-color: #7c3aed;
+    }
+
+    /* Dashboard Cards */
+    .dashboard-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 18px;
+        background: #ffffff;
+        box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+    }
+
+    /* Table Styles */
+    .custom-table {
         margin-bottom: 0;
     }
-
-    .table td, .table th {
+    .custom-table thead th {
+        background: #f8fafc;
+        color: #475569;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .custom-table tbody td {
+        padding: 14px 16px;
         vertical-align: middle;
-        border-top: 0;
-        padding: 1rem 1rem;
+        color: #1e293b;
+        font-size: 0.875rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .custom-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+    .custom-table tbody tr:hover td {
+        background: #f8fafc;
     }
 
-    .badge.bg-purple {
-        background-color: #7c3aed;
+    /* Status Pills */
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: 1;
+    }
+    .status-pill-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
     }
 
-    .badge.bg-teal {
-        background-color: #0f766e;
+    .status-dispensed {
+        background: #dcfce7;
+        color: #15803d;
     }
+    .status-dispensed .status-pill-dot { background: #22c55e; }
+
+    .status-partial {
+        background: #e0f2fe;
+        color: #0369a1;
+    }
+    .status-partial .status-pill-dot { background: #0ea5e9; }
+
+    .status-pending {
+        background: #fef3c7;
+        color: #b45309;
+    }
+    .status-pending .status-pill-dot { background: #f59e0b; }
+
+    .fs-12 { font-size: 0.75rem !important; }
+    .fs-13 { font-size: 0.8125rem !important; }
+    .fs-14 { font-size: 0.875rem !important; }
+    .fs-15 { font-size: 0.9375rem !important; }
+    .tracking-wider { letter-spacing: 0.05em; }
+
+    .bg-purple-subtle { background-color: #f3e8ff !important; }
+    .text-purple { color: #7e22ce !important; }
+    .border-purple-subtle { border-color: #d8b4fe !important; }
+
+    .bg-primary-subtle { background-color: #eff6ff !important; }
+    .bg-success-subtle { background-color: #ecfdf5 !important; }
+    .bg-warning-subtle { background-color: #fffbeb !important; }
+    .bg-danger-subtle { background-color: #fef2f2 !important; }
+    .bg-info-subtle { background-color: #ecfeff !important; }
 </style>
 @endpush

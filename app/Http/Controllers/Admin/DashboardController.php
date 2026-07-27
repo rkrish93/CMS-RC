@@ -49,7 +49,7 @@ class DashboardController extends Controller
         }
 
         $latestVitals = $latestVitalsQuery
-            ->take(5)
+            ->take(6)
             ->get()
             ->map(function ($v) {
                 return [
@@ -59,6 +59,12 @@ class DashboardController extends Controller
                     'bp' => $v->bp,
                     'temp' => $v->temp,
                     'pulse' => $v->pulse,
+                    'sugar' => $v->sugar,
+                    'spo2' => $v->oxygen_saturation,
+                    'weight' => $v->weight,
+                    'height' => $v->height,
+                    'bmi' => $v->bmi,
+                    'resp_rate' => $v->respiratory_rate,
                     'time' => $v->created_at->format('Y-m-d H:i'),
                 ];
             });
