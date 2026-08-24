@@ -412,9 +412,13 @@ public function indexVitals(Request $request)
 {
     abort_unless(auth()->user()?->can('vitals-view'), 403);
 
+    $user = auth()->user();
     $search = trim((string) $request->input('search'));
 
     $vitals = Vital::with(['patient'])
+        ->when($user?->hasAnyRole(['Nurse', 'Mid wife', 'Midwife']), function ($query) use ($user) {
+            $query->where('created_by', $user->id);
+        })
         ->when($search !== '', function ($query) use ($search) {
             $query->whereHas('patient', function ($patientQuery) use ($search) {
                 $patientQuery

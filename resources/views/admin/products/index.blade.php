@@ -39,6 +39,10 @@
             </div>
         </form>
 
+        @php
+            $hasProductActions = auth()->user()?->can('products-edit') || auth()->user()?->can('products-delete');
+        @endphp
+
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead>
@@ -48,7 +52,9 @@
                         <th>Generic Name</th>
                         <th>Unit</th>
                         <th>Status</th>
-                        <th class="text-end">Action</th>
+                        @if($hasProductActions)
+                            <th class="text-end">Action</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -63,26 +69,28 @@
                                     {{ $product->is_active ? 'Active' : 'Inactive' }}
                                 </span>
                             </td>
-                            <td class="text-end">
-                                @can('products-edit')
-                                    <a href="{{ route('products.edit', $product) }}" class="btn btn-sm btn-outline-info">
-                                        <i class="mdi mdi-pencil"></i>
-                                    </a>
-                                @endcan
-                                @can('products-delete')
-                                    <form action="{{ route('products.destroy', $product) }}" method="POST" class="d-inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this medicine?')">
-                                            <i class="mdi mdi-delete"></i>
-                                        </button>
-                                    </form>
-                                @endcan
-                            </td>
+                            @if($hasProductActions)
+                                <td class="text-end">
+                                    @can('products-edit')
+                                        <a href="{{ route('products.edit', $product) }}" class="btn btn-sm btn-outline-info">
+                                            <i class="mdi mdi-pencil"></i>
+                                        </a>
+                                    @endcan
+                                    @can('products-delete')
+                                        <form action="{{ route('products.destroy', $product) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this medicine?')">
+                                                <i class="mdi mdi-delete"></i>
+                                            </button>
+                                        </form>
+                                    @endcan
+                                </td>
+                            @endif
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">No medicines found.</td>
+                            <td colspan="{{ $hasProductActions ? 6 : 5 }}" class="text-center text-muted py-4">No medicines found.</td>
                         </tr>
                     @endforelse
                 </tbody>

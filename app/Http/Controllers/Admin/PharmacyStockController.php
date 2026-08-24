@@ -10,6 +10,8 @@ use App\Services\NotifyLKService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
+use App\Models\User;
+
 class PharmacyStockController extends Controller
 {
     public function sendPatientSms(string $consultation)
@@ -79,9 +81,17 @@ class PharmacyStockController extends Controller
         if ($sent) {
             $record->update([
                 'is_locked' => true,
+                'pharmacy_status' => 'dispensed',
+                'dispensed_at' => now(),
             ]);
 
-            return $redirect->with('success', 'Shortage SMS sent to patient via NotifyLK successfully.');
+            if ($record->appointment) {
+                $record->appointment->update([
+                    'status' => \App\Enums\AppointmentStatus::COMPLETED->value,
+                ]);
+            }
+
+            return $redirect->with('success', 'Shortage SMS sent to patient successfully.');
         }
 
         return $redirect->with('error', 'NotifyLK SMS sending failed. Check NotifyLK settings.');
@@ -96,33 +106,73 @@ class PharmacyStockController extends Controller
 
         $search = trim((string) $request->input('search'));
         $status = trim((string) $request->input('status'));
-        $consultationId = (int) $request->input('consultation_id');
+        $doctorId = (int) $request->input('doctor_id', 0);
+        $fromDate = trim((string) $request->input('from_date'));
+        $toDate = trim((string) $request->input('to_date'));
+        $consultationId = (int) $request->input('consultation_id', 0);
+        $perPage = (int) $request->input('per_page', 10);
+        if (! in_array($perPage, [10, 25, 50, 100], true)) {
+            $perPage = 10;
+        }
 
-        $prescriptions = Consultation::query()
-            ->with(['patient:id,patient_code,first_name,last_name', 'doctor:id,fname,lname'])
+        $baseQuery = Consultation::query()
             ->where(function ($query) {
                 $query->where(function ($q) {
                     $q->whereNotNull('prescription')
                         ->where('prescription', '!=', '');
                 })->orWhereNotNull('prescription_items');
-            })
-            ->when(in_array($status, ['pending', 'partial', 'dispensed']), function ($query) use ($status) {
+            });
+
+        $summaryStats = [
+            'total' => (clone $baseQuery)->count(),
+            'pending' => (clone $baseQuery)->where('pharmacy_status', 'pending')->count(),
+            'partial' => (clone $baseQuery)->where('pharmacy_status', 'partial')->count(),
+            'dispensed' => (clone $baseQuery)->where('pharmacy_status', 'dispensed')->count(),
+        ];
+
+        $prescriptions = (clone $baseQuery)
+            ->with(['patient:id,patient_code,first_name,last_name,phone', 'doctor:id,fname,lname'])
+            ->when(in_array($status, ['pending', 'partial', 'dispensed'], true), function ($query) use ($status) {
                 $query->where('pharmacy_status', $status);
+            })
+            ->when($doctorId > 0, function ($query) use ($doctorId) {
+                $query->where('doctor_id', $doctorId);
             })
             ->when($consultationId > 0, function ($query) use ($consultationId) {
                 $query->where('id', $consultationId);
             })
+            ->when($fromDate !== '', function ($query) use ($fromDate) {
+                $query->whereDate('created_at', '>=', $fromDate);
+            })
+            ->when($toDate !== '', function ($query) use ($toDate) {
+                $query->whereDate('created_at', '<=', $toDate);
+            })
             ->when($search !== '', function ($query) use ($search) {
-                $query->where('prescription', 'like', "%{$search}%")
-                    ->orWhereHas('patient', function ($patientQuery) use ($search) {
-                        $patientQuery->where('patient_code', 'like', "%{$search}%")
-                            ->orWhere('first_name', 'like', "%{$search}%")
-                            ->orWhere('last_name', 'like', "%{$search}%");
-                    });
+                $query->where(function ($sub) use ($search) {
+                    $sub->where('prescription', 'like', "%{$search}%")
+                        ->orWhereHas('patient', function ($patientQuery) use ($search) {
+                            $patientQuery->where('patient_code', 'like', "%{$search}%")
+                                ->orWhere('first_name', 'like', "%{$search}%")
+                                ->orWhere('last_name', 'like', "%{$search}%")
+                                ->orWhere('phone', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('doctor', function ($doctorQuery) use ($search) {
+                            $doctorQuery->where('fname', 'like', "%{$search}%")
+                                ->orWhere('lname', 'like', "%{$search}%");
+                        });
+                });
             })
             ->latest()
-            ->paginate(10)
+            ->paginate($perPage)
             ->withQueryString();
+
+        $doctors = User::query()
+            ->whereHas('roles', function ($q) {
+                $q->where('name', 'Doctor');
+            })
+            ->orderBy('fname')
+            ->orderBy('lname')
+            ->get(['id', 'fname', 'lname']);
 
         $newPrescriptionCount = Consultation::query()
             ->where(function ($query) {
@@ -164,7 +214,20 @@ class PharmacyStockController extends Controller
             }
         }
 
-        return view('pharmacy.prescriptions.index', compact('prescriptions', 'search', 'status', 'consultationId', 'newPrescriptionCount', 'stockByMedicine'));
+        return view('pharmacy.prescriptions.index', compact(
+            'prescriptions',
+            'search',
+            'status',
+            'doctorId',
+            'fromDate',
+            'toDate',
+            'consultationId',
+            'perPage',
+            'doctors',
+            'summaryStats',
+            'newPrescriptionCount',
+            'stockByMedicine'
+        ));
     }
 
     public function markDispensed(Request $request, string $consultation)
@@ -242,6 +305,12 @@ class PharmacyStockController extends Controller
         }
 
         $record = $record->refresh();
+
+        if ($record->appointment) {
+            $record->appointment->update([
+                'status' => \App\Enums\AppointmentStatus::COMPLETED->value,
+            ]);
+        }
 
         $summary = count($successMessages) . ' medicine item(s) saved.';
 
@@ -437,10 +506,26 @@ class PharmacyStockController extends Controller
                     continue;
                 }
 
+                $duration = trim((string) ($row['duration'] ?? ''));
+                $days = 1;
+                if ($duration !== '' && preg_match('/(\d+)/', $duration, $m)) {
+                    $days = max((int) $m[1], 1);
+                }
+
+                $timeSlots = $row['time_slot'] ?? [];
+                if (! is_array($timeSlots)) {
+                    $timeSlots = array_filter([(string) $timeSlots]);
+                } else {
+                    $timeSlots = array_filter($timeSlots);
+                }
+                $slotCount = max(count($timeSlots), 1);
+
+                $calcQty = $days * $slotCount;
+
                 $normalized = $this->normalizeMedicineName($name);
                 $items[$normalized] = [
                     'name' => $items[$normalized]['name'] ?? $name,
-                    'qty' => (int) (($items[$normalized]['qty'] ?? 0) + 1),
+                    'qty' => (int) (($items[$normalized]['qty'] ?? 0) + $calcQty),
                 ];
             }
 
@@ -462,7 +547,9 @@ class PharmacyStockController extends Controller
         $dispensed = is_array($record->dispensed_breakdown) ? $record->dispensed_breakdown : [];
         $stockMap = $this->buildStockMap();
 
+        $hasAnyShortage = false;
         $parts = [];
+
         foreach ($items as $normalized => $itemData) {
             $prescribedQty = (int) ($itemData['qty'] ?? 0);
             $displayName = (string) ($itemData['name'] ?? $normalized);
@@ -470,28 +557,31 @@ class PharmacyStockController extends Controller
             $given = (int) ($dispensed[$normalized] ?? 0);
             $remaining = max($prescribedQty - $given, 0);
 
-            if ($remaining <= 0) {
-                continue;
-            }
-
             $stock = (int) ($stockMap[$normalized] ?? 0);
             $detailSuffix = $this->formatDoseDurationDetails($metaByMedicine[$normalized] ?? []);
-            if ($stock <= 0) {
-                $parts[] = "{$displayName}{$detailSuffix}: not available (need {$remaining})";
-                continue;
-            }
 
-            if ($stock < $remaining) {
-                $parts[] = "{$displayName}{$detailSuffix}: need {$remaining}, available {$stock}";
+            if ($remaining <= 0) {
+                $parts[] = "{$displayName}{$detailSuffix}: Given";
+            } elseif ($stock <= 0) {
+                $hasAnyShortage = true;
+                $parts[] = "{$displayName}{$detailSuffix}: OUT OF STOCK (Need {$remaining})";
+            } elseif ($stock < $remaining) {
+                $hasAnyShortage = true;
+                $parts[] = "{$displayName}{$detailSuffix}: Shortage (Available {$stock}, Need {$remaining})";
+            } else {
+                $parts[] = "{$displayName}{$detailSuffix}: Available ({$stock} in stock)";
             }
         }
 
-        if (empty($parts)) {
+        if (! $hasAnyShortage || empty($parts)) {
             return false;
         }
 
-        $message = 'CMS-RC Pharmacy: Some prescribed medicines are currently unavailable. Prescription details - '
-            . implode('; ', array_slice($parts, 0, 4))
+        $patientName = trim((optional($record->patient)->first_name ?? '') . ' ' . (optional($record->patient)->last_name ?? ''));
+        $patientStr = $patientName !== '' ? " for {$patientName}" : '';
+
+        $message = "CMS-RC Pharmacy Notice{$patientStr}: Prescription details - "
+            . implode('; ', $parts)
             . '. Please contact pharmacy.';
 
         return $this->dispatchSms($phone, $message);

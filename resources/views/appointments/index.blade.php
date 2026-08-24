@@ -97,9 +97,11 @@
                             <td><span class="code-pill">{{ $app->token_no ?? 'N/A' }}</span></td>
                             <td>
                                 @php
+                                    $isPharmacyDispensed = in_array($app->consultation->pharmacy_status ?? null, ['dispensed', 'partial'])
+                                        || $app->status === App\Enums\AppointmentStatus::COMPLETED->value;
                                     $status = App\Enums\AppointmentStatus::fromValue($app->status) ?? App\Enums\AppointmentStatus::SCHEDULED;
-                                    $statusClass = $status->getBadgeColor();
-                                    $statusLabel = $status->getLabel();
+                                    $statusClass = $isPharmacyDispensed ? 'success' : $status->getBadgeColor();
+                                    $statusLabel = $isPharmacyDispensed ? 'Completed' : $status->getLabel();
                                 @endphp
                                 <span class="badge bg-{{ $statusClass }}">
                                     {{ $statusLabel }}

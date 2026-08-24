@@ -77,9 +77,11 @@
                                 @endcan
 
                                 @can('patients-edit')
-                                    <a href="{{ route('patients.edit', $patient->id) }}" class="btn btn-sm btn-outline-info" title="Edit">
-                                        <i class="mdi mdi-pencil"></i>
-                                    </a>
+                                    @unless(auth()->user()?->hasAnyRole(['Nurse', 'Mid wife', 'Midwife', 'Doctor']))
+                                        <a href="{{ route('patients.edit', $patient->id) }}" class="btn btn-sm btn-outline-info" title="Edit">
+                                            <i class="mdi mdi-pencil"></i>
+                                        </a>
+                                    @endunless
                                 @endcan
 
                                 @can('patients-delete')
@@ -116,11 +118,14 @@
 @section('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+@php
+    $canEditPatients = (bool) (auth()->user()?->can('patients-edit') && !auth()->user()?->hasAnyRole(['Nurse', 'Mid wife', 'Midwife', 'Doctor']));
+@endphp
 <script>
 const searchBox = document.getElementById('searchPatient');
 const resetBtn = document.getElementById('resetSearch');
 const canViewPatients = @json(auth()->user()?->can('patients-view'));
-const canEditPatients = @json(auth()->user()?->can('patients-edit'));
+const canEditPatients = @json($canEditPatients);
 const canDeletePatients = @json(auth()->user()?->can('patients-delete'));
 const csrfToken = @json(csrf_token());
 const patientsBaseUrl = @json(url('/patients'));

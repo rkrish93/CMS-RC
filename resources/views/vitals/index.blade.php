@@ -43,55 +43,60 @@
         </form>
 
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover align-middle">
                 <thead>
                     <tr>
                         <th>Patient</th>
                         <th>BP</th>
                         <th>Temp (°C)</th>
                         <th>Pulse</th>
+                        <th>SpO₂ (%)</th>
+                        <th>Sugar (mg/dL)</th>
+                        <th>Wt / Ht / BMI</th>
+                        <th>Resp Rate</th>
                         <th>Recorded At</th>
                     </tr>
                 </thead>
-             <tbody>
-
-@forelse($vitals as $v)
-
-<tr>
-
-    <td>
-        {{ optional($v->patient)->first_name }}
-        {{ optional($v->patient)->last_name }}
-    </td>
-
-    <td>{{ $v->bp ?? '—' }}</td>
-
-    <td>{{ $v->temp ?? '—' }}</td>
-
-    <td>{{ $v->pulse ?? '—' }}</td>
-
-    <td>
-        {{ $v->created_at->format('Y-m-d H:i') }}
-    </td>
-
-</tr>
-
-@empty
-
-<tr>
-
-    <td colspan="5"
-        class="text-center text-muted">
-
-        {{ $search !== '' ? 'No vitals found for this patient name.' : 'No vitals recorded.' }}
-
-    </td>
-
-</tr>
-
-@endforelse
-
-</tbody>
+                <tbody>
+                    @forelse($vitals as $v)
+                        <tr>
+                            <td class="fw-semibold">
+                                {{ optional($v->patient)->first_name }}
+                                {{ optional($v->patient)->last_name }}
+                            </td>
+                            <td><span class="badge bg-light text-dark border">{{ $v->bp ?? '—' }}</span></td>
+                            <td>{{ $v->temp ? $v->temp . ' °C' : '—' }}</td>
+                            <td>{{ $v->pulse ? $v->pulse . ' bpm' : '—' }}</td>
+                            <td>
+                                @if($v->oxygen_saturation)
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle">{{ $v->oxygen_saturation }}%</span>
+                                @else
+                                    —
+                                @endif
+                            </td>
+                            <td>{{ $v->sugar ? $v->sugar . ' mg/dL' : '—' }}</td>
+                            <td>
+                                @php
+                                    $wtHtBmi = [];
+                                    if ($v->weight) $wtHtBmi[] = $v->weight . 'kg';
+                                    if ($v->height) $wtHtBmi[] = $v->height . 'cm';
+                                    if ($v->bmi) $wtHtBmi[] = 'BMI ' . $v->bmi;
+                                @endphp
+                                {{ count($wtHtBmi) > 0 ? implode(' / ', $wtHtBmi) : '—' }}
+                            </td>
+                            <td>{{ $v->respiratory_rate ? $v->respiratory_rate . ' /min' : '—' }}</td>
+                            <td class="text-muted fs-13">
+                                {{ $v->created_at->format('Y-m-d H:i') }}
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">
+                                {{ $search !== '' ? 'No vitals found for this patient name.' : 'No vitals recorded.' }}
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
             </table>
         </div>
 
