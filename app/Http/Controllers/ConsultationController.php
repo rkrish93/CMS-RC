@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AppointmentStatus;
 use App\Models\Appointment;
 use App\Models\Consultation;
 use App\Models\Product;
@@ -43,21 +44,21 @@ class ConsultationController extends Controller
                 ->with('error', 'Vitals already recorded for this appointment.');
          }
 
-            if($appointment->status == 'pending'){
+            if(Appointment::normalizeStatus($appointment->status) === AppointmentStatus::SCHEDULED->value){
                 return redirect()
                      ->route('appointments.today')
                      ->with('error', 'Patient is not checked-in yet. Generate QR pass first.');
             }
 
-            if($appointment->status == 'checked_in'){
-                $appointment->update(['status' => 'in_progress']);
+            if(Appointment::normalizeStatus($appointment->status) === AppointmentStatus::CHECKED_IN->value){
+                $appointment->update(['status' => AppointmentStatus::TRIAGE_IN_PROGRESS->value]);
             }
 
         // Old medical history - all consultations
         $oldConsultations = Consultation::where('patient_id',$appointment->patient_id)
                     ->latest()
                     ->get();
-        
+
 $latestVital = Vital::where('appointment_id', $appointment_id)
                     ->latest()
                     ->first();
@@ -68,7 +69,7 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
     ->latest()
     ->take(10)
     ->get();
-        
+
         $products = Product::query()
             ->where('is_active', true)
             ->orderBy('medicine_name')
@@ -253,13 +254,13 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
                 'appointment_date' => $request->next_visit,
                 'appointment_time' => $time,
                 'token_no' => $nextToken,
-                'status' => 'pending',
+                'status' => AppointmentStatus::SCHEDULED->value,
                 'notes' => 'Follow-up visit',
             ]);
         }
 
         //  MARK CURRENT APPOINTMENT COMPLETED
-        $oldAppointment->update(['status' => 'completed']);
+        $oldAppointment->update(['status' => AppointmentStatus::CONSULTATION_COMPLETED->value]);
 
          //  get fully booked dates (example: 20 per day)
         $bookedDates = Appointment::selectRaw('appointment_date, COUNT(*) as total')
@@ -398,8 +399,8 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
         || in_array($designation, ['nurse', 'mid wife', 'midwife'], true);
 
     if ($isNurseWorkflow
-        && ! in_array($appointment->status, ['completed', 'cancelled'], true)) {
-        $appointment->update(['status' => 'nurse_done']);
+        && ! in_array(Appointment::normalizeStatus($appointment->status), [AppointmentStatus::COMPLETED->value, AppointmentStatus::CANCELLED->value, AppointmentStatus::NO_SHOW->value], true)) {
+        $appointment->update(['status' => AppointmentStatus::TRIAGE_COMPLETED->value]);
     }
 
 

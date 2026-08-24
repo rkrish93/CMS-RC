@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AppointmentStatus;
 use App\Models\Appointment;
 use App\Models\Consultation;
 use App\Models\Patient;
@@ -80,6 +81,20 @@ class AppointmentController extends Controller
             'appointment_date' => 'required|date|after_or_equal:today',
         ]);
 
+        // Check if patient already has a pending appointment for this unit
+        $existingPendingAppointment = Appointment::where('patient_id', $validated['patient_id'])
+            ->where('unit_id', $validated['unit_id'])
+            ->where('status', AppointmentStatus::SCHEDULED->value)
+            ->first();
+
+        if ($existingPendingAppointment) {
+            return back()
+                ->withInput()
+                ->withErrors([
+        'patient_id' => 'This patient already has a pending appointment for this unit.'
+    ]);
+        }
+
         try {
             $appointmentDate = $validated['appointment_date'];
             $clinicOpenTime = Carbon::parse($appointmentDate . ' 09:00');
@@ -113,7 +128,7 @@ class AppointmentController extends Controller
                 'appointment_date' => $appointmentDate,
                 'appointment_time' => $appointmentTime,
                 'token_no' => $tokenNo,
-                'status' => 'pending'
+                'status' => AppointmentStatus::SCHEDULED->value
             ]);
 
             // Get patient details
@@ -129,7 +144,7 @@ class AppointmentController extends Controller
             }
 
             // Send SMS
-            
+
             // NotifyLKService::send($phone, $message);
 
             return redirect()->route('appointments.index')
@@ -190,11 +205,11 @@ class AppointmentController extends Controller
     $today = now()->toDateString();
 
     // Auto cancel pending after 4 PM
-    if (now()->format('H:i') >= '16:00') {
+    if (now()->hour >= 16) {
 
         Appointment::whereDate('appointment_date', $today)
-            ->where('status', 'pending')
-            ->update(['status' => 'cancelled']);
+            ->where('status', AppointmentStatus::SCHEDULED->value)
+            ->update(['status' => AppointmentStatus::CANCELLED->value]);
     }
 
 
@@ -209,7 +224,14 @@ class AppointmentController extends Controller
             })
 
             ->whereDate('appointment_date', $today)
-            ->whereIn('status', ['checked_in', 'in_progress', 'nurse_done'])
+            ->whereIn('status', [
+                AppointmentStatus::CHECKED_IN->value,
+                AppointmentStatus::TRIAGE_IN_PROGRESS->value,
+                AppointmentStatus::TRIAGE_COMPLETED->value,
+                AppointmentStatus::CONSULTATION_IN_PROGRESS->value,
+                AppointmentStatus::CONSULTATION_COMPLETED->value,
+                AppointmentStatus::DISPENSING->value,
+            ])
 
             ->orderBy('token_no')
 
@@ -222,7 +244,11 @@ class AppointmentController extends Controller
             ->withCount('vitals')
 
             ->whereDate('appointment_date', $today)
-            ->whereNotIn('status', ['completed', 'cancelled', 'no_show'])
+            ->whereNotIn('status', [
+                AppointmentStatus::COMPLETED->value,
+                AppointmentStatus::CANCELLED->value,
+                AppointmentStatus::NO_SHOW->value,
+            ])
 
             ->orderBy('token_no')
 
@@ -261,13 +287,13 @@ class AppointmentController extends Controller
             403
         );
 
-        if (in_array((string) $appointment->status, ['cancelled', 'completed', 'no_show'], true)) {
+        if (in_array(Appointment::normalizeStatus($appointment->status), [AppointmentStatus::CANCELLED->value, AppointmentStatus::COMPLETED->value, AppointmentStatus::NO_SHOW->value], true)) {
             return redirect()->route('appointments.today')
                 ->with('error', 'QR pass cannot be generated for cancelled/completed/no-show appointments.');
         }
 
-        if ((string) $appointment->status === 'pending') {
-            $appointment->update(['status' => 'checked_in']);
+        if (Appointment::normalizeStatus($appointment->status) === AppointmentStatus::SCHEDULED->value) {
+            $appointment->update(['status' => AppointmentStatus::CHECKED_IN->value]);
             $appointment->refresh();
         }
 
@@ -285,13 +311,13 @@ class AppointmentController extends Controller
 
         abort_unless($user?->hasAnyRole(['Receptionist', 'Admin']) || $user?->can('appointments-edit'), 403);
 
-        if (in_array((string) $appointment->status, ['cancelled', 'completed', 'no_show'], true)) {
+        if (in_array(Appointment::normalizeStatus($appointment->status), [AppointmentStatus::CANCELLED->value, AppointmentStatus::COMPLETED->value, AppointmentStatus::NO_SHOW->value], true)) {
             return redirect()->route('appointments.today')
                 ->with('error', 'Cannot check-in cancelled/completed/no-show appointment.');
         }
 
-        if ((string) $appointment->status === 'pending') {
-            $appointment->update(['status' => 'checked_in']);
+        if (Appointment::normalizeStatus($appointment->status) === AppointmentStatus::SCHEDULED->value) {
+            $appointment->update(['status' => AppointmentStatus::CHECKED_IN->value]);
 
             return redirect()->route('appointments.today')->with('success', 'Patient checked-in successfully.');
         }
@@ -319,9 +345,9 @@ class AppointmentController extends Controller
             ->where('patient_id', $patient->id)
             ->whereDate('appointment_date', now()->toDateString())
             ->when($isPharmacyUser, function ($query) {
-                $query->whereNotIn('status', ['cancelled', 'no_show']);
+                $query->whereNotIn('status', [AppointmentStatus::CANCELLED->value, AppointmentStatus::NO_SHOW->value]);
             }, function ($query) {
-                $query->whereNotIn('status', ['completed', 'cancelled', 'no_show']);
+                $query->whereNotIn('status', [AppointmentStatus::COMPLETED->value, AppointmentStatus::CANCELLED->value, AppointmentStatus::NO_SHOW->value]);
             });
 
         if ($user?->hasAnyRole($unitScopedRoles) && !empty($user->unit_id)) {
@@ -365,7 +391,7 @@ class AppointmentController extends Controller
                 ->with('error', 'No active appointment found today for this patient.');
         }
 
-        if ($user?->hasAnyRole($unitScopedRoles) && (string) $appointment->status === 'pending') {
+        if ($user?->hasAnyRole($unitScopedRoles) && Appointment::normalizeStatus($appointment->status) === AppointmentStatus::SCHEDULED->value) {
             return redirect()->route('patient.flow.scanner')
                 ->with('error', 'Patient is not checked-in yet. Reception must check-in first.');
         }
@@ -395,12 +421,12 @@ class AppointmentController extends Controller
             abort(403);
         }
 
-        if (in_array((string) $appointment->status, ['cancelled', 'no_show'], true)) {
+        if (in_array(Appointment::normalizeStatus($appointment->status), [AppointmentStatus::CANCELLED->value, AppointmentStatus::NO_SHOW->value], true)) {
             return redirect()->route('patient.flow.scanner')
                 ->with('error', 'This appointment is not eligible for scan flow.');
         }
 
-        if ($user?->hasAnyRole($unitScopedRoles) && (string) $appointment->status === 'pending') {
+        if ($user?->hasAnyRole($unitScopedRoles) && Appointment::normalizeStatus($appointment->status) === AppointmentStatus::SCHEDULED->value) {
             return redirect()->route('patient.flow.scanner')
                 ->with('error', 'Patient is not checked-in yet. Reception must generate QR first.');
         }
@@ -479,12 +505,19 @@ class AppointmentController extends Controller
                 });
             })
             ->when($isPharmacyUser, function ($query) {
-                $query->whereNotIn('status', ['cancelled', 'no_show']);
+                $query->whereNotIn('status', [AppointmentStatus::CANCELLED->value, AppointmentStatus::NO_SHOW->value]);
             }, function ($query) {
-                $query->whereNotIn('status', ['completed', 'cancelled', 'no_show']);
+                $query->whereNotIn('status', [AppointmentStatus::COMPLETED->value, AppointmentStatus::CANCELLED->value, AppointmentStatus::NO_SHOW->value]);
             })
             ->when($user?->hasAnyRole($unitScopedRoles), function ($query) {
-                $query->whereIn('status', ['checked_in', 'in_progress', 'nurse_done']);
+                $query->whereIn('status', [
+                    AppointmentStatus::CHECKED_IN->value,
+                    AppointmentStatus::TRIAGE_IN_PROGRESS->value,
+                    AppointmentStatus::TRIAGE_COMPLETED->value,
+                    AppointmentStatus::CONSULTATION_IN_PROGRESS->value,
+                    AppointmentStatus::CONSULTATION_COMPLETED->value,
+                    AppointmentStatus::DISPENSING->value,
+                ]);
             })
             ->when($user?->hasAnyRole($unitScopedRoles) && !empty($user?->unit_id), function ($query) use ($user) {
                 $query->where('unit_id', $user->unit_id);
@@ -520,12 +553,12 @@ class AppointmentController extends Controller
 
         abort_unless($user?->hasAnyRole(['Receptionist', 'Admin']) || $user?->can('appointments-edit'), 403);
 
-        if (in_array((string) $appointment->status, ['completed', 'cancelled'], true)) {
+        if (in_array(Appointment::normalizeStatus($appointment->status), [AppointmentStatus::COMPLETED->value, AppointmentStatus::CANCELLED->value, AppointmentStatus::NO_SHOW->value], true)) {
             return redirect()->route('appointments.today')
                 ->with('error', 'Cannot mark completed/cancelled appointment as no-show.');
         }
 
-        $appointment->update(['status' => 'no_show']);
+        $appointment->update(['status' => AppointmentStatus::NO_SHOW->value]);
 
         return redirect()->route('appointments.today')->with('success', 'Appointment marked as no-show.');
     }

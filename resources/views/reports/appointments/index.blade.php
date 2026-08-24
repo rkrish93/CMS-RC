@@ -47,10 +47,13 @@
                 <label class="form-label">Status</label>
                 <select name="status" class="form-select">
                     <option value="">All</option>
-                    <option value="pending" @selected($status === 'pending')>Pending</option>
+                    <option value="scheduled" @selected($status === 'scheduled')>Scheduled</option>
                     <option value="checked_in" @selected($status === 'checked_in')>Checked In</option>
-                    <option value="in_progress" @selected($status === 'in_progress')>In Progress</option>
-                    <option value="nurse_done" @selected($status === 'nurse_done')>Nurse Done</option>
+                    <option value="triage_in_progress" @selected($status === 'triage_in_progress')>Triage In Progress</option>
+                    <option value="triage_completed" @selected($status === 'triage_completed')>Triage Completed</option>
+                    <option value="consultation_in_progress" @selected($status === 'consultation_in_progress')>Consultation In Progress</option>
+                    <option value="consultation_completed" @selected($status === 'consultation_completed')>Consultation Completed</option>
+                    <option value="dispensing" @selected($status === 'dispensing')>Dispensing</option>
                     <option value="completed" @selected($status === 'completed')>Completed</option>
                     <option value="cancelled" @selected($status === 'cancelled')>Cancelled</option>
                     <option value="no_show" @selected($status === 'no_show')>No Show</option>
@@ -110,7 +113,7 @@
                             <td>{{ optional($appointment->patient)->phone ?? '-' }}</td>
                             <td>{{ optional($appointment->unit)->unit_name ?? '-' }}</td>
                             <td>{{ trim((optional(optional($appointment->consultation)->doctor)->fname ?? '') . ' ' . (optional(optional($appointment->consultation)->doctor)->lname ?? '')) ?: '-' }}</td>
-                            <td>{{ ucfirst(str_replace('_', ' ', $appointment->status ?? '-')) }}</td>
+                            <td>{{ (App\Enums\AppointmentStatus::fromValue($appointment->status) ?? App\Enums\AppointmentStatus::SCHEDULED)->getLabel() }}</td>
                         </tr>
                     @empty
                         <tr>

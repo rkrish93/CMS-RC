@@ -84,7 +84,7 @@
                 </div>
             </div>
 
-    
+
         @endcan
 
         @can('appointments-view')
@@ -488,8 +488,11 @@
                                             <td class="fw-semibold">{{ $q->patient->first_name ?? 'N/A' }}</td>
                                             <td>{{ $q->appointment_time ?? 'N/A' }}</td>
                                             <td>
-                                                <span class="badge bg-{{ $q->status === 'completed' ? 'success' : ($q->status === 'pending' ? 'warning' : 'secondary') }}">
-                                                    {{ ucfirst(str_replace('_', ' ', $q->status ?? 'pending')) }}
+                                                @php
+                                                    $queueStatus = App\Enums\AppointmentStatus::fromValue($q->status) ?? App\Enums\AppointmentStatus::SCHEDULED;
+                                                @endphp
+                                                <span class="badge bg-{{ $queueStatus->getBadgeColor() }}">
+                                                    {{ $queueStatus->getLabel() }}
                                                 </span>
                                             </td>
                                         </tr>

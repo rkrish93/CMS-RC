@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\AppointmentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Patient;
@@ -96,10 +97,10 @@ $latestVitals = Vital::with('patient')
             'patients' => Patient::count(),
             'todayAppointments' => Appointment::whereDate('appointment_date', today())->count(),
 
-            'waiting' => Appointment::where('status', 'pending')
+            'waiting' => Appointment::where('status', AppointmentStatus::SCHEDULED->value)
                             ->whereDate('appointment_date', today())->count(),
 
-            'completed' => Appointment::where('status', 'completed')
+            'completed' => Appointment::where('status', AppointmentStatus::COMPLETED->value)
                             ->whereDate('appointment_date', today())->count(),
 
             'todayQueue' => Appointment::with('patient')

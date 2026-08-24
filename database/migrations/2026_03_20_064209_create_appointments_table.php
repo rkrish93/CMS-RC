@@ -23,7 +23,7 @@ return new class extends Migration
             $table->integer('token_no')->nullable();
             $table->text('notes')->nullable();
 
-            $table->string('status')->default('pending');
+            $table->string('status')->default('scheduled');
 
             $table->timestamps();
         });

@@ -59,7 +59,7 @@
                             <td>{{ optional($appointment->patient)->patient_code ?? 'N/A' }}</td>
                             <td>{{ optional($appointment->unit)->unit_name ?? 'N/A' }}</td>
                             <td>{{ $appointment->appointment_time ?? 'N/A' }}</td>
-                            <td>{{ ucfirst(str_replace('_', ' ', $appointment->status ?? 'pending')) }}</td>
+                            <td>{{ (App\Enums\AppointmentStatus::fromValue($appointment->status) ?? App\Enums\AppointmentStatus::SCHEDULED)->getLabel() }}</td>
                             <td class="text-end">
                                 @if($isPharmacyDispensed)
                                     <button type="button" class="btn btn-sm btn-outline-secondary" disabled>

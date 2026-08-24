@@ -11,7 +11,7 @@
 @section('content')
 @php
     $vitalsDone = $previousVitals->where('appointment_id', $appointment->id)->isNotEmpty();
-    $doctorDone = !is_null($consultationForPharmacy) || (string) $appointment->status === 'completed';
+    $doctorDone = !is_null($consultationForPharmacy) || (string) $appointment->status === App\Enums\AppointmentStatus::CONSULTATION_COMPLETED->value;
     $pharmacyReady = !is_null($consultationForPharmacy);
 @endphp
 <div class="row g-3 mb-3">
@@ -32,7 +32,7 @@
                     <div class="col-md-4"><strong>Unit:</strong> {{ optional($appointment->unit)->unit_name ?? 'N/A' }}</div>
                     <div class="col-md-4"><strong>Date:</strong> {{ $appointment->appointment_date }}</div>
                     <div class="col-md-4"><strong>Time:</strong> {{ $appointment->appointment_time }}</div>
-                    <div class="col-md-4"><strong>Status:</strong> {{ ucfirst(str_replace('_', ' ', $appointment->status ?? 'pending')) }}</div>
+                    <div class="col-md-4"><strong>Status:</strong> {{ (App\Enums\AppointmentStatus::fromValue($appointment->status) ?? App\Enums\AppointmentStatus::SCHEDULED)->getLabel() }}</div>
                 </div>
 
                 <div class="mt-4 d-flex flex-wrap align-items-center gap-2">

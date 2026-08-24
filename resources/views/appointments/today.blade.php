@@ -64,25 +64,12 @@ $columnCount--;
                     @forelse($appointments as $appt)
                     @php
                     $vitalsRecorded = ($appt->vitals_count ?? 0) > 0;
-                    $disabled = in_array($appt->status, ['completed', 'cancelled'])
+                    $status = App\Enums\AppointmentStatus::fromValue($appt->status) ?? App\Enums\AppointmentStatus::SCHEDULED;
+                    $disabled = in_array($status->value, [App\Enums\AppointmentStatus::COMPLETED->value, App\Enums\AppointmentStatus::CANCELLED->value, App\Enums\AppointmentStatus::NO_SHOW->value])
                     || ($disableOpenAfterVitals && $vitalsRecorded);
                     $actionLabel = $disableOpenAfterVitals && $vitalsRecorded ? 'Vitals Done' : 'Open';
-                    $statusClass = match($appt->status) {
-                    'pending' => 'warning',
-                    'checked_in' => 'info',
-                    'in_progress', 'in_Progress' => 'primary',
-                    'nurse_done' => 'dark',
-                    'completed' => 'success',
-                    'no_show' => 'secondary',
-                    default => 'secondary',
-                    };
-                    $statusLabel = match($appt->status) {
-                    'pending' => 'Waiting',
-                    'checked_in' => 'Checked In',
-                    'nurse_done' => 'Nurse Done',
-                    'no_show' => 'No Show',
-                    default => ucfirst(str_replace('_', ' ', $appt->status ?? 'pending')),
-                    };
+                    $statusClass = $status->getBadgeColor();
+                    $statusLabel = $status->getLabel();
                     @endphp
                     <tr>
                         <td><span class="token-pill">{{ $appt->token_no ?? 'N/A' }}</span></td>
@@ -108,7 +95,7 @@ $columnCount--;
                                 @endif
 
                                 @if($canGenerateQr)
-                                    @if($appt->status === 'pending')
+                                    @if($status->value === App\Enums\AppointmentStatus::SCHEDULED->value)
                                     <form method="POST" action="{{ route('appointments.check-in', $appt->id) }}" class="d-inline">
                                         @csrf
                                         <button type="submit" class="btn btn-sm btn-outline-primary">
@@ -124,7 +111,7 @@ $columnCount--;
                                     @endif
                                 @endif
 
-                                @if($canMarkNoShow && $appt->status === 'pending')
+                                @if($canMarkNoShow && $status->value === App\Enums\AppointmentStatus::SCHEDULED->value)
                                 <form method="POST" action="{{ route('appointments.no-show', $appt->id) }}" class="d-inline">
                                     @csrf
                                     <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Mark this appointment as no-show?')">

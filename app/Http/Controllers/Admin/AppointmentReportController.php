@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\AppointmentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\User;
@@ -28,13 +29,16 @@ class AppointmentReportController extends Controller
 
         $summary = [
             'total' => (clone $query)->count(),
-            'pending' => (clone $query)->where('status', 'pending')->count(),
-            'checked_in' => (clone $query)->where('status', 'checked_in')->count(),
-            'in_progress' => (clone $query)->where('status', 'in_progress')->count(),
-            'nurse_done' => (clone $query)->where('status', 'nurse_done')->count(),
-            'completed' => (clone $query)->where('status', 'completed')->count(),
-            'cancelled' => (clone $query)->where('status', 'cancelled')->count(),
-            'no_show' => (clone $query)->where('status', 'no_show')->count(),
+            'scheduled' => (clone $query)->where('status', AppointmentStatus::SCHEDULED->value)->count(),
+            'checked_in' => (clone $query)->where('status', AppointmentStatus::CHECKED_IN->value)->count(),
+            'triage_in_progress' => (clone $query)->where('status', AppointmentStatus::TRIAGE_IN_PROGRESS->value)->count(),
+            'triage_completed' => (clone $query)->where('status', AppointmentStatus::TRIAGE_COMPLETED->value)->count(),
+            'consultation_in_progress' => (clone $query)->where('status', AppointmentStatus::CONSULTATION_IN_PROGRESS->value)->count(),
+            'consultation_completed' => (clone $query)->where('status', AppointmentStatus::CONSULTATION_COMPLETED->value)->count(),
+            'dispensing' => (clone $query)->where('status', AppointmentStatus::DISPENSING->value)->count(),
+            'completed' => (clone $query)->where('status', AppointmentStatus::COMPLETED->value)->count(),
+            'cancelled' => (clone $query)->where('status', AppointmentStatus::CANCELLED->value)->count(),
+            'no_show' => (clone $query)->where('status', AppointmentStatus::NO_SHOW->value)->count(),
         ];
 
         $units = Unit::query()->orderBy('unit_name')->get(['id', 'unit_name']);
@@ -136,7 +140,7 @@ class AppointmentReportController extends Controller
                     optional($appointment->patient)->phone ?? '-',
                     optional($appointment->unit)->unit_name ?? '-',
                     $doctorName !== '' ? $doctorName : '-',
-                    ucfirst(str_replace('_', ' ', $appointment->status ?? '-')),
+                    (AppointmentStatus::fromValue($appointment->status) ?? AppointmentStatus::SCHEDULED)->getLabel(),
                 ]);
             }
 
@@ -170,7 +174,7 @@ class AppointmentReportController extends Controller
 
     private function buildFilteredQuery(array $filters)
     {
-        $allowedStatuses = ['pending', 'checked_in', 'in_progress', 'nurse_done', 'completed', 'cancelled', 'no_show'];
+        $allowedStatuses = AppointmentStatus::values();
 
         return Appointment::query()
             ->with([
