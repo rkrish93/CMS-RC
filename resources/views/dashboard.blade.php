@@ -243,41 +243,7 @@
                 @endif
             </div>
 
-            <div class="row g-3 mb-4">
-                <div class="col-md-4">
-                    <div class="p-3 rounded-3 bg-light border border-light-subtle d-flex align-items-center justify-content-between">
-                        <div>
-                            <span class="text-muted fs-13 d-block mb-1 fw-semibold">Avg Temperature (°C)</span>
-                            <span class="fs-4 fw-bold text-dark">{{ $vitalsSummary['avg_temp'] ?? '—' }}</span>
-                        </div>
-                        <div class="p-2 rounded-circle bg-warning-subtle text-warning fs-4">
-                            <i class="mdi mdi-thermometer"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="p-3 rounded-3 bg-light border border-light-subtle d-flex align-items-center justify-content-between">
-                        <div>
-                            <span class="text-muted fs-13 d-block mb-1 fw-semibold">Avg Pulse Rate</span>
-                            <span class="fs-4 fw-bold text-dark">{{ $vitalsSummary['avg_pulse'] ?? '—' }}</span>
-                        </div>
-                        <div class="p-2 rounded-circle bg-danger-subtle text-danger fs-4">
-                            <i class="mdi mdi-heart-pulse"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="p-3 rounded-3 bg-light border border-light-subtle d-flex align-items-center justify-content-between">
-                        <div>
-                            <span class="text-muted fs-13 d-block mb-1 fw-semibold">Vitals Alerts Today</span>
-                            <span class="fs-4 fw-bold text-danger">{{ $vitalsSummary['alerts'] ?? 0 }}</span>
-                        </div>
-                        <div class="p-2 rounded-circle bg-danger text-white fs-4">
-                            <i class="mdi mdi-alert-circle-outline"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
+
 
             <h6 class="fw-bold mb-3 text-dark fs-14 text-uppercase tracking-wider">Latest Vitals Records</h6>
             <div class="table-responsive rounded-3 border">
@@ -689,7 +655,7 @@ if (ctx) {
             labels: {!! json_encode($chartDays ?? ['Mon','Tue','Wed','Thu','Fri','Sat']) !!},
             datasets: [{
                 label: 'Appointments',
-                data: {!! json_encode($chartData ?? [10,20,15,30,25,18]) !!},
+                data: {!! json_encode($chartData ?? [0,0,0,0,0,0]) !!},
                 borderColor: '#2563eb',
                 backgroundColor: gradient,
                 borderWidth: 3,
@@ -726,7 +692,8 @@ if (ctx) {
                     },
                     ticks: {
                         color: '#64748b',
-                        font: { size: 12 }
+                        font: { size: 12 },
+                        precision: 0
                     }
                 },
                 x: {

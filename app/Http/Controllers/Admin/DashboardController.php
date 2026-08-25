@@ -49,7 +49,7 @@ class DashboardController extends Controller
         }
 
         $latestVitals = $latestVitalsQuery
-            ->take(6)
+            ->take(5)
             ->get()
             ->map(function ($v) {
                 return [
@@ -91,8 +91,31 @@ class DashboardController extends Controller
             ->where('created_at', '>=', now()->subHours(6))
             ->count();
 
+        // Weekly Appointments Activity Chart Data (Real DB values)
+        $startOfWeek = now()->startOfWeek();
+        $endOfWeek = now()->endOfWeek();
+
+        $weeklyAppointments = Appointment::whereBetween('appointment_date', [
+                $startOfWeek->format('Y-m-d'),
+                $endOfWeek->format('Y-m-d')
+            ])
+            ->selectRaw('appointment_date, COUNT(*) as count')
+            ->groupBy('appointment_date')
+            ->pluck('count', 'appointment_date');
+
+        $chartDays = [];
+        $chartData = [];
+
+        for ($i = 0; $i < 6; $i++) {
+            $day = $startOfWeek->copy()->addDays($i);
+            $dateKey = $day->format('Y-m-d');
+            $chartDays[] = $day->format('D');
+            $chartData[] = (int) ($weeklyAppointments->get($dateKey, 0));
+        }
+
         return view('dashboard', [
             'patients' => Patient::count(),
+            'users' => User::count(),
             'todayAppointments' => Appointment::whereDate('appointment_date', today())->count(),
 
             'waiting' => Appointment::where('status', AppointmentStatus::SCHEDULED->value)
@@ -107,7 +130,8 @@ class DashboardController extends Controller
                             ->take(5)
                             ->get(),
             'units' => Unit::count(),
-            // placeholder analytics for PHI; replace with real metrics if available
+            'chartDays' => $chartDays,
+            'chartData' => $chartData,
             'analytics' => [
                 'reports' => 0,
                 'coverage' => 0,
@@ -132,7 +156,6 @@ class DashboardController extends Controller
             'pendingPrescriptions' => $pendingPrescriptions,
             'newPrescriptionNotificationCount' => $newPrescriptionNotificationCount,
         ]);
-
     }
 
     /**

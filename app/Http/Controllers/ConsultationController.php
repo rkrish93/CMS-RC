@@ -7,6 +7,7 @@ use App\Models\Appointment;
 use App\Models\Consultation;
 use App\Models\Product;
 use App\Models\Vital;
+use App\Services\NotifyLKService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -230,33 +231,60 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
 
         //  AUTO CREATE NEXT APPOINTMENT
         if ($request->next_visit) {
+            $isTodayPast3PM = ($request->next_visit === today()->format('Y-m-d') && now()->gte(Carbon::parse($request->next_visit . ' 15:00:00')));
 
-            //  AUTO TIME (if not given → default 9:00 AM)
-            $lastTime = Appointment::where('unit_id', $oldAppointment->unit_id)
-                            ->where('appointment_date', $request->next_visit)
-                            ->orderByDesc('appointment_time')
-                            ->value('appointment_time');
+            if (! $isTodayPast3PM) {
+                //  AUTO TIME (if not given → default 9:00 AM)
+                $lastTime = Appointment::where('unit_id', $oldAppointment->unit_id)
+                                ->where('appointment_date', $request->next_visit)
+                                ->orderByDesc('appointment_time')
+                                ->value('appointment_time');
 
-            $time = $lastTime
-                    ? date('H:i:s', strtotime($lastTime . ' +15 minutes'))
-                    : '09:00:00';
+                $time = $lastTime
+                        ? date('H:i:s', strtotime($lastTime . ' +15 minutes'))
+                        : '09:00:00';
 
-            //  AUTO TOKEN (Unit + Date wise)
-            $lastToken = Appointment::where('unit_id', $oldAppointment->unit_id)
-                            ->where('appointment_date', $request->next_visit)
-                            ->max('token_no');
+                // Check if time exceeds 3:00 PM (15:00:00)
+                if (strtotime($time) <= strtotime('15:00:00')) {
+                    //  AUTO TOKEN (Unit + Date wise)
+                    $lastToken = Appointment::where('unit_id', $oldAppointment->unit_id)
+                                    ->where('appointment_date', $request->next_visit)
+                                    ->max('token_no');
 
-            $nextToken = $lastToken ? $lastToken + 1 : 1;
+                    $nextToken = $lastToken ? $lastToken + 1 : 1;
 
-            Appointment::create([
-                'patient_id' => $oldAppointment->patient_id,
-                'unit_id' => $oldAppointment->unit_id,
-                'appointment_date' => $request->next_visit,
-                'appointment_time' => $time,
-                'token_no' => $nextToken,
-                'status' => AppointmentStatus::SCHEDULED->value,
-                'notes' => 'Follow-up visit',
-            ]);
+                    Appointment::create([
+                        'patient_id' => $oldAppointment->patient_id,
+                        'unit_id' => $oldAppointment->unit_id,
+                        'appointment_date' => $request->next_visit,
+                        'appointment_time' => $time,
+                        'token_no' => $nextToken,
+                        'status' => AppointmentStatus::SCHEDULED->value,
+                        'notes' => 'Follow-up visit',
+                    ]);
+
+                    // Send SMS to patient for next visit confirmation with Unit Name
+                    $patient = $oldAppointment->patient;
+                    $unitName = $oldAppointment->unit?->unit_name ?? '';
+
+                    if ($patient && !empty($patient->phone)) {
+                        $phone = preg_replace('/\D/', '', $patient->phone);
+                        if (str_starts_with($phone, '0')) {
+                            $phone = '94' . substr($phone, 1);
+                        }
+
+                        $unitText = $unitName !== '' ? " for {$unitName}" : '';
+                        $nextVisitDate = $request->next_visit;
+                        $message = "Dear {$patient->first_name}, Your next follow-up visit{$unitText} is scheduled on {$nextVisitDate} at {$time}. Token No: {$nextToken}.";
+
+                        try {
+                            NotifyLKService::send($phone, $message);
+                        } catch (\Throwable $e) {
+                            \Illuminate\Support\Facades\Log::warning("Next visit SMS failed for {$phone}: " . $e->getMessage());
+                        }
+                    }
+                }
+            }
         }
 
         //  MARK CURRENT APPOINTMENT COMPLETED

@@ -368,10 +368,10 @@
                                                 </select>
                                             </td>
                                             <td>
-                                                <input type="text" name="prescription_items[0][dosage]" class="form-control" placeholder="1 tablet twice daily" required>
+                                                <input type="text" name="prescription_items[0][dosage]" class="form-control" placeholder="1 tablet twice daily">
                                             </td>
                                             <td>
-                                                <input type="text" name="prescription_items[0][duration]" class="form-control" placeholder="5 days" required>
+                                                <input type="text" name="prescription_items[0][duration]" class="form-control" placeholder="5 days">
                                             </td>
                                             <td>
                                                 <div class="time-slot-group">
@@ -391,7 +391,7 @@
                                                 <small class="text-muted">You can select multiple time slots.</small>
                                             </td>
                                             <td>
-                                                <select name="prescription_items[0][food_timing]" class="form-select" required>
+                                                <select name="prescription_items[0][food_timing]" class="form-select">
                                                     <option value="">Select</option>
                                                     <option value="before_food">Before Food</option>
                                                     <option value="after_food">After Food</option>
@@ -692,10 +692,10 @@
                 </select>
             </td>
             <td>
-                <input type="text" name="prescription_items[${rowCount}][dosage]" class="form-control" placeholder="1 tablet twice daily" required>
+                <input type="text" name="prescription_items[${rowCount}][dosage]" class="form-control" placeholder="1 tablet twice daily">
             </td>
             <td>
-                <input type="text" name="prescription_items[${rowCount}][duration]" class="form-control" placeholder="5 days" required>
+                <input type="text" name="prescription_items[${rowCount}][duration]" class="form-control" placeholder="5 days">
             </td>
             <td>
                 <div class="time-slot-group">
@@ -715,7 +715,7 @@
                 <small class="text-muted">You can select multiple time slots.</small>
             </td>
             <td>
-                <select name="prescription_items[${rowCount}][food_timing]" class="form-select" required>
+                <select name="prescription_items[${rowCount}][food_timing]" class="form-select">
                     <option value="">Select</option>
                     <option value="before_food">Before Food</option>
                     <option value="after_food">After Food</option>
@@ -750,27 +750,12 @@
     if (consultationForm && medicineTableBody) {
         consultationForm.addEventListener('submit', function(event) {
             const rows = medicineTableBody.querySelectorAll('.medicine-row');
-            let hasTimeSlotError = false;
-
             rows.forEach(function(row) {
                 const timeSlotInputs = row.querySelectorAll('input.time-slot-checkbox');
-                const checkedCount = row.querySelectorAll('input.time-slot-checkbox:checked').length;
-
                 if (timeSlotInputs.length) {
-                    const firstInput = timeSlotInputs[0];
-                    if (checkedCount === 0) {
-                        firstInput.setCustomValidity('Select at least one time slot.');
-                        hasTimeSlotError = true;
-                    } else {
-                        firstInput.setCustomValidity('');
-                    }
+                    timeSlotInputs[0].setCustomValidity('');
                 }
             });
-
-            if (hasTimeSlotError) {
-                event.preventDefault();
-                consultationForm.reportValidity();
-            }
         });
     }
 </script>

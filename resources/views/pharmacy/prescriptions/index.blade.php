@@ -389,25 +389,35 @@
                             <!-- Prescribed Medicines & Stock -->
                             <td>
                                 @if(count($items))
-                                    <div class="d-flex flex-column gap-1">
+                                    <div class="d-flex flex-column gap-1.5 py-1">
                                         @foreach($items as $med)
-                                            <div class="d-flex align-items-center justify-content-between bg-light rounded-2 px-2 py-1 gap-2">
-                                                <div class="text-truncate" style="max-width: 280px;">
-                                                    <strong class="text-dark" style="font-size: 12.5px;">{{ $med['name'] }}</strong>
+                                            <div class="d-flex align-items-center justify-content-between gap-3 py-1 px-2.5 rounded-2 bg-light border-0">
+                                                <div class="d-flex align-items-center gap-2 overflow-hidden" style="max-width: 300px;">
+                                                    <span class="badge rounded-circle bg-primary-subtle text-primary p-1 flex-shrink-0" style="width: 22px; height: 22px; font-size: 11px; display: inline-flex; align-items: center; justify-content: center;">
+                                                        <i class="mdi mdi-pill"></i>
+                                                    </span>
+                                                    <span class="fw-bold text-dark fs-13 text-truncate">{{ $med['name'] }}</span>
                                                     @if(!empty($med['dosage']))
-                                                        <span class="small text-muted ms-1">({{ $med['dosage'] }})</span>
+                                                        <span class="small text-muted flex-shrink-0">({{ $med['dosage'] }})</span>
                                                     @endif
                                                 </div>
-                                                <div class="d-flex align-items-center gap-1 flex-shrink-0">
-                                                    <span class="badge bg-white text-dark border font-monospace px-1.5 py-0.5" style="font-size: 10px;" title="Prescribed / Given / Remaining">
-                                                        P:{{ $med['prescribed'] }} | G:{{ $med['given'] }} | R:{{ $med['remaining'] }}
-                                                    </span>
-                                                    @if($med['stock'] <= 0)
-                                                        <span class="badge bg-danger text-white px-1.5 py-0.5" style="font-size: 10px;">Out of Stock</span>
-                                                    @elseif($med['stock'] < $med['remaining'])
-                                                        <span class="badge bg-warning text-dark px-1.5 py-0.5" style="font-size: 10px;">Stock: {{ $med['stock'] }}</span>
+                                                <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                                                    @if($med['given'] >= $med['prescribed'] && $med['prescribed'] > 0)
+                                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 fw-semibold fs-11">
+                                                            <i class="mdi mdi-check-circle me-1"></i>{{ $med['prescribed'] }} Qty
+                                                        </span>
                                                     @else
-                                                        <span class="badge bg-success text-white px-1.5 py-0.5" style="font-size: 10px;">Stock: {{ $med['stock'] }}</span>
+                                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 fw-semibold fs-11 font-monospace">
+                                                            {{ $med['given'] }}/{{ $med['prescribed'] }} Qty
+                                                        </span>
+                                                    @endif
+
+                                                    @if($med['stock'] <= 0)
+                                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1 fw-semibold fs-11">Out of Stock</span>
+                                                    @elseif($med['stock'] < $med['remaining'])
+                                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-2.5 py-1 fw-semibold fs-11">Stock: {{ $med['stock'] }}</span>
+                                                    @else
+                                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 fw-semibold fs-11">Stock: {{ $med['stock'] }}</span>
                                                     @endif
                                                 </div>
                                             </div>
@@ -425,13 +435,6 @@
                                 <span class="status-pill status-{{ $statusName }} px-2.5 py-1 fw-bold text-uppercase" style="font-size: 11px;">
                                     {{ ucfirst($statusName) }}
                                 </span>
-                                @if($isLocked)
-                                    <div class="mt-1">
-                                        <span class="badge bg-danger text-white px-1.5 py-0.5" style="font-size: 10px;" title="Locked after SMS sent">
-                                            <i class="mdi mdi-lock me-0.5"></i>Locked
-                                        </span>
-                                    </div>
-                                @endif
                             </td>
 
                             <!-- Action -->

@@ -76,7 +76,8 @@ class PharmacyStockController extends Controller
             . implode('; ', array_slice($parts, 0, 4))
             . '. Please contact pharmacy.';
 
-        $sent = $this->dispatchSms($phone, $message);
+        $smsError = null;
+        $sent = $this->dispatchSms($phone, $message, $smsError);
 
         if ($sent) {
             $record->update([
@@ -94,7 +95,8 @@ class PharmacyStockController extends Controller
             return $redirect->with('success', 'Shortage SMS sent to patient successfully.');
         }
 
-        return $redirect->with('error', 'NotifyLK SMS sending failed. Check NotifyLK settings.');
+        $errorMsg = 'NotifyLK SMS sending failed' . ($smsError ? ": {$smsError}" : '. Check NotifyLK settings.');
+        return $redirect->with('error', $errorMsg);
     }
 
     public function prescriptions(Request $request)
@@ -767,7 +769,7 @@ class PharmacyStockController extends Controller
         return '';
     }
 
-    private function dispatchSms(string $phone, string $message): bool
+    private function dispatchSms(string $phone, string $message, ?string &$errorMessage = null): bool
     {
         try {
             $userId = trim((string) env('NOTIFY_USER_ID', env('NOTIFYLK_USER_ID')));
@@ -775,11 +777,21 @@ class PharmacyStockController extends Controller
             $senderId = trim((string) env('NOTIFY_SENDER_ID', env('NOTIFYLK_SENDER_ID')));
 
             if ($userId === '' || $apiKey === '' || $senderId === '') {
-                Log::warning('NotifyLK SMS configuration missing. Set NOTIFY_USER_ID/NOTIFY_API_KEY/NOTIFY_SENDER_ID or NOTIFYLK_* equivalents.');
+                $errorMessage = 'NotifyLK SMS configuration missing in .env (USER_ID, API_KEY or SENDER_ID).';
+                Log::warning($errorMessage);
                 return false;
             }
 
             $response = NotifyLKService::send($phone, $message);
+            $json = $response->json();
+
+            if (is_array($json)) {
+                if (isset($json['errors'])) {
+                    $errorMessage = is_array($json['errors']) ? implode(', ', $json['errors']) : (string) $json['errors'];
+                } elseif (isset($json['message'])) {
+                    $errorMessage = (string) $json['message'];
+                }
+            }
 
             if (! $response->successful()) {
                 Log::warning('NotifyLK SMS failed with non-success HTTP status.', [
@@ -787,10 +799,12 @@ class PharmacyStockController extends Controller
                     'status' => $response->status(),
                     'body' => $response->body(),
                 ]);
+                if (empty($errorMessage)) {
+                    $errorMessage = 'NotifyLK HTTP Error ' . $response->status();
+                }
                 return false;
             }
 
-            $json = $response->json();
             if (is_array($json) && array_key_exists('status', $json)) {
                 $status = strtolower(trim((string) $json['status']));
 
@@ -801,6 +815,9 @@ class PharmacyStockController extends Controller
                         'notify_status' => $json['status'] ?? null,
                         'response' => $json,
                     ]);
+                    if (empty($errorMessage)) {
+                        $errorMessage = 'NotifyLK status: ' . ($json['status'] ?? 'error');
+                    }
                 }
 
                 return $sent;
@@ -808,6 +825,7 @@ class PharmacyStockController extends Controller
 
             return true;
         } catch (\Throwable $e) {
+            $errorMessage = $e->getMessage();
             Log::error('NotifyLK SMS exception.', [
                 'phone' => $phone,
                 'error' => $e->getMessage(),

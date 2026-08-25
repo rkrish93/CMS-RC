@@ -97,13 +97,23 @@ class AppointmentController extends Controller
 
         try {
             $appointmentDate = $validated['appointment_date'];
+
+            // Restrict scheduling after 3:00 PM for today's date
+            if ($appointmentDate === today()->format('Y-m-d') && now()->gte(Carbon::parse($appointmentDate . ' 15:00:00'))) {
+                return back()
+                    ->withInput()
+                    ->with('error', 'Appointments cannot be scheduled after 3:00 PM for today.');
+            }
+
             $clinicOpenTime = Carbon::parse($appointmentDate . ' 09:00');
             $clinicCloseTime = Carbon::parse($appointmentDate . ' 15:00');
             $slotDuration = 15;
 
             // Get the last appointment for this date
-            $lastAppointment = Appointment::whereDate( 'appointment_date',$appointmentDate
-    )->where('unit_id', $validated['unit_id'])->orderByDesc('appointment_time')->first();
+            $lastAppointment = Appointment::whereDate('appointment_date', $appointmentDate)
+                ->where('unit_id', $validated['unit_id'])
+                ->orderByDesc('appointment_time')
+                ->first();
 
             if ($lastAppointment) {
                 $lastTime = Carbon::parse($lastAppointment->appointment_time);
@@ -112,7 +122,7 @@ class AppointmentController extends Controller
                 if ($nextTime->greaterThan($clinicCloseTime)) {
                     return back()
                         ->withInput()
-                        ->with('error', 'No slots available for this date. All appointment slots are fully booked.');
+                        ->with('error', 'No slots available for this date. Appointments cannot be scheduled after 3:00 PM.');
                 }
 
                 $appointmentTime = $nextTime->format('H:i:s');
@@ -131,21 +141,26 @@ class AppointmentController extends Controller
                 'status' => AppointmentStatus::SCHEDULED->value
             ]);
 
-            // Get patient details
+            // Get patient and unit details for SMS confirmation
             $patient = Patient::find($validated['patient_id']);
+            $unit = Unit::find($validated['unit_id']);
+            $unitName = $unit->unit_name ?? '';
 
-            // SMS message
-            $message = "Dear {$patient->first_name}, Your appointment is confirmed on {$appointmentDate} at {$appointmentTime}. Token No: {$tokenNo}.";
+            if ($patient && !empty($patient->phone)) {
+                $phone = preg_replace('/\D/', '', $patient->phone);
+                if (str_starts_with($phone, '0')) {
+                    $phone = '94' . substr($phone, 1);
+                }
 
-            $phone = preg_replace('/\D/', '', $patient->phone);
+                $unitText = $unitName !== '' ? " for {$unitName}" : '';
+                $message = "Dear {$patient->first_name}, Your appointment{$unitText} is confirmed on {$appointmentDate} at {$appointmentTime}. Token No: {$tokenNo}.";
 
-            if (str_starts_with($phone, '0')) {
-                $phone = '94' . substr($phone, 1);
+                try {
+                    NotifyLKService::send($phone, $message);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning("Appointment SMS failed for {$phone}: " . $e->getMessage());
+                }
             }
-
-            // Send SMS
-
-            // NotifyLKService::send($phone, $message);
 
             return redirect()->route('appointments.index')
                 ->with('success', "Appointment created successfully. Token #$tokenNo at $appointmentTime");
