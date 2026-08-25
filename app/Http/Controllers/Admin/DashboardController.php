@@ -73,7 +73,7 @@ class DashboardController extends Controller
             ->whereColumn('quantity', '<=', 'reorder_level')
             ->where('is_active', true)
             ->orderBy('quantity')
-            ->take(8)
+            ->take(5)
             ->get();
 
         $pendingPrescriptions = Consultation::query()
@@ -81,7 +81,7 @@ class DashboardController extends Controller
             ->whereNotNull('prescription')
             ->where('prescription', '!=', '')
             ->latest()
-            ->take(8)
+            ->take(5)
             ->get();
 
         $newPrescriptionNotificationCount = Consultation::query()
