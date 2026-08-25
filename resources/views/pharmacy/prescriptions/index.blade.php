@@ -300,7 +300,7 @@
                                         'dispense_limit' => min($remainingForItem, max($stockAvailable, 0)),
                                     ];
 
-                                    if ($stockAvailable <= 0 || $stockAvailable < $remainingForItem) {
+                                    if ($remainingForItem > 0 && ($stockAvailable <= 0 || $stockAvailable < $remainingForItem)) {
                                         $hasStockShortage = true;
                                     }
                                 }
@@ -338,7 +338,7 @@
                                         'dispense_limit' => min($remainingForItem, max($stockAvailable, 0)),
                                     ];
 
-                                    if ($stockAvailable <= 0 || $stockAvailable < $remainingForItem) {
+                                    if ($remainingForItem > 0 && ($stockAvailable <= 0 || $stockAvailable < $remainingForItem)) {
                                         $hasStockShortage = true;
                                     }
                                 }
@@ -628,17 +628,17 @@
                                                     @endif
                                                 </div>
                                                 <div class="d-flex align-items-center gap-2">
-                                                    <button type="button" class="btn btn-light border btn-sm px-3" data-bs-dismiss="modal">Close</button>
+                                                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3.5 py-1.5 fw-semibold fs-13" data-bs-dismiss="modal">Close</button>
                                                     
                                                     @can('pharmacy-prescriptions-dispense')
-                                                        @if($hasStockShortage || $isPending || $isPartial)
-                                                            <button type="button" class="btn btn-outline-warning text-dark btn-sm px-3 js-trigger-sms" data-action="{{ route('pharmacy.prescriptions.send-sms', $item->id) }}" @disabled($isLocked)>
-                                                                <i class="mdi mdi-cellphone-message me-1"></i> Send Shortage SMS
+                                                        @if($hasStockShortage)
+                                                            <button type="button" class="btn btn-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-3.5 py-1.5 fw-semibold fs-13 shadow-xs d-inline-flex align-items-center gap-1.5 js-trigger-sms" data-action="{{ route('pharmacy.prescriptions.send-sms', $item->id) }}" @disabled($isLocked)>
+                                                                <i class="mdi mdi-cellphone-message fs-14"></i> Send Shortage SMS
                                                             </button>
                                                         @endif
 
-                                                        <button type="submit" class="btn btn-success btn-sm px-4 fw-semibold js-submit-dispense-btn" @disabled($isLocked)>
-                                                            <i class="mdi mdi-pill me-1"></i> {{ $isPartial ? 'Save Remaining Medicine' : 'Add Given / Save Medicine' }}
+                                                        <button type="submit" class="btn btn-primary rounded-pill px-4 py-1.5 fw-semibold fs-13 shadow-sm d-inline-flex align-items-center gap-1.5 js-submit-dispense-btn" @disabled($isLocked)>
+                                                            <i class="mdi mdi-check-circle-outline fs-14"></i> {{ $isPartial ? 'Save Remaining Medicine' : 'Add Given / Save Medicine' }}
                                                         </button>
                                                     @endcan
                                                 </div>
@@ -675,7 +675,7 @@
                                             </div>
                                         </div>
                                         <div class="modal-footer bg-light py-3 px-4 border-top text-end">
-                                            <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal">Close</button>
+                                            <button type="button" class="btn btn-outline-secondary rounded-pill px-4 py-1.5 fw-semibold fs-13" data-bs-dismiss="modal">Close</button>
                                         </div>
                                     @endif
                                 </div>

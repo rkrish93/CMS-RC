@@ -92,25 +92,20 @@ class DashboardController extends Controller
             ->count();
 
         // Weekly Appointments Activity Chart Data (Real DB values)
-        $startOfWeek = now()->startOfWeek();
-        $endOfWeek = now()->endOfWeek();
+        $todayApps = Appointment::whereDate('appointment_date', today())->get();
 
-        $weeklyAppointments = Appointment::whereBetween('appointment_date', [
-                $startOfWeek->format('Y-m-d'),
-                $endOfWeek->format('Y-m-d')
-            ])
-            ->selectRaw('appointment_date, COUNT(*) as count')
-            ->groupBy('appointment_date')
-            ->pluck('count', 'appointment_date');
-
-        $chartDays = [];
+        $chartDays = ['9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM'];
         $chartData = [];
 
-        for ($i = 0; $i < 6; $i++) {
-            $day = $startOfWeek->copy()->addDays($i);
-            $dateKey = $day->format('Y-m-d');
-            $chartDays[] = $day->format('D');
-            $chartData[] = (int) ($weeklyAppointments->get($dateKey, 0));
+        $hours = [9, 10, 11, 12, 13, 14, 15];
+        foreach ($hours as $h) {
+            $count = $todayApps->filter(function ($app) use ($h) {
+                if (empty($app->appointment_time)) return false;
+                $appHour = (int) \Carbon\Carbon::parse($app->appointment_time)->format('H');
+                return $appHour === $h;
+            })->count();
+
+            $chartData[] = $count;
         }
 
         return view('dashboard', [

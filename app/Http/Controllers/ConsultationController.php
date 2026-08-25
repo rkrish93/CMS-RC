@@ -89,7 +89,7 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
             'diagnosis' => 'required|string',
             'symptoms' => 'nullable|string',
             'prescription_items' => 'nullable|array',
-            'prescription_items.*.medicine_id' => 'nullable|exists:medicines,id',
+            'prescription_items.*.medicine_id' => 'nullable',
             'prescription_items.*.medicine_name' => 'nullable|string|max:255',
             'prescription_items.*.duration' => 'nullable|string|max:100',
             'prescription_items.*.dosage' => 'nullable|string|max:100',
@@ -106,9 +106,15 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
             })
             ->values()
             ->map(function (array $item) {
-                $product = ! empty($item['medicine_id'])
-                    ? Product::find($item['medicine_id'])
-                    : null;
+                $rawId = $item['medicine_id'] ?? null;
+                $rawName = trim((string) ($item['medicine_name'] ?? ''));
+
+                $product = null;
+                if (is_numeric($rawId) && (int) $rawId > 0) {
+                    $product = Product::find($rawId);
+                }
+
+                $medicineName = $product?->medicine_name ?? ($rawName !== '' ? $rawName : (is_string($rawId) ? trim($rawId) : ''));
 
                 $timeSlots = $item['time_slot'] ?? [];
                 if (! is_array($timeSlots)) {
@@ -123,7 +129,7 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
                 return [
                     'medicine_id' => $product?->id,
                     'product_code' => $product?->product_code,
-                    'medicine_name' => $product?->medicine_name ?? trim((string) ($item['medicine_name'] ?? '')),
+                    'medicine_name' => $medicineName,
                     'generic_name' => $product?->generic_name,
                     'duration' => trim((string) ($item['duration'] ?? '')),
                     'dosage' => trim((string) ($item['dosage'] ?? '')),

@@ -558,8 +558,8 @@
                 <div class="dashboard-card p-4 h-100">
                     <div class="d-flex align-items-center justify-content-between mb-4">
                         <div>
-                            <h5 class="fw-bold mb-1 text-dark">Weekly Appointments Activity</h5>
-                            <p class="text-muted fs-14 mb-0">Appointment throughput across the current week.</p>
+                            <h5 class="fw-bold mb-1 text-dark">Today's Appointments Activity</h5>
+                            <p class="text-muted fs-14 mb-0">Hourly appointment distribution for today (09:00 AM - 03:00 PM).</p>
                         </div>
                         <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 fs-12">
                             <i class="mdi mdi-chart-line me-1"></i> Live Metrics

@@ -833,7 +833,9 @@
                                             <li class="nav-item"><a class="nav-link {{ request()->routeIs('reports.patients.*') ? 'active' : '' }}" href="{{ route('reports.patients.index') }}">Patient Reports</a></li>
                                             <li class="nav-item"><a class="nav-link {{ request()->routeIs('reports.appointments.*') ? 'active' : '' }}" href="{{ route('reports.appointments.index') }}">Appointment Reports</a></li>
                                             <li class="nav-item"><a class="nav-link {{ request()->routeIs('reports.consultations.*') ? 'active' : '' }}" href="{{ route('reports.consultations.index') }}">Consultation Reports</a></li>
-                                            <li class="nav-item"><a class="nav-link {{ request()->routeIs('reports.users.*') ? 'active' : '' }}" href="{{ route('reports.users.index') }}">User Reports</a></li>
+                                            @role('Admin')
+                                                <li class="nav-item"><a class="nav-link {{ request()->routeIs('reports.users.*') ? 'active' : '' }}" href="{{ route('reports.users.index') }}">User Reports</a></li>
+                                            @endrole
                                         @endcan
                                     </ul>
                                 </div>

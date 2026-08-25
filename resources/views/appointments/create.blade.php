@@ -9,8 +9,15 @@
 
         <h4 class="mb-3">Schedule Appointment</h4>
 
-        @if ($errors->any())
-            <div class="alert alert-danger">
+        @if (session('error'))
+            <div class="alert alert-danger d-flex align-items-center mb-3">
+                <i class="mdi mdi-alert-circle me-2 fs-5"></i>
+                <div>{{ session('error') }}</div>
+            </div>
+        @endif
+
+        @if (isset($errors) && $errors->any())
+            <div class="alert alert-danger mb-3">
                 @foreach ($errors->all() as $error)
                     <div>{{ $error }}</div>
                 @endforeach
@@ -74,8 +81,11 @@
                 <!-- DATE -->
                 <div class="col-md-6">
                     <label class="form-label">Appointment Date</label>
-                    <input type="date" name="appointment_date" class="form-control" required>
-                    <small class="text-muted">Clinic Hours: 09:00 AM - 03:00 PM</small>
+                    <input type="date" name="appointment_date" id="appointment_date" class="form-control" required>
+                    <small class="text-muted">Clinic Hours: 09:00 AM - 03:00 PM (Appointments after 3:00 PM not allowed)</small>
+                    <div class="alert alert-danger mt-2 mb-0" id="after_3pm_warning" style="display: none;">
+                        <i class="mdi mdi-clock-alert me-1"></i> <strong>Appointments cannot be scheduled after 3:00 PM.</strong> Booking for today is closed. Please select a future date.
+                    </div>
                 </div>
 
                 <!-- TIME INFO -->
@@ -83,7 +93,7 @@
                     <div class="alert alert-info mb-0">
                         <small>
                             <i class="mdi mdi-information me-1"></i>
-                            <strong>Appointment time will be automatically assigned</strong> based on available slots (15-minute intervals)
+                            <strong>Appointment time will be automatically assigned</strong> based on available slots (15-minute intervals between 09:00 AM - 03:00 PM). <em>Appointments after 3:00 PM are not allowed.</em>
                         </small>
                     </div>
                 </div>
@@ -91,7 +101,7 @@
             </div>
 
             <div class="mt-4">
-                <button type="submit" class="btn btn-primary">
+                <button type="submit" class="btn btn-primary" id="submit_btn">
                     <i class="mdi mdi-check me-1"></i> Book Appointment
                 </button>
 
@@ -153,12 +163,41 @@ document.getElementById('search_patient').addEventListener('keyup', function(){
     });
 });
 
+const appointmentDateInput = document.getElementById('appointment_date');
+const after3pmWarning = document.getElementById('after_3pm_warning');
+
+function check3pmRestriction() {
+    if (!appointmentDateInput || !after3pmWarning) return false;
+
+    const selectedDate = appointmentDateInput.value;
+    const now = new Date();
+    const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+
+    if (selectedDate === todayStr && now.getHours() >= 15) {
+        after3pmWarning.style.display = 'block';
+        return true;
+    } else {
+        after3pmWarning.style.display = 'none';
+        return false;
+    }
+}
+
+if (appointmentDateInput) {
+    appointmentDateInput.addEventListener('change', check3pmRestriction);
+}
+
 // Form validation
 document.getElementById('appointmentForm').addEventListener('submit', function(e) {
     let patientId = document.getElementById('patient_select').value;
     if(!patientId) {
         e.preventDefault();
         alert('Please select a patient');
+        return false;
+    }
+
+    if (check3pmRestriction()) {
+        e.preventDefault();
+        alert('Appointments cannot be scheduled after 3:00 PM for today.');
         return false;
     }
 });

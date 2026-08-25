@@ -113,7 +113,7 @@ class UserReportController extends Controller
     private function authorizeReports(Request $request): void
     {
         abort_unless(
-            $request->user()?->can('reports-view') || $request->user()?->hasRole('Admin'),
+            $request->user()?->hasRole('Admin'),
             403
         );
     }

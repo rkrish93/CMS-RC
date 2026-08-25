@@ -637,7 +637,8 @@
         }
 
         new TomSelect(selectElement, {
-            create: false,
+            create: true,
+            createOnBlur: true,
             sortField: {
                 field: 'text',
                 direction: 'asc'
