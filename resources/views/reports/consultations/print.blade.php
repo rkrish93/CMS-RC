@@ -27,7 +27,6 @@
                 <th>Unit</th>
                 <th>Diagnosis</th>
                 <th>Prescription</th>
-                <th>Pharmacy Status</th>
             </tr>
         </thead>
         <tbody>
@@ -40,10 +39,9 @@
                     <td>{{ optional(optional($consultation->appointment)->unit)->unit_name ?? '-' }}</td>
                     <td>{{ $consultation->diagnosis ?? '-' }}</td>
                     <td>{{ $consultation->prescription ?? '-' }}</td>
-                    <td>{{ ucfirst(str_replace('_', ' ', $consultation->pharmacy_status ?? '-')) }}</td>
                 </tr>
             @empty
-                <tr><td colspan="8">No consultation report data found.</td></tr>
+                <tr><td colspan="7">No consultation report data found.</td></tr>
             @endforelse
         </tbody>
     </table>

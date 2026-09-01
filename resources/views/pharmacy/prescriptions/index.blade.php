@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'All Patient Prescriptions')
+@section('title', request()->filled('consultation_id') ? 'Prescription Dispense' : 'All Patient Prescriptions')
 
 @section('page-actions')
     <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary btn-sm">
@@ -33,179 +33,173 @@
         </div>
     @endif
 
-    <!-- Page Header -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-        <div>
-            <h4 class="fw-bold mb-1 text-dark d-flex align-items-center gap-2">
-                <i class="mdi mdi-pill text-primary fs-3"></i> All Patient Prescriptions
-            </h4>
-            <p class="text-muted small mb-0">Pharmacist Desk &bull; Table view of all doctor prescriptions, stock availability & dispensing actions.</p>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-            <a href="{{ route('pharmacy.prescriptions.index') }}" class="btn btn-light border btn-sm shadow-xs fw-semibold">
-                <i class="mdi mdi-refresh me-1"></i> Refresh List
-            </a>
-        </div>
-    </div>
-
-    <!-- Summary KPI Cards Row -->
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-xs rounded-3 overflow-hidden bg-white">
-                <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="text-uppercase text-muted fw-bold small tracking-wider" style="font-size: 11px;">Total Prescriptions</div>
-                        <h3 class="fw-bold text-dark mb-0 mt-1">{{ number_format($summaryStats['total'] ?? 0) }}</h3>
-                    </div>
-                    <div class="avatar-circle bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
-                        <i class="mdi mdi-file-document-multiple-outline fs-4"></i>
-                    </div>
-                </div>
+    @if(!request()->filled('consultation_id'))
+        <!-- Page Header -->
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+            <div>
+                <h4 class="fw-bold mb-1 text-dark d-flex align-items-center gap-2">
+                    <i class="mdi mdi-pill text-primary fs-3"></i> All Patient Prescriptions
+                </h4>
             </div>
-        </div>
-
-        <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-xs rounded-3 overflow-hidden bg-white">
-                <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="text-uppercase text-warning fw-bold small tracking-wider" style="font-size: 11px;">Pending Dispense</div>
-                        <h3 class="fw-bold text-warning mb-0 mt-1">{{ number_format($summaryStats['pending'] ?? 0) }}</h3>
-                    </div>
-                    <div class="avatar-circle bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
-                        <i class="mdi mdi-clock-outline fs-4"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-xs rounded-3 overflow-hidden bg-white">
-                <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="text-uppercase text-info fw-bold small tracking-wider" style="font-size: 11px;">Partial Dispense</div>
-                        <h3 class="fw-bold text-info mb-0 mt-1">{{ number_format($summaryStats['partial'] ?? 0) }}</h3>
-                    </div>
-                    <div class="avatar-circle bg-info-subtle text-info rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
-                        <i class="mdi mdi-progress-check fs-4"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-xs rounded-3 overflow-hidden bg-white">
-                <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="text-uppercase text-success fw-bold small tracking-wider" style="font-size: 11px;">Completed</div>
-                        <h3 class="fw-bold text-success mb-0 mt-1">{{ number_format($summaryStats['dispensed'] ?? 0) }}</h3>
-                    </div>
-                    <div class="avatar-circle bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
-                        <i class="mdi mdi-check-circle-outline fs-4"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Filter Card -->
-    <div class="card border-0 shadow-sm rounded-3 mb-4 bg-white">
-        <div class="card-header bg-white py-3 px-4 border-bottom d-flex align-items-center justify-content-between">
-            <h6 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
-                <i class="mdi mdi-filter-variant text-primary fs-5"></i> Search & Filter
-            </h6>
-            @if(!empty($search) || !empty($status) || !empty($doctorId) || !empty($fromDate) || !empty($toDate))
-                <a href="{{ route('pharmacy.prescriptions.index') }}" class="btn btn-link text-danger btn-sm p-0 text-decoration-none fw-semibold">
-                    <i class="mdi mdi-close-circle me-1"></i> Clear Filters
+            <div class="d-flex align-items-center gap-2">
+                <a href="{{ route('pharmacy.prescriptions.index') }}" class="btn btn-light border btn-sm shadow-xs fw-semibold">
+                    <i class="mdi mdi-refresh me-1"></i> Refresh List
                 </a>
-            @endif
+            </div>
         </div>
-        <div class="card-body p-4">
-            <form method="GET" action="{{ route('pharmacy.prescriptions.index') }}" class="row g-3">
-                <!-- Search Box -->
-                <div class="col-lg-4 col-md-6">
-                    <label class="form-label small text-muted fw-semibold mb-1">Search Keywords</label>
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text bg-light text-muted border-end-0"><i class="mdi mdi-magnify"></i></span>
-                        <input type="text" 
-                               name="search" 
-                               class="form-control form-control-sm border-start-0 ps-0" 
-                               placeholder="Patient Name, Code, Phone, Doctor, Medicine..." 
-                               value="{{ $search }}">
+    @endif
+
+    @if(!request()->filled('consultation_id'))
+        <!-- Summary KPI Cards Row -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-xs rounded-3 overflow-hidden bg-white">
+                    <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-uppercase text-muted fw-bold small tracking-wider" style="font-size: 11px;">Total Prescriptions</div>
+                            <h3 class="fw-bold text-dark mb-0 mt-1">{{ number_format($summaryStats['total'] ?? 0) }}</h3>
+                        </div>
+                        <div class="avatar-circle bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+                            <i class="mdi mdi-file-document-multiple-outline fs-4"></i>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Status Filter -->
-                <div class="col-lg-2 col-md-6">
-                    <label class="form-label small text-muted fw-semibold mb-1">Pharmacy Status</label>
-                    <select name="status" class="form-select form-select-sm">
-                        <option value="" {{ $status === '' ? 'selected' : '' }}>All Statuses</option>
-                        <option value="pending" {{ $status === 'pending' ? 'selected' : '' }}>Pending</option>
-                        <option value="partial" {{ $status === 'partial' ? 'selected' : '' }}>Partial</option>
-                        <option value="dispensed" {{ $status === 'dispensed' ? 'selected' : '' }}>Dispensed</option>
-                    </select>
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-xs rounded-3 overflow-hidden bg-white">
+                    <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-uppercase text-warning fw-bold small tracking-wider" style="font-size: 11px;">Pending Dispense</div>
+                            <h3 class="fw-bold text-warning mb-0 mt-1">{{ number_format($summaryStats['pending'] ?? 0) }}</h3>
+                        </div>
+                        <div class="avatar-circle bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+                            <i class="mdi mdi-clock-outline fs-4"></i>
+                        </div>
+                    </div>
                 </div>
+            </div>
 
-                <!-- Doctor Filter -->
-                <div class="col-lg-2 col-md-6">
-                    <label class="form-label small text-muted fw-semibold mb-1">Prescribing Doctor</label>
-                    <select name="doctor_id" class="form-select form-select-sm">
-                        <option value="" {{ empty($doctorId) ? 'selected' : '' }}>All Doctors</option>
-                        @foreach($doctors as $doc)
-                            <option value="{{ $doc->id }}" {{ (int)$doctorId === (int)$doc->id ? 'selected' : '' }}>
-                                Dr. {{ trim($doc->fname . ' ' . $doc->lname) }}
-                            </option>
-                        @endforeach
-                    </select>
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-xs rounded-3 overflow-hidden bg-white">
+                    <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-uppercase text-info fw-bold small tracking-wider" style="font-size: 11px;">Partial Dispense</div>
+                            <h3 class="fw-bold text-info mb-0 mt-1">{{ number_format($summaryStats['partial'] ?? 0) }}</h3>
+                        </div>
+                        <div class="avatar-circle bg-info-subtle text-info rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+                            <i class="mdi mdi-progress-check fs-4"></i>
+                        </div>
+                    </div>
                 </div>
+            </div>
 
-                <!-- From Date Filter -->
-                <div class="col-lg-2 col-md-3 col-6">
-                    <label class="form-label small text-muted fw-semibold mb-1">From Date</label>
-                    <input type="date" name="from_date" class="form-control form-control-sm" value="{{ $fromDate }}">
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-xs rounded-3 overflow-hidden bg-white">
+                    <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-uppercase text-success fw-bold small tracking-wider" style="font-size: 11px;">Completed</div>
+                            <h3 class="fw-bold text-success mb-0 mt-1">{{ number_format($summaryStats['dispensed'] ?? 0) }}</h3>
+                        </div>
+                        <div class="avatar-circle bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+                            <i class="mdi mdi-check-circle-outline fs-4"></i>
+                        </div>
+                    </div>
                 </div>
+            </div>
+        </div>
 
-                <!-- To Date Filter -->
-                <div class="col-lg-2 col-md-3 col-6">
-                    <label class="form-label small text-muted fw-semibold mb-1">To Date</label>
-                    <input type="date" name="to_date" class="form-control form-control-sm" value="{{ $toDate }}">
-                </div>
+        <!-- Filter Card -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4 bg-white">
+            <div class="card-header bg-white py-3 px-4 border-bottom d-flex align-items-center justify-content-between">
+                <h6 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                    <i class="mdi mdi-filter-variant text-primary fs-5"></i> Search & Filter
+                </h6>
+                @if(!empty($search) || !empty($status) || !empty($doctorId) || !empty($fromDate) || !empty($toDate))
+                    <a href="{{ route('pharmacy.prescriptions.index') }}" class="btn btn-link text-danger btn-sm p-0 text-decoration-none fw-semibold">
+                        <i class="mdi mdi-close-circle me-1"></i> Clear Filters
+                    </a>
+                @endif
+            </div>
+            <div class="card-body p-4">
+                <form method="GET" action="{{ route('pharmacy.prescriptions.index') }}" class="row g-3">
+                    <!-- Search Box -->
+                    <div class="col-lg-4 col-md-6">
+                        <label class="form-label small text-muted fw-semibold mb-1">Search Keywords</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light text-muted border-end-0"><i class="mdi mdi-magnify"></i></span>
+                            <input type="text" 
+                                   name="search" 
+                                   class="form-control form-control-sm border-start-0 ps-0" 
+                                   placeholder="Patient Name, Code, Phone, Doctor, Medicine..." 
+                                   value="{{ $search }}">
+                        </div>
+                    </div>
 
-                <!-- Per Page & Action Buttons -->
-                <div class="col-12 d-flex flex-wrap justify-content-between align-items-center gap-2 pt-2 border-top">
-                    <div class="d-flex align-items-center gap-2">
-                        <label class="small text-muted mb-0 me-1">Show:</label>
-                        <select name="per_page" class="form-select form-select-sm" style="width: 80px;" onchange="this.form.submit()">
-                            <option value="10" {{ (int)$perPage === 10 ? 'selected' : '' }}>10</option>
-                            <option value="25" {{ (int)$perPage === 25 ? 'selected' : '' }}>25</option>
-                            <option value="50" {{ (int)$perPage === 50 ? 'selected' : '' }}>50</option>
-                            <option value="100" {{ (int)$perPage === 100 ? 'selected' : '' }}>100</option>
+                    <!-- Status Filter -->
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label small text-muted fw-semibold mb-1">Pharmacy Status</label>
+                        <select name="status" class="form-select form-select-sm">
+                            <option value="" {{ $status === '' ? 'selected' : '' }}>All Statuses</option>
+                            <option value="pending" {{ $status === 'pending' ? 'selected' : '' }}>Pending</option>
+                            <option value="partial" {{ $status === 'partial' ? 'selected' : '' }}>Partial</option>
+                            <option value="dispensed" {{ $status === 'dispensed' ? 'selected' : '' }}>Dispensed</option>
                         </select>
-                        <span class="small text-muted">per page</span>
                     </div>
 
-                    <div class="d-flex align-items-center gap-2">
-                        <a href="{{ route('pharmacy.prescriptions.index') }}" class="btn btn-outline-secondary btn-sm px-3 fw-semibold">
-                            <i class="mdi mdi-refresh me-1"></i> Reset
-                        </a>
-                        <button type="submit" class="btn btn-primary btn-sm px-4 fw-semibold">
-                            <i class="mdi mdi-filter-check me-1"></i> Apply Filters
-                        </button>
+                    <!-- Doctor Filter -->
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label small text-muted fw-semibold mb-1">Prescribing Doctor</label>
+                        <select name="doctor_id" class="form-select form-select-sm">
+                            <option value="" {{ empty($doctorId) ? 'selected' : '' }}>All Doctors</option>
+                            @foreach($doctors as $doc)
+                                <option value="{{ $doc->id }}" {{ (int)$doctorId === (int)$doc->id ? 'selected' : '' }}>
+                                    Dr. {{ trim($doc->fname . ' ' . $doc->lname) }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
-                </div>
-            </form>
+
+                    <!-- From Date Filter -->
+                    <div class="col-lg-2 col-md-3 col-6">
+                        <label class="form-label small text-muted fw-semibold mb-1">From Date</label>
+                        <input type="date" name="from_date" class="form-control form-control-sm" value="{{ $fromDate }}">
+                    </div>
+
+                    <!-- To Date Filter -->
+                    <div class="col-lg-2 col-md-3 col-6">
+                        <label class="form-label small text-muted fw-semibold mb-1">To Date</label>
+                        <input type="date" name="to_date" class="form-control form-control-sm" value="{{ $toDate }}">
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="col-12 d-flex justify-content-end align-items-center gap-2 pt-2 border-top">
+                        <div class="d-flex align-items-center gap-2">
+                            <a href="{{ route('pharmacy.prescriptions.index') }}" class="btn btn-outline-secondary btn-sm px-3 fw-semibold">
+                                <i class="mdi mdi-refresh me-1"></i> Reset
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-sm px-4 fw-semibold">
+                                <i class="mdi mdi-filter-check me-1"></i> Apply Filters
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
-    </div>
+    @endif
 
     <!-- Simple Data Table View -->
     <div class="card border-0 shadow-sm rounded-3 overflow-hidden bg-white mb-4">
-        <div class="card-header bg-white py-3 px-4 border-bottom d-flex align-items-center justify-content-between">
-            <h6 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
-                <i class="mdi mdi-table text-primary fs-5"></i> Prescriptions List
-            </h6>
-            <span class="badge bg-light text-secondary border font-monospace">
-                Showing {{ $prescriptions->firstItem() ?? 0 }} - {{ $prescriptions->lastItem() ?? 0 }} of {{ $prescriptions->total() }}
-            </span>
-        </div>
+        @if(!request()->filled('consultation_id'))
+            <div class="card-header bg-white py-3 px-4 border-bottom d-flex align-items-center justify-content-between">
+                <h6 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                    <i class="mdi mdi-table text-primary fs-5"></i> Prescriptions List
+                </h6>
+                <span class="badge bg-light text-secondary border font-monospace">
+                    Showing {{ $prescriptions->firstItem() ?? 0 }} - {{ $prescriptions->lastItem() ?? 0 }} of {{ $prescriptions->total() }}
+                </span>
+            </div>
+        @endif
 
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0 custom-prescription-table">
@@ -214,7 +208,7 @@
                         <th style="width: 100px;"># / Date</th>
                         <th style="width: 220px;">Patient Details</th>
                         <th style="width: 180px;">Doctor</th>
-                        <th>Prescribed Medicines & Stock Status</th>
+                        <th>Prescribed Medicines</th>
                         <th style="width: 130px;" class="text-center">Status</th>
                         <th style="width: 130px;" class="text-center">Action</th>
                     </tr>
@@ -392,32 +386,13 @@
                                     <div class="d-flex flex-column gap-1.5 py-1">
                                         @foreach($items as $med)
                                             <div class="d-flex align-items-center justify-content-between gap-3 py-1 px-2.5 rounded-2 bg-light border-0">
-                                                <div class="d-flex align-items-center gap-2 overflow-hidden" style="max-width: 300px;">
+                                                <div class="d-flex align-items-center gap-2 overflow-hidden">
                                                     <span class="badge rounded-circle bg-primary-subtle text-primary p-1 flex-shrink-0" style="width: 22px; height: 22px; font-size: 11px; display: inline-flex; align-items: center; justify-content: center;">
                                                         <i class="mdi mdi-pill"></i>
                                                     </span>
                                                     <span class="fw-bold text-dark fs-13 text-truncate">{{ $med['name'] }}</span>
                                                     @if(!empty($med['dosage']))
                                                         <span class="small text-muted flex-shrink-0">({{ $med['dosage'] }})</span>
-                                                    @endif
-                                                </div>
-                                                <div class="d-flex align-items-center gap-2 flex-shrink-0">
-                                                    @if($med['given'] >= $med['prescribed'] && $med['prescribed'] > 0)
-                                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 fw-semibold fs-11">
-                                                            <i class="mdi mdi-check-circle me-1"></i>{{ $med['prescribed'] }} Qty
-                                                        </span>
-                                                    @else
-                                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 fw-semibold fs-11 font-monospace">
-                                                            {{ $med['given'] }}/{{ $med['prescribed'] }} Qty
-                                                        </span>
-                                                    @endif
-
-                                                    @if($med['stock'] <= 0)
-                                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1 fw-semibold fs-11">Out of Stock</span>
-                                                    @elseif($med['stock'] < $med['remaining'])
-                                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-2.5 py-1 fw-semibold fs-11">Stock: {{ $med['stock'] }}</span>
-                                                    @else
-                                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 fw-semibold fs-11">Stock: {{ $med['stock'] }}</span>
                                                     @endif
                                                 </div>
                                             </div>
@@ -432,14 +407,28 @@
 
                             <!-- Status -->
                             <td class="text-center">
-                                <span class="status-pill status-{{ $statusName }} px-2.5 py-1 fw-bold text-uppercase" style="font-size: 11px;">
-                                    {{ ucfirst($statusName) }}
-                                </span>
+                                <div class="d-flex flex-column align-items-center gap-1">
+                                    <span class="status-pill status-{{ $statusName }} px-2.5 py-1 fw-bold text-uppercase" style="font-size: 11px;">
+                                        {{ ucfirst($statusName) }}
+                                    </span>
+
+                                    @if($statusName === 'partial' || $statusName === 'pending')
+                                        @if($item->is_locked)
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5 fw-semibold fs-11" title="Shortage SMS Sent to Patient">
+                                                <i class="mdi mdi-cellphone-check me-1"></i>SMS Sent
+                                            </span>
+                                        @else
+                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-2 py-0.5 fw-semibold fs-11" title="Shortage SMS Not Sent Yet">
+                                                <i class="mdi mdi-cellphone-off me-1"></i>No SMS
+                                            </span>
+                                        @endif
+                                    @endif
+                                </div>
                             </td>
 
                             <!-- Action -->
                             <td class="text-center">
-                                @if(!$isDispensed)
+                                @if(!$isDispensed && !$item->is_locked)
                                     <button type="button" 
                                             class="btn btn-primary btn-sm px-3 fw-semibold d-inline-flex align-items-center gap-1 shadow-xs" 
                                             data-bs-toggle="modal" 
@@ -613,7 +602,7 @@
 
                                                         <div class="mt-3">
                                                             <label class="form-label small text-muted fw-semibold">Pharmacy Instructions / Note (Optional)</label>
-                                                            <textarea name="pharmacy_note" rows="2" class="form-control form-control-sm" placeholder="Add optional note for patient..." @disabled($isLocked)></textarea>
+                                                            <textarea name="pharmacy_note" rows="2" class="form-control form-control-sm" placeholder="Add optional note for patient..." @disabled($isLocked)>{{ old('pharmacy_note', $item->pharmacy_note) }}</textarea>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -633,7 +622,7 @@
                                                     @can('pharmacy-prescriptions-dispense')
                                                         @if($hasStockShortage)
                                                             <button type="button" class="btn btn-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-3.5 py-1.5 fw-semibold fs-13 shadow-xs d-inline-flex align-items-center gap-1.5 js-trigger-sms" data-action="{{ route('pharmacy.prescriptions.send-sms', $item->id) }}" @disabled($isLocked)>
-                                                                <i class="mdi mdi-cellphone-message fs-14"></i> Send Shortage SMS
+                                                                <i class="mdi mdi-cellphone-message fs-14"></i> Send SMS
                                                             </button>
                                                         @endif
 
@@ -663,7 +652,7 @@
                                                         @endforeach
                                                     </div>
                                                 </div>
-                                                <div class="col-lg-5 d-flex align-items-center justify-content-center">
+                                                <div class="col-lg-5 d-flex flex-column align-items-center justify-content-center">
                                                     <div class="text-center p-4">
                                                         <i class="mdi mdi-check-circle-outline display-4 text-success mb-2"></i>
                                                         <h5 class="fw-bold text-dark">Dispensing Fully Completed</h5>
@@ -671,6 +660,14 @@
                                                             <p class="text-muted small mb-0">Completed at: {{ $item->dispensed_at->format('d M Y, h:i A') }}</p>
                                                         @endif
                                                     </div>
+                                                    @if(!empty($item->pharmacy_note))
+                                                        <div class="w-100 mt-2 p-3 bg-light rounded-3 border">
+                                                            <h6 class="text-uppercase text-muted fw-bold mb-1 fs-12 tracking-wider">
+                                                                <i class="mdi mdi-notebook-outline me-1 text-primary"></i> Pharmacy Instructions / Note
+                                                            </h6>
+                                                            <div class="small text-dark fw-semibold" style="white-space: pre-line;">{{ $item->pharmacy_note }}</div>
+                                                        </div>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </div>
@@ -703,6 +700,25 @@
     <!-- Pagination links -->
     <div class="mt-3 d-flex justify-content-end">
         {{ $prescriptions->links() }}
+    <!-- Send Shortage SMS Confirmation Modal -->
+    <div class="modal fade" id="sendShortageSmsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border border-secondary-subtle shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-body text-center p-4">
+                    <div class="avatar-circle bg-warning-subtle text-warning mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 54px; height: 54px;">
+                        <i class="mdi mdi-cellphone-message fs-2"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-1">Send SMS?</h5>
+                    <p class="text-muted small mb-4">Are you sure you want to send the medicine shortage SMS notification to this patient?</p>
+                    <div class="d-flex justify-content-center gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm px-3.5 rounded-pill fw-semibold" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" id="confirmSendSmsBtn" class="btn btn-warning btn-sm px-4 rounded-pill fw-semibold text-dark shadow-sm">
+                            <i class="mdi mdi-send me-1"></i> Send SMS
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 @endsection
@@ -771,6 +787,15 @@
     .bg-danger-subtle {
         background-color: #fff2f0 !important;
     }
+    #sendShortageSmsModal {
+        z-index: 1085 !important;
+        background: rgba(15, 23, 42, 0.45);
+    }
+    #sendShortageSmsModal .modal-content {
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35) !important;
+        background-color: #ffffff !important;
+    }
 </style>
 @endpush
 
@@ -793,23 +818,40 @@ document.addEventListener('DOMContentLoaded', function () {
             const actionUrl = smsBtn.dataset.action;
             if (!actionUrl || smsBtn.disabled) return;
 
-            if (confirm('Send shortage SMS notification to patient?')) {
-                smsBtn.disabled = true;
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = actionUrl;
-
-                const csrf = document.createElement('input');
-                csrf.type = 'hidden';
-                csrf.name = '_token';
-                csrf.value = @json(csrf_token());
-                form.appendChild(csrf);
-
-                document.body.appendChild(form);
-                form.submit();
+            const confirmModalEl = document.getElementById('sendShortageSmsModal');
+            const confirmSmsBtn = document.getElementById('confirmSendSmsBtn');
+            if (confirmModalEl && confirmSmsBtn) {
+                confirmSmsBtn.dataset.action = actionUrl;
+                const bsModal = bootstrap.Modal.getOrCreateInstance(confirmModalEl);
+                bsModal.show();
             }
         }
     });
+
+    // Confirm Send Shortage SMS handler
+    const confirmSmsBtn = document.getElementById('confirmSendSmsBtn');
+    if (confirmSmsBtn) {
+        confirmSmsBtn.addEventListener('click', function () {
+            const actionUrl = confirmSmsBtn.dataset.action;
+            if (!actionUrl) return;
+
+            confirmSmsBtn.disabled = true;
+            confirmSmsBtn.innerHTML = '<i class="mdi mdi-loading mdi-spin me-1"></i> Sending...';
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = actionUrl;
+
+            const csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = '_token';
+            csrf.value = @json(csrf_token());
+            form.appendChild(csrf);
+
+            document.body.appendChild(form);
+            form.submit();
+        });
+    }
 
     // Form submit state handler for inline card forms
     document.querySelectorAll('.js-dispense-card-form').forEach(function (form) {
@@ -821,6 +863,22 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
+    // Auto-open dispense modal if consultation_id is in URL query parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const consultationId = urlParams.get('consultation_id');
+    if (consultationId) {
+        const targetModal = document.getElementById('dispenseModal' + consultationId);
+        if (targetModal) {
+            setTimeout(function () {
+                if (window.bootstrap && bootstrap.Modal) {
+                    const modalObj = bootstrap.Modal.getOrCreateInstance(targetModal);
+                    modalObj.show();
+                } else if (typeof jQuery !== 'undefined') {
+                    jQuery(targetModal).modal('show');
+                }
+            }, 150);
+        }
+    }
 });
 </script>
 @endpush

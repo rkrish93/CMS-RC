@@ -277,13 +277,18 @@ class PharmacyStockController extends Controller
             ];
         }
 
-        if (empty($entries)) {
-            return back()->with('error', 'Please enter at least one medicine quantity greater than zero.');
-        }
-
-        $successMessages = [];
-        $errorMessages = [];
         $pharmacyNote = trim((string) ($validated['pharmacy_note'] ?? ''));
+
+        if (empty($entries)) {
+            if ($pharmacyNote !== '') {
+                $record->update([
+                    'pharmacy_note' => $pharmacyNote,
+                ]);
+                return back()->with('success', 'Pharmacy note saved successfully.');
+            }
+
+            return back()->with('error', 'Please enter at least one medicine quantity or a note to save.');
+        }
 
         foreach ($entries as $index => $entry) {
             $result = $this->dispenseSingleMedicine(
@@ -403,21 +408,14 @@ class PharmacyStockController extends Controller
             'quantity' => max($availableStock - $dispenseNow, 0),
         ]);
 
-        $noteParts = [];
-        $existingNote = trim((string) ($record->pharmacy_note ?? ''));
-        if ($existingNote !== '') {
-            $noteParts[] = $existingNote;
-        }
-        if (trim($pharmacyNote) !== '') {
-            $noteParts[] = trim($pharmacyNote);
-        }
-        $noteParts[] = "Medicine: {$stock->medicine_name}; Given now: {$dispenseNow}";
+        $userNote = trim($pharmacyNote);
+        $savedNote = $userNote !== '' ? $userNote : trim((string) ($record->pharmacy_note ?? ''));
 
         $record->update([
             'prescribed_quantity' => $totalPrescribed > 0 ? $totalPrescribed : $newTotalDispensed,
             'dispensed_quantity' => $newTotalDispensed,
             'dispensed_breakdown' => $dispensedBreakdown,
-            'pharmacy_note' => trim(implode("\n", $noteParts)),
+            'pharmacy_note' => $savedNote !== '' ? $savedNote : null,
             'pharmacy_status' => 'partial',
             'dispensed_at' => now(),
         ]);

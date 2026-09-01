@@ -27,39 +27,30 @@ class AppServiceProvider extends ServiceProvider
         Paginator::useBootstrapFive();
 
         View::composer('*', function ($view) {
-
             $todayAppointments = 0;
 
-            if(auth()->check()) {
+            if (auth()->check()) {
+                $query = Appointment::whereDate('appointment_date', today())
+                    ->whereNotIn('status', [
+                        \App\Enums\AppointmentStatus::COMPLETED->value,
+                        \App\Enums\AppointmentStatus::CANCELLED->value,
+                        \App\Enums\AppointmentStatus::NO_SHOW->value,
+                        'completed',
+                        'cancelled',
+                        'no_show',
+                    ])
+                    ->whereDoesntHave('consultation', function ($q) {
+                        $q->whereIn('pharmacy_status', ['dispensed', 'partial']);
+                    });
 
-                // DOCTOR → ONLY OWN UNIT
-                if(auth()->user()->hasRole('Doctor')) {
-
-                    $todayAppointments = Appointment::whereDate(
-                            'appointment_date',
-                            today()
-                        )
-
-                        ->where('unit_id', auth()->user()->unit_id)
-
-                        ->count();
-
-                } else {
-
-                    $todayAppointments = Appointment::whereDate(
-                            'appointment_date',
-                            today()
-                        )
-
-                        ->count();
+                if (auth()->user()->hasRole('Doctor') && !empty(auth()->user()->unit_id)) {
+                    $query->where('unit_id', auth()->user()->unit_id);
                 }
+
+                $todayAppointments = $query->count();
             }
 
-            $view->with(
-                'todayAppointments',
-                $todayAppointments
-            );
-
+            $view->with('todayAppointments', $todayAppointments);
         });
 
     }

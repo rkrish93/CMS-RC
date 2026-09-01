@@ -100,6 +100,11 @@
                                     $isPharmacyDispensed = in_array($app->consultation->pharmacy_status ?? null, ['dispensed', 'partial'])
                                         || $app->status === App\Enums\AppointmentStatus::COMPLETED->value;
                                     $status = App\Enums\AppointmentStatus::fromValue($app->status) ?? App\Enums\AppointmentStatus::SCHEDULED;
+                                    
+                                    if (!$isPharmacyDispensed && in_array($status, [App\Enums\AppointmentStatus::SCHEDULED, App\Enums\AppointmentStatus::CHECKED_IN]) && !empty($app->appointment_date) && $app->appointment_date < date('Y-m-d')) {
+                                        $status = App\Enums\AppointmentStatus::NO_SHOW;
+                                    }
+
                                     $statusClass = $isPharmacyDispensed ? 'success' : $status->getBadgeColor();
                                     $statusLabel = $isPharmacyDispensed ? 'Completed' : $status->getLabel();
                                 @endphp

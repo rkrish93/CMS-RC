@@ -44,29 +44,12 @@
                 </select>
             </div>
             <div class="col-md-2">
-                <label class="form-label">Pharmacy Status</label>
-                <select name="pharmacy_status" class="form-select">
-                    <option value="">All</option>
-                    <option value="pending" @selected($pharmacyStatus === 'pending')>Pending</option>
-                    <option value="partial" @selected($pharmacyStatus === 'partial')>Partial</option>
-                    <option value="dispensed" @selected($pharmacyStatus === 'dispensed')>Dispensed</option>
-                </select>
-            </div>
-            <div class="col-md-2">
                 <label class="form-label">From Date</label>
                 <input type="date" name="from_date" class="form-control" value="{{ $fromDate }}">
             </div>
             <div class="col-md-2">
                 <label class="form-label">To Date</label>
                 <input type="date" name="to_date" class="form-control" value="{{ $toDate }}">
-            </div>
-            <div class="col-md-1">
-                <label class="form-label">Per Page</label>
-                <select name="per_page" class="form-select">
-                    <option value="10" @selected(($perPage ?? 10) === 10)>10</option>
-                    <option value="25" @selected(($perPage ?? 10) === 25)>25</option>
-                    <option value="50" @selected(($perPage ?? 10) === 50)>50</option>
-                </select>
             </div>
             <div class="col-md-1 d-grid">
                 <button class="btn btn-outline-primary">Filter</button>
@@ -91,7 +74,6 @@
                         <th>Unit</th>
                         <th>Diagnosis</th>
                         <th>Prescription</th>
-                        <th>Pharmacy Status</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -104,11 +86,10 @@
                             <td>{{ optional(optional($consultation->appointment)->unit)->unit_name ?? '-' }}</td>
                             <td>{{ $consultation->diagnosis ?? '-' }}</td>
                             <td>{{ $consultation->prescription ?? '-' }}</td>
-                            <td>{{ ucfirst(str_replace('_', ' ', $consultation->pharmacy_status ?? '-')) }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4">No consultation report data found.</td>
+                            <td colspan="7" class="text-center text-muted py-4">No consultation report data found.</td>
                         </tr>
                     @endforelse
                 </tbody>

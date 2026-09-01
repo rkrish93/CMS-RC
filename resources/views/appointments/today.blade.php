@@ -3,9 +3,13 @@
 @section('title', 'Today Queue')
 
 @section('page-actions')
-<a href="{{ route('appointments.index') }}" class="btn btn-light">
-    <i class="mdi mdi-arrow-left me-1"></i> Appointments
-</a>
+@can('appointments-view')
+    @unless(auth()->user()?->hasAnyRole(['Nurse', 'Mid wife', 'Midwife', 'Doctor']))
+        <a href="{{ route('appointments.index') }}" class="btn btn-light">
+            <i class="mdi mdi-arrow-left me-1"></i> Appointments
+        </a>
+    @endunless
+@endcan
 @endsection
 
 @section('content')

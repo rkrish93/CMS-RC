@@ -19,7 +19,7 @@
                 </div>
                 <div>
                     <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                        <h2 class="fw-bold mb-0 text-dark fs-3">Welcome back, {{ $user->name }} 👋</h2>
+                        <h4 class="fw-bold mb-0 text-dark fs-5">Welcome back, {{ $user->name }} 👋</h4>
                         @php
                             $roleName = $user->getRoleNames()->first() ?? 'User';
                             $roleBadgeClass = match($roleName) {
@@ -32,11 +32,11 @@
                                 default => 'bg-secondary-subtle text-secondary border border-secondary-subtle'
                             };
                         @endphp
-                        <span class="badge rounded-pill px-3 py-2 fw-semibold {{ $roleBadgeClass }}">
+                        <span class="badge rounded-pill px-2.5 py-1 fs-12 fw-semibold {{ $roleBadgeClass }}">
                             <i class="mdi mdi-shield-account me-1"></i>{{ $roleName }} Dashboard
                         </span>
                     </div>
-                    <p class="text-muted mb-0 fs-14">
+                    <p class="text-muted mb-0 fs-13">
                         @if($user->hasAnyRole(['Doctor', 'Nurse', 'Mid wife', 'Midwife']) && $user->unit)
                             Unit: <strong class="text-dark">{{ $user->unit->unit_name }}</strong> &bull;
                         @endif
@@ -716,24 +716,24 @@ if (ctx) {
 <style>
     /* CMS Dashboard Custom Aesthetic Design System */
     .dashboard-hero {
-        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-        border: 1px solid rgba(226, 232, 240, 0.8) !important;
-        border-radius: 20px;
-        box-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.05);
+        background: #ffffff;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 14px;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
     }
 
     .hero-avatar {
-        width: 54px;
-        height: 54px;
-        border-radius: 16px;
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: #2563eb;
         color: #ffffff;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 22px;
+        font-size: 16px;
         font-weight: 700;
-        box-shadow: 0 8px 18px -4px rgba(37, 99, 235, 0.4);
+        box-shadow: none;
     }
 
     .stat-card-v2 {

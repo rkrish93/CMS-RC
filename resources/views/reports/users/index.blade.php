@@ -51,14 +51,6 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-1">
-                <label class="form-label">Per Page</label>
-                <select name="per_page" class="form-select">
-                    <option value="10" @selected(($perPage ?? 10) === 10)>10</option>
-                    <option value="25" @selected(($perPage ?? 10) === 25)>25</option>
-                    <option value="50" @selected(($perPage ?? 10) === 50)>50</option>
-                </select>
-            </div>
             <div class="col-md-1 d-grid">
                 <button class="btn btn-outline-primary">Filter</button>
             </div>

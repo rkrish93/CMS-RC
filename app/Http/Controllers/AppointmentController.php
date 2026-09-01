@@ -81,18 +81,27 @@ class AppointmentController extends Controller
             'appointment_date' => 'required|date|after_or_equal:today',
         ]);
 
-        // Check if patient already has a pending appointment for this unit
+        // Check if patient already has an active appointment for this unit on the requested date
         $existingPendingAppointment = Appointment::where('patient_id', $validated['patient_id'])
             ->where('unit_id', $validated['unit_id'])
-            ->where('status', AppointmentStatus::SCHEDULED->value)
+            ->whereDate('appointment_date', $validated['appointment_date'])
+            ->whereIn('status', [
+                AppointmentStatus::SCHEDULED->value,
+                'pending',
+                'scheduled',
+                'checked_in',
+                'triage_in_progress',
+                'triage_completed',
+                'consultation_in_progress'
+            ])
             ->first();
 
         if ($existingPendingAppointment) {
             return back()
                 ->withInput()
                 ->withErrors([
-        'patient_id' => 'This patient already has a pending appointment for this unit.'
-    ]);
+                    'patient_id' => 'This patient already has an active appointment for this unit on this date.'
+                ]);
         }
 
         try {
@@ -132,6 +141,37 @@ class AppointmentController extends Controller
                 $tokenNo = 1;
             }
 
+            // Prevent patient time clash across units on the same date
+            while (true) {
+                $patientTimeConflict = Appointment::where('patient_id', $validated['patient_id'])
+                    ->whereDate('appointment_date', $appointmentDate)
+                    ->where('appointment_time', $appointmentTime)
+                    ->whereIn('status', [
+                        AppointmentStatus::SCHEDULED->value,
+                        'pending',
+                        'scheduled',
+                        'checked_in',
+                        'triage_in_progress',
+                        'triage_completed',
+                        'consultation_in_progress'
+                    ])
+                    ->exists();
+
+                if (! $patientTimeConflict) {
+                    break;
+                }
+
+                $nextSlot = Carbon::parse($appointmentDate . ' ' . $appointmentTime)->addMinutes($slotDuration);
+                if ($nextSlot->greaterThan($clinicCloseTime)) {
+                    return back()
+                        ->withInput()
+                        ->withErrors([
+                            'patient_id' => 'This patient already has an appointment scheduled at ' . Carbon::parse($appointmentDate . ' ' . $appointmentTime)->format('h:i A') . ' and no free slot is available today.'
+                        ]);
+                }
+                $appointmentTime = $nextSlot->format('H:i:s');
+            }
+
             Appointment::create([
                 'patient_id' => $validated['patient_id'],
                 'unit_id' => $validated['unit_id'],
@@ -152,8 +192,9 @@ class AppointmentController extends Controller
                     $phone = '94' . substr($phone, 1);
                 }
 
+                $formattedTime = \Carbon\Carbon::parse($appointmentDate . ' ' . $appointmentTime)->format('h:i A');
                 $unitText = $unitName !== '' ? " for {$unitName}" : '';
-                $message = "Dear {$patient->first_name}, Your appointment{$unitText} is confirmed on {$appointmentDate} at {$appointmentTime}. Token No: {$tokenNo}.";
+                $message = "Dear {$patient->first_name}, your appointment{$unitText} is confirmed on {$appointmentDate} at {$formattedTime}. Token No: {$tokenNo}.";
 
                 try {
                     NotifyLKService::send($phone, $message);
