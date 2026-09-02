@@ -92,7 +92,7 @@
             </tr>
             <tr>
                 <td><strong>DOB:</strong> {{ $patient->dob ?? '-' }}</td>
-                <td><strong>Type:</strong> {{ $patient->patient_type ?? '-' }}</td>
+                <td><strong>Type:</strong> {{ $patient->patient_type ?: 'Outpatient' }}</td>
                 <td><strong>Phone:</strong> {{ $patient->phone ?? '-' }}</td>
             </tr>
             <tr>

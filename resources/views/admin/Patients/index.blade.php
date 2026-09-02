@@ -63,7 +63,6 @@
                                 <div class="fw-bold text-dark">
                                     {{ trim(($patient->title ? $patient->title . ' ' : '') . $patient->first_name . ' ' . $patient->last_name) ?: 'N/A' }}
                                 </div>
-                                <small class="text-muted">{{ $patient->patient_type ?: 'Patient' }}</small>
                             </td>
                             <td>{{ $patient->gender ?: 'N/A' }}</td>
                             <td>{{ $patient->age ?? 'N/A' }}</td>
@@ -213,7 +212,6 @@ function renderPatients(data) {
                 <td><span class="code-pill">${escapeHtml(patient.patient_code || 'N/A')}</span></td>
                 <td>
                     <div class="fw-bold text-dark">${escapeHtml(fullName)}</div>
-                    <small class="text-muted">${escapeHtml(patient.patient_type || 'Patient')}</small>
                 </td>
                 <td>${escapeHtml(patient.gender || 'N/A')}</td>
                 <td>${escapeHtml(patient.age ?? 'N/A')}</td>

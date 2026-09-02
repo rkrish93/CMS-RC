@@ -35,7 +35,7 @@ return new class extends Migration
             $table->string('blood_group')->nullable();
             $table->text('allergies')->nullable();
             $table->text('chronic_conditions')->nullable();
-            $table->string('patient_type')->nullable();
+            $table->string('patient_type')->default('Outpatient')->nullable();
             
             $table->timestamps();
         });

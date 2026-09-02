@@ -33,7 +33,7 @@
         <div class="row g-3 mb-2">
             <div class="col-md-3"><strong>Gender:</strong> {{ $patient->gender ?? '-' }}</div>
             <div class="col-md-3"><strong>DOB:</strong> {{ $patient->dob ?? '-' }}</div>
-            <div class="col-md-3"><strong>Type:</strong> {{ $patient->patient_type ?? '-' }}</div>
+            <div class="col-md-3"><strong>Type:</strong> {{ $patient->patient_type ?: 'Outpatient' }}</div>
             <div class="col-md-3"><strong>Phone:</strong> {{ $patient->phone ?? '-' }}</div>
             <div class="col-md-6"><strong>NIC:</strong> {{ $patient->nic ?? '-' }}</div>
             <div class="col-md-6"><strong>Address:</strong> {{ $patient->address ?? '-' }}</div>

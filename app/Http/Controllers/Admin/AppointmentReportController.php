@@ -156,6 +156,8 @@ class AppointmentReportController extends Controller
             $request->user()?->can('reports-view') || $request->user()?->hasRole('Admin'),
             403
         );
+
+        Appointment::syncPastNoShows();
     }
 
     private function filtersFromRequest(Request $request): array

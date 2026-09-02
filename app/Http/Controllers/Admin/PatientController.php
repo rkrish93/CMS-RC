@@ -107,7 +107,7 @@ class PatientController extends Controller
 
         'blood_group' => 'nullable|in:A+,A-,B+,B-,O+,O-,AB+,AB-',
 
-        'patient_type' => 'nullable|in:OPD,Clinic,Emergency',
+        'patient_type' => 'nullable|in:Outpatient,Inpatient,Emergency,OPD,Clinic',
 
         'address' => 'nullable|string|max:255',
 
@@ -155,7 +155,7 @@ class PatientController extends Controller
         'nic' => $request->nic,
         'phone' => $phone,
         'blood_group' => $request->blood_group,
-        'patient_type' => $request->patient_type,
+        'patient_type' => $request->patient_type ?: 'Outpatient',
         'address' => $request->address,
         'province' => $request->province,
         'district' => $request->district,
@@ -289,7 +289,7 @@ class PatientController extends Controller
 
         'blood_group' => 'nullable|in:A+,A-,B+,B-,O+,O-,AB+,AB-',
 
-        'patient_type' => 'nullable|in:OPD,Clinic,Emergency',
+        'patient_type' => 'nullable|in:Outpatient,Inpatient,Emergency,OPD,Clinic',
 
         'address' => 'nullable|string|max:255',
 
@@ -306,7 +306,11 @@ class PatientController extends Controller
 
     ]);
 
-    $patient->update($request->all());
+    $data = $request->all();
+    if (empty($data['patient_type'])) {
+        $data['patient_type'] = 'Outpatient';
+    }
+    $patient->update($data);
 
     return redirect()->route('patients.index')
             ->with('success','Patient Updated Successfully');

@@ -14,7 +14,7 @@
     $titles = ['Mr', 'Mrs', 'Miss', 'Rev', 'Dr'];
     $genders = ['Male', 'Female', 'Other'];
     $bloodGroups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
-    $patientTypes = ['OPD', 'Clinic', 'Emergency'];
+    $patientTypes = ['Outpatient', 'Inpatient', 'Emergency', 'OPD', 'Clinic'];
     $relationships = ['Father', 'Mother', 'Husband', 'Wife', 'Son', 'Daughter', 'Brother', 'Sister', 'Grandfather', 'Grandmother', 'Guardian', 'Relative', 'Friend', 'Neighbour', 'Other'];
     $provinces = ['Western', 'Central', 'Southern', 'Northern', 'Eastern', 'North Western', 'North Central', 'Uva', 'Sabaragamuwa'];
 @endphp
@@ -188,9 +188,8 @@
                     <div class="col-md-3">
                         <label class="form-label">Patient Type</label>
                         <select name="patient_type" class="form-select">
-                            <option value="">Select</option>
                             @foreach($patientTypes as $patientType)
-                                <option value="{{ $patientType }}" @selected(old('patient_type') === $patientType)>{{ $patientType }}</option>
+                                <option value="{{ $patientType }}" @selected(old('patient_type', 'Outpatient') === $patientType)>{{ $patientType }}</option>
                             @endforeach
                         </select>
                     </div>

@@ -23,6 +23,8 @@ class AppointmentController extends Controller
     {
         abort_unless($request->user()?->can('appointments-view'), 403);
 
+        Appointment::syncPastNoShows();
+
         $query = Appointment::with(['patient', 'unit', 'consultation']);
 
         $unitScopedRoles = ['Doctor', 'Nurse', 'Mid wife'];

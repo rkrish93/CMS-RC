@@ -16,22 +16,13 @@
                 <label class="form-label">Search</label>
                 <input type="text" name="search" class="form-control" value="{{ $search }}" placeholder="Code, name, NIC, phone">
             </div>
-            <div class="col-md-2">
+            <div class="col-md-3">
                 <label class="form-label">Gender</label>
                 <select name="gender" class="form-select">
                     <option value="">All</option>
                     <option value="Male" @selected($gender === 'Male')>Male</option>
                     <option value="Female" @selected($gender === 'Female')>Female</option>
                     <option value="Other" @selected($gender === 'Other')>Other</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Patient Type</label>
-                <select name="patient_type" class="form-select">
-                    <option value="">All</option>
-                    <option value="OPD" @selected($patientType === 'OPD')>OPD</option>
-                    <option value="Clinic" @selected($patientType === 'Clinic')>Clinic</option>
-                    <option value="Emergency" @selected($patientType === 'Emergency')>Emergency</option>
                 </select>
             </div>
             <div class="col-md-2">
@@ -61,7 +52,6 @@
                         <th>Patient Code</th>
                         <th>Name</th>
                         <th>Gender</th>
-                        <th>Type</th>
                         <th>Phone</th>
                         <th>NIC</th>
                         <th>Appointments</th>
@@ -72,21 +62,10 @@
                 </thead>
                 <tbody>
                     @forelse($patients as $patient)
-                        @php
-                            $rawType = trim((string) ($patient->patient_type ?? ''));
-                            $typeKey = strtoupper($rawType);
-                            $typeLabel = match($typeKey) {
-                                'OPD' => 'OPD',
-                                'CLINIC' => 'Clinic',
-                                'EMERGENCY' => 'Emergency',
-                                default => ($rawType !== '' ? $rawType : '-'),
-                            };
-                        @endphp
                         <tr>
                             <td>{{ $patient->patient_code }}</td>
                             <td>{{ trim($patient->first_name . ' ' . $patient->last_name) }}</td>
                             <td>{{ $patient->gender ?? '-' }}</td>
-                            <td>{{ $typeLabel }}</td>
                             <td>{{ $patient->phone ?? '-' }}</td>
                             <td>{{ $patient->nic ?? '-' }}</td>
                             <td>{{ $patient->appointments_count }}</td>
@@ -106,7 +85,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="10" class="text-center text-muted py-4">No patient report data found.</td>
+                            <td colspan="9" class="text-center text-muted py-4">No patient report data found.</td>
                         </tr>
                     @endforelse
                 </tbody>

@@ -19,6 +19,20 @@ class Appointment extends Model
         'status'
     ];
 
+    public static function syncPastNoShows(): void
+    {
+        static::query()
+            ->whereDate('appointment_date', '<', date('Y-m-d'))
+            ->whereNotIn('status', [
+                AppointmentStatus::COMPLETED->value,
+                AppointmentStatus::CONSULTATION_COMPLETED->value,
+                AppointmentStatus::DISPENSING->value,
+                AppointmentStatus::CANCELLED->value,
+                AppointmentStatus::NO_SHOW->value,
+            ])
+            ->update(['status' => AppointmentStatus::NO_SHOW->value]);
+    }
+
     public static function normalizeStatus(?string $status): string
     {
         return AppointmentStatus::fromValue($status)?->value ?? AppointmentStatus::SCHEDULED->value;

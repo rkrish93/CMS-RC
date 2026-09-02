@@ -42,7 +42,7 @@ class PatientReportController extends Controller
             ->when(in_array($gender, ['Male', 'Female', 'Other'], true), function ($q) use ($gender) {
                 $q->where('gender', $gender);
             })
-            ->when(in_array($patientType, ['OPD', 'Clinic', 'Emergency'], true), function ($q) use ($patientType) {
+            ->when(in_array($patientType, ['Outpatient', 'Inpatient', 'Emergency', 'OPD', 'Clinic'], true), function ($q) use ($patientType) {
                 $q->whereRaw('UPPER(TRIM(patient_type)) = ?', [strtoupper($patientType)]);
             })
             ->when($fromDate !== '', function ($q) use ($fromDate) {

@@ -30,8 +30,17 @@ class Patient extends Model
     'relationship',
     'allergies',
     'chronic_conditions',
-
     ];
+
+    protected $attributes = [
+        'patient_type' => 'Outpatient',
+    ];
+
+    public function getPatientTypeAttribute($value)
+    {
+        return $value ?: 'Outpatient';
+    }
+
 
     public function consultations()
     {
