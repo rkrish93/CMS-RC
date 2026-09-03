@@ -42,7 +42,7 @@ class ConsultationController extends Controller
          if ($user?->hasAnyRole(['Nurse', 'Mid wife']) && Vital::where('appointment_id', $appointment->id)->exists()) {
             return redirect()
                 ->route('appointments.today')
-                ->with('error', 'Vitals already recorded for this appointment.');
+                ->with('success', 'Vitals recorded for this appointment.');
          }
 
             if(Appointment::normalizeStatus($appointment->status) === AppointmentStatus::SCHEDULED->value){
@@ -52,8 +52,8 @@ class ConsultationController extends Controller
             }
 
             if(Appointment::normalizeStatus($appointment->status) === AppointmentStatus::CHECKED_IN->value){
-                $appointment->update(['status' => AppointmentStatus::TRIAGE_IN_PROGRESS->value]);
-            }
+             $appointment->update(['status' => AppointmentStatus::TRIAGE_IN_PROGRESS->value]);
+         }
 
         // Old medical history - all consultations
         $oldConsultations = Consultation::where('patient_id',$appointment->patient_id)
@@ -203,6 +203,9 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
         //     return $v !== null && $v !== '';
         // });
 
+        $rawNotes = trim((string) ($request->input('notes') ?? $request->input('note') ?? ''));
+        $notes = $rawNotes !== '' ? $rawNotes : null;
+
         Consultation::create([
             'appointment_id' => $appointment->id,
             'patient_id' => $appointment->patient_id,
@@ -214,28 +217,15 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
             'prescribed_quantity' => count($prescriptionItems),
             'dispensed_quantity' => 0,
             'dispensed_breakdown' => [],
-            'notes' => $validated['notes'] ?? null,
+            'notes' => $notes,
             'pharmacy_status' => 'pending',
             'next_visit' => $validated['next_visit'] ?? null,
         ]);
 
-        // Appointment::where('id',$request->appointment_id)
-        //     ->update(['status'=>'completed']);
-
-        // Appointment::create([
-        //     'patient_id' => $request->patient_id,
-        //     // 'unit_id' => $request->unit_id,
-        //     'appointment_date' => $request->appointment_date,
-        //     'appointment_time' => $request->appointment_time,
-        //     'token_no' => Appointment::whereDate('appointment_date',$request->appointment_date)->count() + 1,
-        //     'status' => 'pending'
-        //     ]);
-
-
         //  GET CURRENT APPOINTMENT
         $oldAppointment = Appointment::find($request->appointment_id);
 
-        //  AUTO CREATE NEXT APPOINTMENT
+        //  AUTO CREATE NEXT APPOINTMENT & SEND SMS
         if ($request->next_visit) {
             $isTodayPast3PM = ($request->next_visit === today()->format('Y-m-d') && now()->gte(Carbon::parse($request->next_visit . ' 15:00:00')));
 
@@ -266,10 +256,10 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
                         'appointment_time' => $time,
                         'token_no' => $nextToken,
                         'status' => AppointmentStatus::SCHEDULED->value,
-                        'notes' => 'Follow-up visit',
+                        'notes' => $notes ?? 'Follow-up visit',
                     ]);
 
-                    // Send SMS to patient for next visit confirmation with Unit Name
+                    // Send SMS to patient for next visit confirmation with Unit Name & Remarks
                     $patient = $oldAppointment->patient;
                     $unitName = $oldAppointment->unit?->unit_name ?? '';
 
@@ -281,7 +271,8 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
 
                         $unitText = $unitName !== '' ? " for {$unitName}" : '';
                         $nextVisitDate = $request->next_visit;
-                        $message = "Dear {$patient->first_name}, Your next follow-up visit{$unitText} is scheduled on {$nextVisitDate} at {$time}. Token No: {$nextToken}.";
+                        $remarksText = $notes ? " Remarks: {$notes}." : '';
+                        $message = "Dear {$patient->first_name}, Your next follow-up visit{$unitText} is scheduled on {$nextVisitDate} at {$time}.{$remarksText} Token No: {$nextToken}.";
 
                         try {
                             NotifyLKService::send($phone, $message);
@@ -289,6 +280,26 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
                             \Illuminate\Support\Facades\Log::warning("Next visit SMS failed for {$phone}: " . $e->getMessage());
                         }
                     }
+                }
+            }
+        } elseif ($notes) {
+            // Send SMS with Remarks even if no next visit date was set
+            $patient = $oldAppointment->patient;
+            $unitName = $oldAppointment->unit?->unit_name ?? '';
+
+            if ($patient && !empty($patient->phone)) {
+                $phone = preg_replace('/\D/', '', $patient->phone);
+                if (str_starts_with($phone, '0')) {
+                    $phone = '94' . substr($phone, 1);
+                }
+
+                $unitText = $unitName !== '' ? " ({$unitName})" : '';
+                $message = "Dear {$patient->first_name}, Your consultation{$unitText} has been recorded. Remarks: {$notes}.";
+
+                try {
+                    NotifyLKService::send($phone, $message);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning("Consultation remarks SMS failed for {$phone}: " . $e->getMessage());
                 }
             }
         }
@@ -400,33 +411,22 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
     }
 
 
-    Vital::create([
-
-        'appointment_id' => $appointment->id,
-
-        'patient_id' => $appointment->patient_id,
-
-        'bp' => $request->bp,
-
-        'temp' => $request->temp,
-
-        'sugar' => $request->sugar,
-
-        'pulse' => $request->pulse,
-
-        'weight' => $weight,
-
-        'height' => $height,
-
-        'respiratory_rate' => $request->respiratory_rate,
-
-        'oxygen_saturation' => $request->oxygen_saturation,
-
-        'bmi' => $bmi,
-
-        'created_by' => auth()->id(),
-
-    ]);
+    Vital::updateOrCreate(
+        ['appointment_id' => $appointment->id],
+        [
+            'patient_id' => $appointment->patient_id,
+            'bp' => $request->bp,
+            'temp' => $request->temp,
+            'sugar' => $request->sugar,
+            'pulse' => $request->pulse,
+            'weight' => $weight,
+            'height' => $height,
+            'respiratory_rate' => $request->respiratory_rate,
+            'oxygen_saturation' => $request->oxygen_saturation,
+            'bmi' => $bmi,
+            'created_by' => auth()->id(),
+        ]
+    );
 
     $designation = strtolower(trim((string) auth()->user()?->designation));
     $isNurseWorkflow = auth()->user()?->hasAnyRole(['Nurse', 'Mid wife', 'Midwife'])

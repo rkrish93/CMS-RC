@@ -441,7 +441,7 @@
                                                     {{ $stock->quantity }}
                                                 </span>
                                             </td>
-                                            <td class="text-center text-muted fw-semibold">{{ $stock->reorder_level }}</td>
+                                            <td class="text-center text-muted fw-semibold">{{ $stock->product?->reorder_level ?? 10 }}</td>
                                         </tr>
                                     @empty
                                         <tr>

@@ -99,28 +99,28 @@
                                 <td><span class="fw-semibold text-dark">{{ $vital->created_at?->format('d M Y H:i') }}</span></td>
                                 <td>
                                     @if($vital->bp)
-                                        <span class="badge bg-danger text-white px-2 py-1">{{ $vital->bp }}</span>
+                                        <span class="fw-semibold text-dark">{{ $vital->bp }}</span>
                                     @else
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td>
                                     @if($vital->temp)
-                                        <span class="badge bg-warning text-dark px-2 py-1">{{ $vital->temp }}</span>
+                                        <span class="fw-semibold text-dark">{{ $vital->temp }}</span>
                                     @else
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td>
                                     @if($vital->sugar)
-                                        <span class="badge bg-info text-white px-2 py-1">{{ $vital->sugar }}</span>
+                                        <span class="fw-semibold text-dark">{{ $vital->sugar }}</span>
                                     @else
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td>
                                     @if($vital->pulse)
-                                        <span class="badge bg-success text-white px-2 py-1">{{ $vital->pulse }}</span>
+                                        <span class="fw-semibold text-dark">{{ $vital->pulse }}</span>
                                     @else
                                         <span class="text-muted">-</span>
                                     @endif

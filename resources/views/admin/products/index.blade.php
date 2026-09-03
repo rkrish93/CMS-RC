@@ -51,6 +51,7 @@
                         <th>Medicine Name</th>
                         <th>Generic Name</th>
                         <th>Unit</th>
+                        <th>Reorder Level</th>
                         <th>Status</th>
                         @if($hasProductActions)
                             <th class="text-end">Action</th>
@@ -64,6 +65,7 @@
                             <td class="fw-semibold">{{ $product->medicine_name }}</td>
                             <td>{{ $product->generic_name ?? '-' }}</td>
                             <td>{{ ucfirst($product->unit) }}</td>
+                            <td>{{ $product->reorder_level ?? 10 }}</td>
                             <td>
                                 <span class="badge bg-{{ $product->is_active ? 'success' : 'secondary' }}">
                                     {{ $product->is_active ? 'Active' : 'Inactive' }}
@@ -90,7 +92,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ $hasProductActions ? 6 : 5 }}" class="text-center text-muted py-4">No medicines found.</td>
+                            <td colspan="{{ $hasProductActions ? 7 : 6 }}" class="text-center text-muted py-4">No medicines found.</td>
                         </tr>
                     @endforelse
                 </tbody>

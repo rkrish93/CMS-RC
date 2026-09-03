@@ -20,13 +20,13 @@
                     @csrf
 
                     <div class="row g-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Medicine Code</label>
                             <input type="text" name="product_code" value="{{ $productCode }}" class="form-control" readonly>
                             <small class="text-muted">Auto-generated</small>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Unit</label>
                             <select name="unit" class="form-select" required>
                                 <option value="">Select Unit</option>
@@ -35,6 +35,14 @@
                                 @endforeach
                             </select>
                             @error('unit')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Reorder Level <span class="text-danger">*</span></label>
+                            <input type="number" min="0" name="reorder_level" value="{{ old('reorder_level', 10) }}" class="form-control" placeholder="10" required>
+                            @error('reorder_level')
                                 <div class="text-danger small mt-1">{{ $message }}</div>
                             @enderror
                         </div>

@@ -99,7 +99,7 @@ $columnCount--;
                                 </a>
                                 @endif
 
-                                 @if($canGenerateQr)
+                                 @if($canGenerateQr || $canMarkNoShow)
                                     @if($status->value === App\Enums\AppointmentStatus::SCHEDULED->value)
                                     <form method="POST" action="{{ route('appointments.check-in', $appt->id) }}" class="d-inline">
                                         @csrf
@@ -109,7 +109,38 @@ $columnCount--;
                                     </form>
                                     @endif
 
-                                    
+                                    @if(!$disabled && !$isPharmacyDispensed)
+                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelModalToday{{ $appt->id }}">
+                                        Cancel
+                                    </button>
+
+                                    <!-- Cancel Confirmation Modal -->
+                                    <div class="modal fade text-start" id="cancelModalToday{{ $appt->id }}" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content border-0 shadow">
+                                                <div class="modal-header border-bottom-0 pb-0">
+                                                    <h5 class="modal-title fw-bold text-dark d-flex align-items-center gap-2">
+                                                        <i class="mdi mdi-alert-circle-outline text-danger fs-4"></i> Cancel Appointment
+                                                    </h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body py-3">
+                                                    <p class="mb-1 text-dark">Are you sure you want to cancel this appointment for <strong>{{ trim((optional($appt->patient)->first_name ?? '') . ' ' . (optional($appt->patient)->last_name ?? '')) ?: 'this patient' }}</strong>?</p>
+                                                    <small class="text-muted d-block">Token No: #{{ $appt->token_no }} &bull; Time: {{ $appt->appointment_time }}</small>
+                                                </div>
+                                                <div class="modal-footer border-top-0 pt-0">
+                                                    <button type="button" class="btn btn-light border px-3" data-bs-dismiss="modal">No, Keep It</button>
+                                                    <form method="POST" action="{{ route('appointments.cancel', $appt->id) }}" class="d-inline">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-danger px-3">
+                                                            <i class="mdi mdi-close-circle me-1"></i> Yes, Cancel
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endif
                                 @endif
                             </div>
                         </td>

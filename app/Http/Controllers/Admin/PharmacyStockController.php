@@ -14,7 +14,7 @@ use App\Models\User;
 
 class PharmacyStockController extends Controller
 {
-    public function sendPatientSms(string $consultation)
+    public function sendPatientSms(Request $request, string $consultation)
     {
         abort_unless(
             auth()->user()?->can('pharmacy-prescriptions-dispense') || auth()->user()?->hasRole('Admin'),
@@ -22,11 +22,52 @@ class PharmacyStockController extends Controller
         );
 
         $record = Consultation::with('patient')->findOrFail($consultation);
-        $redirect = redirect()->route('pharmacy.prescriptions.index');
+        $redirect = redirect()->back();
 
-        if ((bool) $record->is_locked) {
-            return $redirect->with('success', 'Prescription already locked after SMS.');
+        // Process any dispensed quantities submitted in the form
+        $validated = $request->validate([
+            'medicine_name' => 'nullable|string|max:150',
+            'dispense_quantity' => 'nullable|integer|min:0',
+            'pharmacy_note' => 'nullable|string',
+            'medicines' => 'nullable|array',
+            'medicines.*.medicine_name' => 'nullable|string|max:150',
+            'medicines.*.dispense_quantity' => 'nullable|integer|min:0',
+        ]);
+
+        $pharmacyNote = trim((string) ($validated['pharmacy_note'] ?? ''));
+
+        if (is_array($validated['medicines'] ?? null)) {
+            foreach ($validated['medicines'] as $index => $entry) {
+                $name = trim((string) ($entry['medicine_name'] ?? ''));
+                $qty = (int) ($entry['dispense_quantity'] ?? 0);
+
+                if ($name !== '' && $qty > 0) {
+                    $res = $this->dispenseSingleMedicine(
+                        $record,
+                        $name,
+                        $qty,
+                        $index === 0 ? $pharmacyNote : ''
+                    );
+                    if ((bool) ($res['ok'] ?? false) && isset($res['record'])) {
+                        $record = $res['record'];
+                    }
+                }
+            }
+        } elseif (! empty($validated['medicine_name']) && ! empty($validated['dispense_quantity'])) {
+            $res = $this->dispenseSingleMedicine(
+                $record,
+                (string) $validated['medicine_name'],
+                (int) $validated['dispense_quantity'],
+                $pharmacyNote
+            );
+            if ((bool) ($res['ok'] ?? false) && isset($res['record'])) {
+                $record = $res['record'];
+            }
+        } elseif ($pharmacyNote !== '') {
+            $record->update(['pharmacy_note' => $pharmacyNote]);
         }
+
+        $record = $record->fresh();
 
         $phone = $this->resolvePatientPhone($record);
         if ($phone === '') {
@@ -68,8 +109,27 @@ class PharmacyStockController extends Controller
             }
         }
 
+        $freshRecord = $record->fresh();
+        $updatedDispensed = is_array($freshRecord->dispensed_breakdown) ? $freshRecord->dispensed_breakdown : [];
+        $hasRemaining = false;
+        foreach ($items as $normalized => $itemData) {
+            $prescribedQty = (int) ($itemData['qty'] ?? 0);
+            $givenQty = (int) ($updatedDispensed[$normalized] ?? 0);
+            if ($prescribedQty - $givenQty > 0) {
+                $hasRemaining = true;
+                break;
+            }
+        }
+
+        $newStatus = $hasRemaining ? 'partial' : 'dispensed';
+
         if (empty($parts)) {
-            return $redirect->with('success', 'No shortage medicines found. SMS not sent.');
+            $freshRecord->update([
+                'is_locked' => false,
+                'pharmacy_status' => $newStatus,
+                'dispensed_at' => now(),
+            ]);
+            return $redirect->with('success', 'All medicines dispensed successfully.');
         }
 
         $message = 'CMS-RC Pharmacy: Some prescribed medicines are currently unavailable. Prescription details - '
@@ -80,19 +140,19 @@ class PharmacyStockController extends Controller
         $sent = $this->dispatchSms($phone, $message, $smsError);
 
         if ($sent) {
-            $record->update([
+            $freshRecord->update([
                 'is_locked' => true,
-                'pharmacy_status' => 'dispensed',
+                'pharmacy_status' => $newStatus,
                 'dispensed_at' => now(),
             ]);
 
-            if ($record->appointment) {
-                $record->appointment->update([
+            if (! $hasRemaining && $freshRecord->appointment) {
+                $freshRecord->appointment->update([
                     'status' => \App\Enums\AppointmentStatus::COMPLETED->value,
                 ]);
             }
 
-            return $redirect->with('success', 'Shortage SMS sent to patient successfully.');
+            return $redirect->with('success', 'Available medicines dispensed & SMS sent to patient successfully.');
         }
 
         $errorMsg = 'NotifyLK SMS sending failed' . ($smsError ? ": {$smsError}" : '. Check NotifyLK settings.');
@@ -249,10 +309,6 @@ class PharmacyStockController extends Controller
         ]);
 
         $record = Consultation::with('patient')->findOrFail($consultation);
-
-        if ((bool) $record->is_locked) {
-            return back()->with('error', 'Prescription is locked after SMS. Add Given is disabled.');
-        }
 
         $entries = [];
 
@@ -898,7 +954,6 @@ class PharmacyStockController extends Controller
             'product_id' => 'required|exists:medicines,id',
             'batch_no' => 'required|string|max:100',
             'quantity' => 'required|integer|min:0',
-            'reorder_level' => 'required|integer|min:0',
             'expiry_date' => 'nullable|date',
             'is_active' => 'nullable|boolean',
         ]);
@@ -925,7 +980,6 @@ class PharmacyStockController extends Controller
             'product_id' => 'required|exists:medicines,id',
             'batch_no' => 'required|string|max:100',
             'quantity' => 'required|integer|min:0',
-            'reorder_level' => 'required|integer|min:0',
             'expiry_date' => 'nullable|date',
             'is_active' => 'nullable|boolean',
         ]);

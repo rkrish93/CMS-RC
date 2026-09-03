@@ -368,7 +368,7 @@
                                                 </select>
                                             </td>
                                             <td>
-                                                <input type="text" name="prescription_items[0][dosage]" class="form-control" placeholder="1 tablet twice daily">
+                                                <input type="text" name="prescription_items[0][dosage]" class="form-control" placeholder="mg">
                                             </td>
                                             <td>
                                                 <input type="text" name="prescription_items[0][duration]" class="form-control" placeholder="5 days">
@@ -467,7 +467,7 @@
                         </label>
 
                         <input type="text"
-                            name="note"
+                            name="notes"
                             class="form-control"
                             placeholder="Follow-up reason">
 
@@ -693,7 +693,7 @@
                 </select>
             </td>
             <td>
-                <input type="text" name="prescription_items[${rowCount}][dosage]" class="form-control" placeholder="1 tablet twice daily">
+                <input type="text" name="prescription_items[${rowCount}][dosage]" class="form-control" placeholder="mg">
             </td>
             <td>
                 <input type="text" name="prescription_items[${rowCount}][duration]" class="form-control" placeholder="5 days">

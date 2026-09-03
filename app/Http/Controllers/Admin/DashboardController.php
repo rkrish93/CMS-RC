@@ -70,9 +70,12 @@ class DashboardController extends Controller
             });
 
         $lowStocks = PharmacyStock::query()
-            ->whereColumn('quantity', '<=', 'reorder_level')
-            ->where('is_active', true)
-            ->orderBy('quantity')
+            ->with('product')
+            ->join('medicines', 'pharmacy_stocks.product_id', '=', 'medicines.id')
+            ->whereColumn('pharmacy_stocks.quantity', '<=', 'medicines.reorder_level')
+            ->where('pharmacy_stocks.is_active', true)
+            ->select('pharmacy_stocks.*')
+            ->orderBy('pharmacy_stocks.quantity')
             ->take(5)
             ->get();
 
@@ -140,7 +143,11 @@ class DashboardController extends Controller
             'latestVitals' => $latestVitals,
             'pharmacySummary' => [
                 'total_items' => PharmacyStock::count(),
-                'low_stock' => PharmacyStock::whereColumn('quantity', '<=', 'reorder_level')->where('is_active', true)->count(),
+                'low_stock' => PharmacyStock::query()
+                    ->join('medicines', 'pharmacy_stocks.product_id', '=', 'medicines.id')
+                    ->whereColumn('pharmacy_stocks.quantity', '<=', 'medicines.reorder_level')
+                    ->where('pharmacy_stocks.is_active', true)
+                    ->count(),
                 'active_prescriptions' => Consultation::whereNotNull('prescription')
                     ->where('prescription', '!=', '')
                     ->whereIn('pharmacy_status', ['pending', 'partial'])

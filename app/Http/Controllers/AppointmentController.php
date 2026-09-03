@@ -624,4 +624,41 @@ class AppointmentController extends Controller
 
         return back()->with('success', 'Appointment marked as no-show.');
     }
+
+    public function cancel(Appointment $appointment)
+    {
+        $user = auth()->user();
+
+        abort_unless($user?->hasAnyRole(['Receptionist', 'Admin']) || $user?->can('appointments-edit') || $user?->can('appointments-delete'), 403);
+
+        if (in_array(Appointment::normalizeStatus($appointment->status), [AppointmentStatus::COMPLETED->value, AppointmentStatus::CANCELLED->value], true)) {
+            return back()->with('error', 'Cannot cancel completed or already cancelled appointment.');
+        }
+
+        $appointment->update(['status' => AppointmentStatus::CANCELLED->value]);
+
+        // Send SMS notification to patient
+        $appointment->load(['patient', 'unit']);
+        $patient = $appointment->patient;
+        $unitName = $appointment->unit->unit_name ?? '';
+
+        if ($patient && !empty($patient->phone)) {
+            $phone = preg_replace('/\D/', '', $patient->phone);
+            if (str_starts_with($phone, '0')) {
+                $phone = '94' . substr($phone, 1);
+            }
+
+            $formattedTime = \Carbon\Carbon::parse($appointment->appointment_date . ' ' . $appointment->appointment_time)->format('h:i A');
+            $unitText = $unitName !== '' ? " for {$unitName}" : '';
+            $message = "Dear {$patient->first_name}, your appointment{$unitText} on {$appointment->appointment_date} at {$formattedTime} (Token No: {$appointment->token_no}) has been CANCELLED.";
+
+            try {
+                NotifyLKService::send($phone, $message);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Appointment cancellation SMS failed for {$phone}: " . $e->getMessage());
+            }
+        }
+
+        return back()->with('success', 'Appointment cancelled successfully and notification SMS sent.');
+    }
 }

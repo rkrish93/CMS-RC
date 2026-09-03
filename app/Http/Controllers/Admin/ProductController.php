@@ -54,6 +54,7 @@ class ProductController extends Controller
             'generic_name' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'unit' => 'required|string',
+            'reorder_level' => 'required|integer|min:0',
             'is_active' => 'boolean',
         ]);
 
@@ -96,6 +97,7 @@ class ProductController extends Controller
             'generic_name' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'unit' => 'required|string',
+            'reorder_level' => 'required|integer|min:0',
             'is_active' => 'boolean',
         ]);
 

@@ -70,8 +70,8 @@
                 <div class="card border-0 shadow-xs rounded-3 overflow-hidden bg-white">
                     <div class="card-body p-3 d-flex align-items-center justify-content-between">
                         <div>
-                            <div class="text-uppercase text-warning fw-bold small tracking-wider" style="font-size: 11px;">Pending Dispense</div>
-                            <h3 class="fw-bold text-warning mb-0 mt-1">{{ number_format($summaryStats['pending'] ?? 0) }}</h3>
+                            <div class="text-uppercase text-muted fw-bold small tracking-wider" style="font-size: 11px;">Pending Dispense</div>
+                            <h3 class="fw-bold text-dark mb-0 mt-1">{{ number_format($summaryStats['pending'] ?? 0) }}</h3>
                         </div>
                         <div class="avatar-circle bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
                             <i class="mdi mdi-clock-outline fs-4"></i>
@@ -84,8 +84,8 @@
                 <div class="card border-0 shadow-xs rounded-3 overflow-hidden bg-white">
                     <div class="card-body p-3 d-flex align-items-center justify-content-between">
                         <div>
-                            <div class="text-uppercase text-info fw-bold small tracking-wider" style="font-size: 11px;">Partial Dispense</div>
-                            <h3 class="fw-bold text-info mb-0 mt-1">{{ number_format($summaryStats['partial'] ?? 0) }}</h3>
+                            <div class="text-uppercase text-muted fw-bold small tracking-wider" style="font-size: 11px;">Partial Dispense</div>
+                            <h3 class="fw-bold text-dark mb-0 mt-1">{{ number_format($summaryStats['partial'] ?? 0) }}</h3>
                         </div>
                         <div class="avatar-circle bg-info-subtle text-info rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
                             <i class="mdi mdi-progress-check fs-4"></i>
@@ -98,8 +98,8 @@
                 <div class="card border-0 shadow-xs rounded-3 overflow-hidden bg-white">
                     <div class="card-body p-3 d-flex align-items-center justify-content-between">
                         <div>
-                            <div class="text-uppercase text-success fw-bold small tracking-wider" style="font-size: 11px;">Completed</div>
-                            <h3 class="fw-bold text-success mb-0 mt-1">{{ number_format($summaryStats['dispensed'] ?? 0) }}</h3>
+                            <div class="text-uppercase text-muted fw-bold small tracking-wider" style="font-size: 11px;">Completed</div>
+                            <h3 class="fw-bold text-dark mb-0 mt-1">{{ number_format($summaryStats['dispensed'] ?? 0) }}</h3>
                         </div>
                         <div class="avatar-circle bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
                             <i class="mdi mdi-check-circle-outline fs-4"></i>
@@ -450,75 +450,97 @@
                         <div class="modal fade" id="dispenseModal{{ $item->id }}" tabindex="-1" aria-labelledby="dispenseModalLabel{{ $item->id }}" aria-hidden="true">
                             <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
                                 <div class="modal-content border-0 shadow">
-                                    <div class="modal-header bg-light py-3 px-4 border-bottom">
+                                    <div class="modal-header bg-white py-3 px-4 border-bottom">
                                         <div class="d-flex align-items-center gap-3">
-                                            <div class="avatar-circle bg-primary-subtle text-primary fw-bold rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; font-size: 18px;">
+                                            <div class="avatar-circle bg-primary-subtle text-primary fw-bold rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; font-size: 18px;">
                                                 <i class="mdi mdi-account"></i>
                                             </div>
                                             <div>
-                                                <h5 class="modal-title fw-bold text-dark mb-0" id="dispenseModalLabel{{ $item->id }}">
-                                                    {{ trim((optional($item->patient)->first_name ?? '') . ' ' . (optional($item->patient)->last_name ?? '')) ?: 'N/A' }}
-                                                </h5>
-                                                <div class="small text-muted">
-                                                    Code: <span class="font-monospace fw-bold text-primary">{{ optional($item->patient)->patient_code ?? 'N/A' }}</span> &bull; 
-                                                    Dr. {{ trim((optional($item->doctor)->fname ?? '') . ' ' . (optional($item->doctor)->lname ?? '')) ?: 'N/A' }} &bull; 
-                                                    Rx #{{ $item->id }} ({{ $item->created_at->format('d M Y, h:i A') }})
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <h5 class="modal-title fw-bold text-dark mb-0" id="dispenseModalLabel{{ $item->id }}">
+                                                        {{ trim((optional($item->patient)->first_name ?? '') . ' ' . (optional($item->patient)->last_name ?? '')) ?: 'N/A' }}
+                                                    </h5>
+                                                    <span class="badge bg-light text-primary border font-monospace px-2 py-0.5 small">
+                                                        {{ optional($item->patient)->patient_code ?? 'N/A' }}
+                                                    </span>
+                                                </div>
+                                                <div class="small text-muted mt-0.5">
+                                                    <i class="mdi mdi-stethoscope me-1 text-secondary"></i>Dr. {{ trim((optional($item->doctor)->fname ?? '') . ' ' . (optional($item->doctor)->lname ?? '')) ?: 'N/A' }} &bull; 
+                                                    <i class="mdi mdi-file-document-outline me-1 text-secondary"></i>Rx #{{ $item->id }} 
+                                                    <span class="text-muted">({{ $item->created_at->format('d M Y, h:i A') }})</span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="d-flex align-items-center gap-2 ms-auto">
-                                            <span class="status-pill status-{{ $statusName }} px-3 py-1 fw-bold text-uppercase">
-                                                {{ ucfirst($statusName) }}
-                                            </span>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            <div class="d-flex flex-column align-items-end">
+                                                @php
+                                                    $badgeBg = match(strtolower($statusName)) {
+                                                        'completed', 'dispensed' => 'bg-success-subtle text-success border border-success-subtle',
+                                                        'partial' => 'bg-info-subtle text-info border border-info-subtle',
+                                                        default => 'bg-warning-subtle text-warning-emphasis border border-warning-subtle',
+                                                    };
+                                                @endphp
+                                                <span class="badge {{ $badgeBg }} rounded-pill px-3 py-1.5 fw-bold text-uppercase fs-12">
+                                                    {{ ucfirst($statusName) }}
+                                                </span>
+                                                @if($isLocked)
+                                                    <span class="badge bg-dark text-white rounded-pill px-2.5 py-1 mt-1 fw-bold fs-11 d-inline-flex align-items-center gap-1">
+                                                        <i class="mdi mdi-cellphone-check text-success"></i> SMS Sent
+                                                    </span>
+                                                @endif
+                                            </div>
+                                            <button type="button" class="btn-close ms-2 align-self-start" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
                                     </div>
 
                                     @if(! $isDispensed)
                                         <form action="{{ route('pharmacy.prescriptions.dispense', $item->id) }}" method="POST" autocomplete="off" class="js-dispense-card-form">
                                             @csrf
-                                            <div class="modal-body p-4">
+                                            <div class="modal-body p-4 bg-light-subtle">
                                                 <div class="row g-4">
                                                     <!-- Left: Doctor Prescription Items -->
                                                     <div class="col-lg-6 border-end-lg">
-                                                        <h6 class="text-uppercase text-muted fw-bold mb-3 small tracking-wider">
-                                                            <i class="mdi mdi-clipboard-text-outline me-1 text-primary"></i> Doctor Prescribed Items
-                                                        </h6>
+                                                        <div class="d-flex align-items-center justify-content-between mb-3">
+                                                            <h6 class="text-uppercase text-dark fw-bold mb-0 small tracking-wider">
+                                                                <i class="mdi mdi-clipboard-text-outline me-1 text-primary fs-5 align-middle"></i> Doctor Prescribed Items
+                                                            </h6>
+                                                            <span class="badge bg-white text-dark border px-2.5 py-1 small fw-bold shadow-2xs">{{ count($items) }} Item(s)</span>
+                                                        </div>
 
                                                         @if(count($items))
-                                                            <div class="d-flex flex-column gap-2.5">
+                                                            <div class="d-flex flex-column gap-3">
                                                                 @foreach($items as $med)
-                                                                    <div class="p-3 bg-light rounded-3 border-start border-4 {{ $med['stock'] <= 0 ? 'border-danger' : ($med['remaining'] <= 0 ? 'border-success' : 'border-primary') }} shadow-xs">
-                                                                        <div class="d-flex justify-content-between align-items-start mb-1 flex-wrap gap-2">
+                                                                    <div class="p-3.5 bg-white rounded-3 border shadow-2xs">
+                                                                        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
                                                                             <span class="fw-bold text-dark fs-6">{{ $med['name'] }}</span>
-                                                                            <span class="badge bg-white text-dark border font-monospace">
-                                                                                Prescribed: {{ $med['prescribed'] }} | Given: {{ $med['given'] }} | Rem: {{ $med['remaining'] }}
+                                                                            <span class="badge bg-white text-dark border font-monospace small px-2.5 py-1 shadow-2xs">
+                                                                                Prescribed: <strong class="text-dark">{{ $med['prescribed'] }}</strong> | Given: <strong class="text-dark">{{ $med['given'] }}</strong> | Rem: <strong class="text-dark">{{ $med['remaining'] }}</strong>
                                                                             </span>
                                                                         </div>
 
-                                                                        <div class="mt-1 mb-2">
+                                                                        <div class="mb-2">
                                                                             @if($med['stock'] <= 0)
-                                                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-0.5"><i class="mdi mdi-alert-circle me-1"></i>Stock: Out of stock (0)</span>
+                                                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 rounded-pill small fw-semibold"><i class="mdi mdi-alert-circle me-1"></i>Stock: Out of stock (0)</span>
                                                                             @elseif($med['stock'] < $med['remaining'])
-                                                                                <span class="badge bg-warning-subtle text-dark border border-warning-subtle px-2 py-0.5"><i class="mdi mdi-alert me-1"></i>Stock: Low ({{ $med['stock'] }} available, need {{ $med['remaining'] }})</span>
+                                                                                <span class="badge bg-warning-subtle text-dark border border-warning-subtle px-2.5 py-1 rounded-pill small fw-semibold"><i class="mdi mdi-alert me-1"></i>Stock: Low ({{ $med['stock'] }} available, need {{ $med['remaining'] }})</span>
                                                                             @else
-                                                                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5"><i class="mdi mdi-check-circle me-1"></i>Stock: Available ({{ $med['stock'] }})</span>
+                                                                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill small fw-semibold"><i class="mdi mdi-check-circle me-1"></i>Stock: Available ({{ $med['stock'] }})</span>
                                                                             @endif
                                                                         </div>
 
                                                                         @if(!empty($med['dosage']) || !empty($med['duration']) || !empty($med['time_slot']) || !empty($med['food_timing']))
-                                                                            <div class="d-flex flex-wrap gap-1.5 mt-2">
+                                                                            <div class="d-flex flex-wrap gap-1.5 mt-2 pt-2 border-top">
                                                                                 @if(!empty($med['dosage']))
-                                                                                    <span class="badge bg-white text-secondary border px-2 py-1"><i class="mdi mdi-pill me-1 text-info"></i>Dosage: {{ $med['dosage'] }}</span>
+                                                                                    <span class="badge bg-white text-dark border px-2.5 py-1.5 rounded-2 small fw-semibold shadow-2xs"><i class="mdi mdi-pill me-1 text-primary"></i>Dosage: {{ $med['dosage'] }}</span>
                                                                                 @endif
                                                                                 @if(!empty($med['duration']))
-                                                                                    <span class="badge bg-white text-secondary border px-2 py-1"><i class="mdi mdi-calendar-range me-1 text-warning"></i>Duration: {{ $med['duration'] }}</span>
+                                                                                    <span class="badge bg-white text-dark border px-2.5 py-1.5 rounded-2 small fw-semibold shadow-2xs"><i class="mdi mdi-calendar-range me-1 text-secondary"></i>Duration: {{ $med['duration'] }}</span>
                                                                                 @endif
                                                                                 @if(!empty($med['time_slot']))
-                                                                                    <span class="badge bg-white text-secondary border px-2 py-1"><i class="mdi mdi-clock-fast me-1 text-success"></i>Time: {{ str_replace('_', ' ', $med['time_slot']) }}</span>
+                                                                                    <span class="badge bg-white text-dark border px-2.5 py-1.5 rounded-2 small fw-semibold shadow-2xs"><i class="mdi mdi-clock-outline me-1 text-secondary"></i>Time: {{ str_replace('_', ' ', $med['time_slot']) }}</span>
                                                                                 @endif
                                                                                 @if(!empty($med['food_timing']))
-                                                                                    <span class="badge bg-white text-secondary border px-2 py-1"><i class="mdi mdi-food-apple me-1 text-primary"></i>Food: {{ str_replace('_', ' ', $med['food_timing']) }}</span>
+                                                                                    <span class="badge bg-white text-dark border px-2.5 py-1.5 rounded-2 small fw-semibold shadow-2xs"><i class="mdi mdi-food-apple-outline me-1 text-secondary"></i>Food: {{ str_replace('_', ' ', $med['food_timing']) }}</span>
                                                                                 @endif
                                                                             </div>
                                                                         @endif
@@ -526,7 +548,7 @@
                                                                 @endforeach
                                                             </div>
                                                         @else
-                                                            <div class="p-3 bg-light rounded-3 text-dark font-monospace border">
+                                                            <div class="p-3 bg-white rounded-3 text-dark font-monospace border">
                                                                 {{ $item->prescription }}
                                                             </div>
                                                         @endif
@@ -534,9 +556,11 @@
 
                                                     <!-- Right: Give Medicines & Note -->
                                                     <div class="col-lg-6">
-                                                        <h6 class="text-uppercase text-muted fw-bold mb-3 small tracking-wider">
-                                                            <i class="mdi mdi-pill me-1 text-primary"></i> Dispense & Give Medicines
-                                                        </h6>
+                                                        <div class="d-flex align-items-center justify-content-between mb-3">
+                                                            <h6 class="text-uppercase text-dark fw-bold mb-0 small tracking-wider">
+                                                                <i class="mdi mdi-pill me-1 text-primary fs-5 align-middle"></i> Dispense & Give Medicines
+                                                            </h6>
+                                                        </div>
 
                                                         @if(count($items))
                                                             <div class="d-flex flex-column gap-3 mb-3">
@@ -545,49 +569,66 @@
                                                                         $canGiveItem = $med['stock'] > 0 && $med['remaining'] > 0;
                                                                         $maxGive = $canGiveItem ? min($med['remaining'], $med['stock']) : 0;
                                                                     @endphp
-                                                                    <div class="p-3 border rounded-3 bg-white shadow-xs">
-                                                                        <div class="d-flex justify-content-between align-items-start mb-2">
+
+                                                                    @if($med['remaining'] <= 0)
+                                                                        <!-- Fully Given Item Banner -->
+                                                                        <div class="p-3 border bg-white rounded-3 d-flex justify-content-between align-items-center shadow-2xs">
                                                                             <div>
-                                                                                <div class="fw-bold text-dark">{{ $med['name'] }}</div>
-                                                                                <div class="small text-muted mt-0.5">
-                                                                                    <span>Remaining: <strong>{{ $med['remaining'] }}</strong></span>
-                                                                                    <span class="mx-1.5">•</span>
-                                                                                    <span>Stock: <strong class="{{ $med['stock'] > 0 ? 'text-success' : 'text-danger' }}">{{ $med['stock'] }}</strong></span>
+                                                                                <div class="fw-bold text-dark fs-6"><i class="mdi mdi-check-circle text-success me-1"></i> {{ $med['name'] }}</div>
+                                                                                <div class="small text-dark fw-semibold mt-0.5">Prescribed: {{ $med['prescribed'] }} &bull; Given: {{ $med['given'] }} &bull; Remaining: 0</div>
+                                                                            </div>
+                                                                            <span class="badge bg-success text-white rounded-pill px-3 py-1.5 small fw-semibold">
+                                                                                <i class="mdi mdi-check me-1"></i> Given
+                                                                            </span>
+                                                                            <input type="hidden" name="medicines[{{ $idx }}][medicine_name]" value="{{ $med['name'] }}">
+                                                                            <input type="hidden" name="medicines[{{ $idx }}][dispense_quantity]" value="0">
+                                                                        </div>
+                                                                    @else
+                                                                        <!-- Item Pending Dispensing -->
+                                                                        <div class="p-3 border rounded-3 bg-white shadow-2xs">
+                                                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                                                <div>
+                                                                                    <div class="fw-bold text-dark fs-6">{{ $med['name'] }}</div>
+                                                                                    <div class="small text-dark mt-1 d-flex align-items-center gap-2">
+                                                                                        <span>Remaining: <strong class="text-danger fw-bold fs-6">{{ $med['remaining'] }}</strong></span>
+                                                                                        <span>&bull;</span>
+                                                                                        <span>Stock: <strong class="{{ $med['stock'] > 0 ? 'text-success' : 'text-danger' }} fw-bold fs-6">{{ $med['stock'] }}</strong></span>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div>
+                                                                                    @if($med['stock'] <= 0)
+                                                                                        <span class="badge bg-danger text-white rounded-pill px-2.5 py-1 small fw-semibold"><i class="mdi mdi-close-circle me-1"></i>Out of Stock</span>
+                                                                                    @endif
                                                                                 </div>
                                                                             </div>
-                                                                            <div>
-                                                                                @if($med['stock'] <= 0)
-                                                                                    <span class="badge bg-danger text-white">Out of Stock</span>
-                                                                                @elseif($med['remaining'] <= 0)
-                                                                                    <span class="badge bg-success text-white"><i class="mdi mdi-check me-0.5"></i>Given</span>
-                                                                                @endif
-                                                                            </div>
-                                                                        </div>
 
-                                                                        <input type="hidden" name="medicines[{{ $idx }}][medicine_name]" value="{{ $med['name'] }}">
-                                                                        <div class="d-flex align-items-center gap-2 mt-2">
-                                                                            <label class="small text-muted mb-0 me-1">Dispense Qty:</label>
-                                                                            <input type="number" 
-                                                                                   name="medicines[{{ $idx }}][dispense_quantity]" 
-                                                                                   class="form-control form-control-sm js-qty-input" 
-                                                                                   value="{{ $maxGive }}" 
-                                                                                   min="0" 
-                                                                                   max="{{ $maxGive }}" 
-                                                                                   placeholder="0" 
-                                                                                   style="width: 110px;"
-                                                                                   @disabled($isLocked || !$canGiveItem)>
-                                                                            <button type="button" 
-                                                                                    class="btn btn-sm btn-outline-primary js-fill-max-btn" 
-                                                                                    data-max="{{ $maxGive }}"
-                                                                                    @disabled($isLocked || !$canGiveItem)>
-                                                                                Max Qty ({{ $maxGive }})
-                                                                            </button>
+                                                                            <input type="hidden" name="medicines[{{ $idx }}][medicine_name]" value="{{ $med['name'] }}">
+                                                                            
+                                                                            @if($canGiveItem)
+                                                                                <div class="d-flex align-items-center gap-2 mt-3 pt-2 border-top">
+                                                                                    <label class="small fw-bold text-dark mb-0 me-1">Dispense Qty:</label>
+                                                                                    <input type="number" 
+                                                                                           name="medicines[{{ $idx }}][dispense_quantity]" 
+                                                                                           class="form-control form-control-sm text-center fw-bold text-dark fs-6 js-qty-input border" 
+                                                                                           value="{{ $maxGive }}" 
+                                                                                           min="0" 
+                                                                                           max="{{ $maxGive }}" 
+                                                                                           placeholder="0" 
+                                                                                           style="width: 110px;"
+                                                                                           @disabled($isLocked)>
+                                                                                </div>
+                                                                            @else
+                                                                                <div class="small text-danger fw-semibold mt-2 pt-1 border-top">
+                                                                                    <i class="mdi mdi-alert-circle me-1"></i>Cannot dispense (No stock available)
+                                                                                </div>
+                                                                                <input type="hidden" name="medicines[{{ $idx }}][dispense_quantity]" value="0">
+                                                                            @endif
                                                                         </div>
-                                                                    </div>
+                                                                    @endif
                                                                 @endforeach
                                                             </div>
                                                         @else
-                                                            <div class="p-3 border rounded-3 bg-white mb-3">
+                                                            <div class="p-3 border rounded-3 bg-white mb-3 shadow-2xs">
                                                                 <div class="small text-muted mb-2">Enter medicine name & quantity manually:</div>
                                                                 <div class="row g-2">
                                                                     <div class="col-8">
@@ -601,52 +642,59 @@
                                                         @endif
 
                                                         <div class="mt-3">
-                                                            <label class="form-label small text-muted fw-semibold">Pharmacy Instructions / Note (Optional)</label>
-                                                            <textarea name="pharmacy_note" rows="2" class="form-control form-control-sm" placeholder="Add optional note for patient..." @disabled($isLocked)>{{ old('pharmacy_note', $item->pharmacy_note) }}</textarea>
+                                                            <label class="form-label small text-dark fw-bold">
+                                                                <i class="mdi mdi-notebook-edit-outline me-1 text-primary"></i> Pharmacy Instructions / Note (Optional)
+                                                            </label>
+                                                            <textarea name="pharmacy_note" rows="2" class="form-control form-control-sm rounded-3 text-dark fw-medium" placeholder="Add optional note for patient..." @disabled($isLocked)>{{ old('pharmacy_note', $item->pharmacy_note) }}</textarea>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            <div class="modal-footer bg-light py-3 px-4 border-top d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    @if($isLocked)
-                                                        <small class="text-danger fw-semibold">
-                                                            <i class="mdi mdi-lock me-1"></i> Locked after SMS sent.
-                                                        </small>
-                                                    @endif
-                                                </div>
-                                                <div class="d-flex align-items-center gap-2">
-                                                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3.5 py-1.5 fw-semibold fs-13" data-bs-dismiss="modal">Close</button>
-                                                    
-                                                    @can('pharmacy-prescriptions-dispense')
-                                                        @if($hasStockShortage)
-                                                            <button type="button" class="btn btn-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-3.5 py-1.5 fw-semibold fs-13 shadow-xs d-inline-flex align-items-center gap-1.5 js-trigger-sms" data-action="{{ route('pharmacy.prescriptions.send-sms', $item->id) }}" @disabled($isLocked)>
-                                                                <i class="mdi mdi-cellphone-message fs-14"></i> Send SMS
-                                                            </button>
-                                                        @endif
+                                            <div class="modal-footer bg-white py-3 px-4 border-top d-flex justify-content-end align-items-center gap-2">
+                                                <button type="button" class="btn btn-light rounded-pill px-4 py-2 fw-semibold text-secondary border" data-bs-dismiss="modal">Close</button>
+                                                
+                                                @can('pharmacy-prescriptions-dispense')
+                                                    @php
+                                                        $canGiveAnyItem = false;
+                                                        foreach ($items as $medItem) {
+                                                            if ($medItem['stock'] > 0 && $medItem['remaining'] > 0) {
+                                                                $canGiveAnyItem = true;
+                                                                break;
+                                                            }
+                                                        }
+                                                    @endphp
 
-                                                        <button type="submit" class="btn btn-primary rounded-pill px-4 py-1.5 fw-semibold fs-13 shadow-sm d-inline-flex align-items-center gap-1.5 js-submit-dispense-btn" @disabled($isLocked)>
-                                                            <i class="mdi mdi-check-circle-outline fs-14"></i> {{ $isPartial ? 'Save Remaining Medicine' : 'Add Given / Save Medicine' }}
+                                                    @if($hasStockShortage)
+                                                        <button type="button" class="btn btn-outline-warning text-dark fw-semibold rounded-pill px-3.5 py-2 fs-13 shadow-xs d-inline-flex align-items-center gap-1.5 js-trigger-sms" data-action="{{ route('pharmacy.prescriptions.send-sms', $item->id) }}" @disabled($isLocked)>
+                                                            <i class="mdi mdi-cellphone-message text-warning fs-5"></i> Send SMS
                                                         </button>
-                                                    @endcan
-                                                </div>
+                                                    @endif
+
+                                                    @if($canGiveAnyItem)
+                                                        <button type="submit" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold fs-13 shadow-sm d-inline-flex align-items-center gap-1.5 js-submit-dispense-btn" @disabled($isLocked)>
+                                                            <i class="mdi mdi-check-all fs-5"></i> {{ $isPartial ? 'Save Medicine' : 'Save Medicine' }}
+                                                        </button>
+                                                    @endif
+                                                @endcan
                                             </div>
                                         </form>
                                     @else
                                         <!-- View Mode when already dispensed -->
-                                        <div class="modal-body p-4">
+                                        <div class="modal-body p-4 bg-light-subtle">
                                             <div class="row g-4">
                                                 <div class="col-lg-7 border-end-lg">
-                                                    <h6 class="text-uppercase text-muted fw-bold mb-3 small tracking-wider">
-                                                        <i class="mdi mdi-pill me-1 text-primary"></i> Prescribed & Dispensed Medicines
+                                                    <h6 class="text-uppercase text-secondary fw-bold mb-3 small tracking-wider">
+                                                        <i class="mdi mdi-pill me-1 text-primary fs-5 align-middle"></i> Prescribed & Dispensed Medicines
                                                     </h6>
-                                                    <div class="d-flex flex-column gap-2">
+                                                    <div class="d-flex flex-column gap-2.5">
                                                         @foreach($items as $med)
-                                                            <div class="p-3 bg-light rounded-3 border-start border-4 border-success shadow-xs">
-                                                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                                            <div class="p-3 bg-white rounded-3 border shadow-2xs">
+                                                                <div class="d-flex justify-content-between align-items-center">
                                                                     <span class="fw-bold text-dark fs-6">{{ $med['name'] }}</span>
-                                                                    <span class="badge bg-white text-success border"><i class="mdi mdi-check me-1"></i>Given: {{ $med['given'] }}</span>
+                                                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1.5 fw-semibold fs-12">
+                                                                        <i class="mdi mdi-check me-1"></i> Given: {{ $med['given'] }}
+                                                                    </span>
                                                                 </div>
                                                             </div>
                                                         @endforeach
@@ -661,8 +709,8 @@
                                                         @endif
                                                     </div>
                                                     @if(!empty($item->pharmacy_note))
-                                                        <div class="w-100 mt-2 p-3 bg-light rounded-3 border">
-                                                            <h6 class="text-uppercase text-muted fw-bold mb-1 fs-12 tracking-wider">
+                                                        <div class="w-100 mt-2 p-3 bg-white rounded-3 border shadow-2xs">
+                                                            <h6 class="text-uppercase text-secondary fw-bold mb-1 fs-12 tracking-wider">
                                                                 <i class="mdi mdi-notebook-outline me-1 text-primary"></i> Pharmacy Instructions / Note
                                                             </h6>
                                                             <div class="small text-dark fw-semibold" style="white-space: pre-line;">{{ $item->pharmacy_note }}</div>
@@ -671,8 +719,8 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="modal-footer bg-light py-3 px-4 border-top text-end">
-                                            <button type="button" class="btn btn-outline-secondary rounded-pill px-4 py-1.5 fw-semibold fs-13" data-bs-dismiss="modal">Close</button>
+                                        <div class="modal-footer bg-white py-3 px-4 border-top text-end">
+                                            <button type="button" class="btn btn-light rounded-pill px-4 py-2 fw-semibold text-secondary border" data-bs-dismiss="modal">Close</button>
                                         </div>
                                     @endif
                                 </div>

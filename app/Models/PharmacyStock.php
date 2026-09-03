@@ -16,7 +16,6 @@ class PharmacyStock extends Model
         'batch_no',
         'unit',
         'quantity',
-        'reorder_level',
         'expiry_date',
         'is_active',
     ];

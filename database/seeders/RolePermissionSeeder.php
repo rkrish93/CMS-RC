@@ -267,6 +267,9 @@ class RolePermissionSeeder extends Seeder
             'pharmacy-stocks-create',
             'pharmacy-stocks-edit',
             'products-view',
+            'products-create',
+            'products-edit',
+            'products-delete',
         ])->get();
         $pharmacistRole->syncPermissions($pharmacistPermissions);
     }

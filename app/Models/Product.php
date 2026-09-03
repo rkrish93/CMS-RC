@@ -17,10 +17,12 @@ class Product extends Model
         'generic_name',
         'description',
         'unit',
+        'reorder_level',
         'is_active',
     ];
 
     protected $casts = [
+        'reorder_level' => 'integer',
         'is_active' => 'boolean',
     ];
 

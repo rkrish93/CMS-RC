@@ -43,8 +43,19 @@ class AppServiceProvider extends ServiceProvider
                         $q->whereIn('pharmacy_status', ['dispensed', 'partial']);
                     });
 
-                if (auth()->user()->hasRole('Doctor') && !empty(auth()->user()->unit_id)) {
-                    $query->where('unit_id', auth()->user()->unit_id);
+                $user = auth()->user();
+                $unitScopedRoles = ['Doctor', 'Nurse', 'Mid wife', 'Midwife'];
+
+                if ($user->hasAnyRole($unitScopedRoles) && !empty($user->unit_id)) {
+                    $query->where('unit_id', $user->unit_id);
+                    $query->whereIn('status', [
+                        \App\Enums\AppointmentStatus::CHECKED_IN->value,
+                        \App\Enums\AppointmentStatus::TRIAGE_IN_PROGRESS->value,
+                        \App\Enums\AppointmentStatus::TRIAGE_COMPLETED->value,
+                        \App\Enums\AppointmentStatus::CONSULTATION_IN_PROGRESS->value,
+                        \App\Enums\AppointmentStatus::CONSULTATION_COMPLETED->value,
+                        \App\Enums\AppointmentStatus::DISPENSING->value,
+                    ]);
                 }
 
                 $todayAppointments = $query->count();

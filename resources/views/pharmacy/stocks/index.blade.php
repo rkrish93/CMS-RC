@@ -34,10 +34,6 @@
             </div>
         </form>
 
-        <div class="alert alert-info py-2 mb-3">
-            Select a medicine to auto-fill medicine name, generic name, and unit from the medicine master.
-        </div>
-
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead>
@@ -47,7 +43,6 @@
                         <th>Unit</th>
                         <th>Batch</th>
                         <th>Qty</th>
-                        <th>Reorder</th>
                         <th>Expiry</th>
                         <th>Status</th>
                         <th class="text-end">Action</th>
@@ -63,8 +58,7 @@
                             <td>{{ $stock->generic_name ?? '-' }}</td>
                             <td>{{ $stock->unit ?? '-' }}</td>
                             <td>{{ $stock->batch_no }}</td>
-                            <td class="{{ $stock->quantity <= $stock->reorder_level ? 'text-danger fw-bold' : '' }}">{{ $stock->quantity }}</td>
-                            <td>{{ $stock->reorder_level }}</td>
+                            <td class="{{ $stock->quantity <= ($stock->product?->reorder_level ?? $stock->reorder_level) ? 'text-danger fw-bold' : '' }}">{{ $stock->quantity }}</td>
                             <td>{{ $stock->expiry_date ? $stock->expiry_date->format('Y-m-d') : '-' }}</td>
                             <td>
                                 <span class="badge bg-{{ $stock->is_active ? 'success' : 'secondary' }}">
@@ -112,7 +106,7 @@
                         </div>
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center text-muted py-4">No stock items found.</td>
+                            <td colspan="8" class="text-center text-muted py-4">No stock items found.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -183,13 +177,9 @@ document.addEventListener('DOMContentLoaded', function () {
             productSelect.tomselect.clear(true);
         }
 
-        setValue('medicine_name', '');
-        setValue('generic_name', '');
         setValue('batch_no', '');
-        setValue('unit', '');
         setValue('expiry_date', '');
         setValue('quantity', '0');
-        setValue('reorder_level', '10');
 
         const active = form.querySelector('[name="is_active"]');
         if (active) {
