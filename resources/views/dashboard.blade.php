@@ -353,6 +353,11 @@
                         <i class="mdi mdi-rx"></i> Prescription View
                     </a>
                 @endcan
+                @if(auth()->user()?->hasAnyRole(['Admin', 'Pharmacist']))
+                    <a href="{{ route('reports.medical-stocks.index') }}" class="action-btn-pill action-btn-info">
+                        <i class="mdi mdi-chart-box-outline"></i> Medical Stocks Report
+                    </a>
+                @endif
             </div>
         </div>
 

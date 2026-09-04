@@ -74,6 +74,8 @@ class RolePermissionSeeder extends Seeder
         $reportPermissions = [
             'reports-view',
             'reports-export',
+            'reports-medical-stocks-view',
+            'reports-medical-stocks-export',
             'analytics-view',
         ];
 
@@ -260,6 +262,8 @@ class RolePermissionSeeder extends Seeder
             'patients-view',
             'consultations-view',
             'reports-view',
+            'reports-medical-stocks-view',
+            'reports-medical-stocks-export',
             'pharmacy-dashboard-view',
             'pharmacy-prescriptions-view',
             'pharmacy-prescriptions-dispense',

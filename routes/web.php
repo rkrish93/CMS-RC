@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\AppointmentReportController;
 use App\Http\Controllers\Admin\ConsultationReportController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\MedicalStockReportController;
 use App\Http\Controllers\Admin\PatientController;
 use App\Http\Controllers\Admin\PatientReportController;
 use App\Http\Controllers\Admin\PermissionController;
@@ -95,6 +96,14 @@ Route::middleware(['auth'])->group(function () {
             ->name('reports.users.pdf');
         Route::get('reports/users/csv', [UserReportController::class, 'csv'])
             ->name('reports.users.csv');
+        Route::get('reports/medical-stocks', [MedicalStockReportController::class, 'index'])
+            ->name('reports.medical-stocks.index');
+        Route::get('reports/medical-stocks/print', [MedicalStockReportController::class, 'print'])
+            ->name('reports.medical-stocks.print');
+        Route::get('reports/medical-stocks/pdf', [MedicalStockReportController::class, 'pdf'])
+            ->name('reports.medical-stocks.pdf');
+        Route::get('reports/medical-stocks/csv', [MedicalStockReportController::class, 'csv'])
+            ->name('reports.medical-stocks.csv');
 
         Route::resource('units', UnitController::class);
 
