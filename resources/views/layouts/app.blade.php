@@ -832,10 +832,11 @@
                                         @can('reports-view')
                                             <li class="nav-item"><a class="nav-link {{ request()->routeIs('reports.patients.*') ? 'active' : '' }}" href="{{ route('reports.patients.index') }}">Patient Reports</a></li>
                                             <li class="nav-item"><a class="nav-link {{ request()->routeIs('reports.appointments.*') ? 'active' : '' }}" href="{{ route('reports.appointments.index') }}">Appointment Reports</a></li>
-                                            <li class="nav-item"><a class="nav-link {{ request()->routeIs('reports.consultations.*') ? 'active' : '' }}" href="{{ route('reports.consultations.index') }}">Consultation Reports</a></li>
-                                            @if(auth()->user()?->hasAnyRole(['Admin', 'Pharmacist']))
-                                                <li class="nav-item"><a class="nav-link {{ request()->routeIs('reports.medical-stocks.*') ? 'active' : '' }}" href="{{ route('reports.medical-stocks.index') }}">Medical Stocks Report</a></li>
-                                            @endif
+                                             <li class="nav-item"><a class="nav-link {{ request()->routeIs('reports.consultations.*') ? 'active' : '' }}" href="{{ route('reports.consultations.index') }}">Consultation Reports</a></li>
+                                             @if(auth()->user()?->hasAnyRole(['Admin', 'Pharmacist']))
+                                                 <li class="nav-item"><a class="nav-link {{ request()->routeIs('reports.prescriptions.*') ? 'active' : '' }}" href="{{ route('reports.prescriptions.index') }}">Prescriptions Report</a></li>
+                                                 <li class="nav-item"><a class="nav-link {{ request()->routeIs('reports.medical-stocks.*') ? 'active' : '' }}" href="{{ route('reports.medical-stocks.index') }}">Medical Stocks Report</a></li>
+                                             @endif
                                             @role('Admin')
                                                 <li class="nav-item"><a class="nav-link {{ request()->routeIs('reports.users.*') ? 'active' : '' }}" href="{{ route('reports.users.index') }}">User Reports</a></li>
                                             @endrole

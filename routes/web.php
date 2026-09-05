@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\PatientReportController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\PermissionGroupController;
 use App\Http\Controllers\Admin\PharmacyStockController;
+use App\Http\Controllers\Admin\PrescriptionReportController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UnitController;
@@ -88,6 +89,14 @@ Route::middleware(['auth'])->group(function () {
             ->name('reports.consultations.pdf');
         Route::get('reports/consultations/csv', [ConsultationReportController::class, 'csv'])
             ->name('reports.consultations.csv');
+        Route::get('reports/prescriptions', [PrescriptionReportController::class, 'index'])
+            ->name('reports.prescriptions.index');
+        Route::get('reports/prescriptions/print', [PrescriptionReportController::class, 'print'])
+            ->name('reports.prescriptions.print');
+        Route::get('reports/prescriptions/pdf', [PrescriptionReportController::class, 'pdf'])
+            ->name('reports.prescriptions.pdf');
+        Route::get('reports/prescriptions/csv', [PrescriptionReportController::class, 'csv'])
+            ->name('reports.prescriptions.csv');
         Route::get('reports/users', [UserReportController::class, 'index'])
             ->name('reports.users.index');
         Route::get('reports/users/print', [UserReportController::class, 'print'])
