@@ -12,7 +12,6 @@
 <div class="card mb-3">
     <div class="card-body">
         <h4 class="card-title mb-1">Today Queue Scanner</h4>
-        <p class="text-muted mb-3">Search today's queue and open the patient summary page directly.</p>
 
         <form method="GET" class="row g-2 align-items-center">
             <div class="col-md-9">
@@ -21,7 +20,7 @@
                     name="search"
                     class="form-control"
                     value="{{ $search }}"
-                    placeholder="Search by token, patient code, patient name, or phone">
+                    placeholder="Search by patient code, patient name, or phone">
             </div>
             <div class="col-md-2 d-grid">
                 <button class="btn btn-primary">Search</button>
@@ -77,8 +76,14 @@
                                     <a href="{{ $signedScanUrls[$appointment->id] ?? '#' }}" class="btn btn-sm btn-outline-dark">
                                         Open
                                     </a>
-                                    @if(auth()->user()?->hasAnyRole(['Receptionist', 'Admin']) || auth()->user()?->can('appointments-edit'))
-                                        @if(!in_array($statusEnum->value, [App\Enums\AppointmentStatus::COMPLETED->value, App\Enums\AppointmentStatus::CANCELLED->value, App\Enums\AppointmentStatus::NO_SHOW->value]) && !$isPharmacyDispensed)
+                                    @if(auth()->user()?->hasAnyRole(['Receptionist', 'Admin', 'System Administrator', 'System Admin']))
+                                        @if($statusEnum->value === App\Enums\AppointmentStatus::SCHEDULED->value)
+                                            <form method="POST" action="{{ route('appointments.check-in', $appointment->id) }}" class="d-inline">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-outline-primary">
+                                                    Check-in
+                                                </button>
+                                            </form>
                                             <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelModalScanner{{ $appointment->id }}">
                                                 Cancel
                                             </button>
@@ -109,6 +114,10 @@
                                                     </div>
                                                 </div>
                                             </div>
+                                        @else
+                                            <button type="button" class="btn btn-sm btn-outline-danger disabled" disabled>
+                                                Cancel
+                                            </button>
                                         @endif
                                     @endif
                                 </div>
@@ -124,4 +133,15 @@
         </div>
     </div>
 </div>
+@endsection
+
+@section('scripts')
+<script>
+    setInterval(() => {
+        const searchInput = document.querySelector('input[name="search"]');
+        if (!searchInput || (document.activeElement !== searchInput && !searchInput.value.trim())) {
+            location.reload();
+        }
+    }, 15000);
+</script>
 @endsection

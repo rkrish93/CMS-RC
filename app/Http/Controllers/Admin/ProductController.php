@@ -16,7 +16,7 @@ class ProductController extends Controller
         abort_unless(auth()->user()?->can('products-view'), 403);
 
         $search = trim((string) $request->input('search'));
-        
+
         $products = Product::when($search !== '', function ($query) use ($search) {
             $query->where('product_code', 'like', "%{$search}%")
                   ->orWhere('medicine_name', 'like', "%{$search}%")
@@ -34,10 +34,10 @@ class ProductController extends Controller
     public function create()
     {
         abort_unless(auth()->user()?->can('products-create'), 403);
-        
+
         $productCode = Product::generateProductCode();
-        $units = ['piece', 'tablet', 'capsule', 'bottle', 'vial', 'injection', 'sachet', 'ampoule'];
-        
+        $units = [ 'tablet', 'capsule','pill', 'syrup', 'drops', 'injection', 'gel','cream','ointment', 'sachet', 'ampoule','suppository', 'solution', 'powder', 'spray', 'patch', 'lotion', 'elixir', 'emulsion', 'suspension', 'enema', 'aerosol'];
+
         return view('admin.products.create', compact('productCode', 'units'));
     }
 
@@ -78,9 +78,9 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         abort_unless(auth()->user()?->can('products-edit'), 403);
-        
-        $units = ['piece', 'tablet', 'capsule', 'bottle', 'vial', 'injection', 'sachet', 'ampoule'];
-        
+
+        $units = [ 'tablet', 'capsule','pill', 'syrup', 'drops', 'injection', 'gel','cream','ointment', 'sachet', 'ampoule','suppository', 'solution', 'powder', 'spray', 'patch', 'lotion', 'elixir', 'emulsion', 'suspension', 'enema', 'aerosol'];
+
         return view('admin.products.edit', compact('product', 'units'));
     }
 

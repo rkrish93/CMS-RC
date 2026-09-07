@@ -1,4 +1,4 @@
-@extends('layouts.app')
+{{-- @extends('layouts.app')
 
 @section('title', 'Today Queue')
 
@@ -22,7 +22,7 @@ $canOpenAppointment = $queueUser?->can('consultations-create')
 || $queueUser?->hasAnyRole(['Doctor', 'Admin']);
 $canGenerateQr = $queueUser?->hasAnyRole(['Receptionist', 'Admin']);
 $canMarkNoShow = $queueUser?->hasAnyRole(['Receptionist', 'Admin']);
-$showActionColumn = $queueUser?->hasAnyRole(['Receptionist', 'Admin']);
+$showActionColumn = $canOpenAppointment || $canGenerateQr || $canMarkNoShow;
 $disableOpenAfterVitals = $queueUser?->hasAnyRole(['Nurse', 'Mid wife']);
 $columnCount = $showActionColumn ? 6 : 5;
 if ($hideUnitColumn) {
@@ -107,9 +107,7 @@ $columnCount--;
                                             Check-in
                                         </button>
                                     </form>
-                                    @endif
 
-                                    @if(!$disabled && !$isPharmacyDispensed)
                                     <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelModalToday{{ $appt->id }}">
                                         Cancel
                                     </button>
@@ -140,6 +138,10 @@ $columnCount--;
                                             </div>
                                         </div>
                                     </div>
+                                    @else
+                                    <button type="button" class="btn btn-sm btn-outline-danger disabled" disabled>
+                                        Cancel
+                                    </button>
                                     @endif
                                 @endif
                             </div>
@@ -187,4 +189,4 @@ $columnCount--;
         font-weight: 900;
     }
 </style>
-@endpush
+@endpush --}}

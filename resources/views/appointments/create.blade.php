@@ -82,9 +82,9 @@
                 <div class="col-md-6">
                     <label class="form-label">Appointment Date</label>
                     <input type="date" name="appointment_date" id="appointment_date" class="form-control" required>
-                    <small class="text-muted">Clinic Hours: 09:00 AM - 03:00 PM (Appointments after 3:00 PM not allowed)</small>
+                    <small class="text-muted">Clinic Hours: {{ $clinicOpenFormatted ?? '09:00 AM' }} - {{ $clinicCloseFormatted ?? '03:00 PM' }} (Appointments after {{ $clinicCloseFormatted ?? '03:00 PM' }} not allowed)</small>
                     <div class="alert alert-danger mt-2 mb-0" id="after_3pm_warning" style="display: none;">
-                        <i class="mdi mdi-clock-alert me-1"></i> <strong>Appointments cannot be scheduled after 3:00 PM.</strong> Booking for today is closed. Please select a future date.
+                        <i class="mdi mdi-clock-alert me-1"></i> <strong>Appointments cannot be scheduled after {{ $clinicCloseFormatted ?? '03:00 PM' }}.</strong> Booking for today is closed. Please select a future date.
                     </div>
                 </div>
 
@@ -93,7 +93,7 @@
                     <div class="alert alert-info mb-0">
                         <small>
                             <i class="mdi mdi-information me-1"></i>
-                            <strong>Appointment time will be automatically assigned</strong> based on available slots (15-minute intervals between 09:00 AM - 03:00 PM). <em>Appointments after 3:00 PM are not allowed.</em>
+                            <strong>Appointment time will be automatically assigned</strong> based on available slots ({{ $slotDurationMinutes ?? '15' }}-minute intervals between {{ $clinicOpenFormatted ?? '09:00 AM' }} - {{ $clinicCloseFormatted ?? '03:00 PM' }}). <em>Appointments after {{ $clinicCloseFormatted ?? '03:00 PM' }} are not allowed.</em>
                         </small>
                     </div>
                 </div>
@@ -165,6 +165,9 @@ document.getElementById('search_patient').addEventListener('keyup', function(){
 
 const appointmentDateInput = document.getElementById('appointment_date');
 const after3pmWarning = document.getElementById('after_3pm_warning');
+const cutoffHour = {{ $cutoffHour ?? 15 }};
+const cutoffMinute = {{ $cutoffMinute ?? 0 }};
+const clinicCloseFormatted = "{{ $clinicCloseFormatted ?? '03:00 PM' }}";
 
 function check3pmRestriction() {
     if (!appointmentDateInput || !after3pmWarning) return false;
@@ -173,7 +176,10 @@ function check3pmRestriction() {
     const now = new Date();
     const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
 
-    if (selectedDate === todayStr && now.getHours() >= 15) {
+    const currentMinutes = (now.getHours() * 60) + now.getMinutes();
+    const cutoffMinutes = (cutoffHour * 60) + cutoffMinute;
+
+    if (selectedDate === todayStr && currentMinutes >= cutoffMinutes) {
         after3pmWarning.style.display = 'block';
         return true;
     } else {
@@ -197,7 +203,7 @@ document.getElementById('appointmentForm').addEventListener('submit', function(e
 
     if (check3pmRestriction()) {
         e.preventDefault();
-        alert('Appointments cannot be scheduled after 3:00 PM for today.');
+        alert('Appointments cannot be scheduled after ' + clinicCloseFormatted + ' for today.');
         return false;
     }
 });

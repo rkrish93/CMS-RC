@@ -8,7 +8,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
 
-        
+
         <p class="text-muted">Recent vitals recorded from consultations.</p>
     </div>
 </div>
@@ -51,7 +51,7 @@
                         <th>Temp (°C)</th>
                         <th>Pulse</th>
                         <th>SpO₂ (%)</th>
-                        <th>Sugar (mg/dL)</th>
+                        <th>Glucose (mg/dL)</th>
                         <th>Wt / Ht / BMI</th>
                         <th>Resp Rate</th>
                         <th>Recorded At</th>

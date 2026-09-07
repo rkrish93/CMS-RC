@@ -1,0 +1,52 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('settings', function (Blueprint $table) {
+            $table->id();
+            $table->string('key')->unique();
+            $table->text('value')->nullable();
+            $table->timestamps();
+        });
+
+        // Insert default clinic time settings
+        DB::table('settings')->insert([
+            [
+                'key' => 'clinic_open_time',
+                'value' => '09:00',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'key' => 'clinic_close_time',
+                'value' => '15:00',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'key' => 'slot_duration_minutes',
+                'value' => '15',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('settings');
+    }
+};

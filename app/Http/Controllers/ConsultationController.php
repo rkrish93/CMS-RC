@@ -93,9 +93,8 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
             'prescription_items.*.medicine_name' => 'nullable|string|max:255',
             'prescription_items.*.duration' => 'nullable|string|max:100',
             'prescription_items.*.dosage' => 'nullable|string|max:100',
-            'prescription_items.*.time_slot' => 'nullable|array|min:1',
-            'prescription_items.*.time_slot.*' => 'nullable|in:morning,lunch,night',
-            'prescription_items.*.food_timing' => 'nullable|in:before_food,after_food',
+            'prescription_items.*.time_slot' => 'nullable',
+            'prescription_items.*.food_timing' => 'nullable',
             'notes' => 'nullable|string',
             'next_visit' => 'nullable|date|after_or_equal:today',
         ]);
@@ -118,13 +117,20 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
 
                 $timeSlots = $item['time_slot'] ?? [];
                 if (! is_array($timeSlots)) {
-                    $timeSlots = [$timeSlots];
+                    $timeSlots = ($timeSlots !== '' && $timeSlots !== null) ? [$timeSlots] : [];
                 }
 
                 $timeSlots = array_values(array_filter(array_map(function ($slot) {
                     $slot = trim((string) $slot);
-                    return in_array($slot, ['morning', 'lunch', 'night'], true) ? $slot : null;
+                    return in_array($slot, ['OD', 'BD', 'TDS', 'QDS'], true) ? $slot : null;
                 }, $timeSlots)));
+
+                $foodTimingRaw = trim((string) ($item['food_timing'] ?? ''));
+                $foodTiming = match(strtolower($foodTimingRaw)) {
+                    'before_food', 'before food', 'ac' => 'AC',
+                    'after_food', 'after food', 'pc' => 'PC',
+                    default => $foodTimingRaw,
+                };
 
                 return [
                     'medicine_id' => $product?->id,
@@ -134,49 +140,54 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
                     'duration' => trim((string) ($item['duration'] ?? '')),
                     'dosage' => trim((string) ($item['dosage'] ?? '')),
                     'time_slot' => $timeSlots,
-                    'food_timing' => trim((string) ($item['food_timing'] ?? '')),
+                    'food_timing' => $foodTiming,
                 ];
-            })
-            ->filter(function (array $item) {
-                return $item['medicine_name'] !== '';
-            })
-            ->all();
+                })
+                ->filter(function (array $item) {
+                    return $item['medicine_name'] !== '';
+                })
+                ->all();
 
-        if (empty($prescriptionItems)) {
-            throw ValidationException::withMessages([
-                'prescription_items' => 'Add at least one medicine row.',
-            ]);
-        }
+            if (empty($prescriptionItems)) {
+                throw ValidationException::withMessages([
+                    'prescription_items' => 'Add at least one medicine row.',
+                ]);
+            }
 
-        $legacyPrescription = collect($prescriptionItems)
-            ->map(function (array $item) {
-                $parts = [$item['medicine_name']];
+            $legacyPrescription = collect($prescriptionItems)
+                ->map(function (array $item) {
+                    $parts = [$item['medicine_name']];
 
-                if ($item['dosage'] !== '') {
-                    $parts[] = $item['dosage'];
-                }
+                    if ($item['dosage'] !== '') {
+                        $parts[] = $item['dosage'];
+                    }
 
-                if ($item['duration'] !== '') {
-                    $parts[] = $item['duration'];
-                }
+                    if ($item['duration'] !== '') {
+                        $parts[] = $item['duration'];
+                    }
 
-                $timeSlots = $item['time_slot'] ?? [];
-                if (! is_array($timeSlots)) {
-                    $timeSlots = [$timeSlots];
-                }
+                    $timeSlots = $item['time_slot'] ?? [];
+                    if (! is_array($timeSlots)) {
+                        $timeSlots = [$timeSlots];
+                    }
 
-                $timeSlots = array_values(array_filter(array_map(function ($slot) {
-                    $slot = trim((string) $slot);
-                    return $slot !== '' ? str_replace('_', ' ', $slot) : null;
-                }, $timeSlots)));
+                    $timeSlots = array_values(array_filter(array_map(function ($slot) {
+                        $slot = trim((string) $slot);
+                        return $slot !== '' ? str_replace('_', ' ', $slot) : null;
+                    }, $timeSlots)));
 
-                if (! empty($timeSlots)) {
-                    $parts[] = implode('/', $timeSlots);
-                }
+                    if (! empty($timeSlots)) {
+                        $parts[] = implode('/', $timeSlots);
+                    }
 
-                if (($item['food_timing'] ?? '') !== '') {
-                    $parts[] = str_replace('_', ' ', (string) $item['food_timing']);
-                }
+                    if (($item['food_timing'] ?? '') !== '') {
+                        $ftRaw = (string) $item['food_timing'];
+                        $parts[] = match(strtolower($ftRaw)) {
+                            'before_food', 'before food', 'ac' => 'AC',
+                            'after_food', 'after food', 'pc' => 'PC',
+                            default => $ftRaw,
+                        };
+                    }
 
                 return implode(' | ', $parts);
             })
@@ -319,27 +330,27 @@ $latestVital = Vital::where('appointment_id', $appointment_id)
 
     }
 
-    private function parsePrescriptionItems(string $text): array
-    {
-        $items = [];
-        preg_match_all('/(?:^|[,;\n\r]|\s{1,})([A-Za-z0-9][A-Za-z0-9\s\-\/.\(\)]*?)\s*[-:]\s*(\d+)/u', $text, $matches, PREG_SET_ORDER);
+    // private function parsePrescriptionItems(string $text): array
+    // {
+    //     $items = [];
+    //     preg_match_all('/(?:^|[,;\n\r]|\s{1,})([A-Za-z0-9][A-Za-z0-9\s\-\/.\(\)]*?)\s*[-:]\s*(\d+)/u', $text, $matches, PREG_SET_ORDER);
 
-        foreach ($matches as $match) {
-            $name = trim((string) ($match[1] ?? ''));
-            $qty = (int) ($match[2] ?? 0);
+    //     foreach ($matches as $match) {
+    //         $name = trim((string) ($match[1] ?? ''));
+    //         $qty = (int) ($match[2] ?? 0);
 
-            if ($name !== '' && $qty > 0) {
-                $items[$this->normalizeMedicineName($name)] = $qty;
-            }
-        }
+    //         if ($name !== '' && $qty > 0) {
+    //             $items[$this->normalizeMedicineName($name)] = $qty;
+    //         }
+    //     }
 
-        return $items;
-    }
+    //     return $items;
+    // }
 
-    private function normalizeMedicineName(string $name): string
-    {
-        return strtolower(preg_replace('/\s+/', '', trim($name)));
-    }
+    // private function normalizeMedicineName(string $name): string
+    // {
+    //     return strtolower(preg_replace('/\s+/', '', trim($name)));
+    // }
 
     /**
      * Display the specified resource.

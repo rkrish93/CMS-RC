@@ -3,9 +3,9 @@
 @section('title', 'Patient Consultation')
 
 @section('page-actions')
-<a href="{{ route('appointments.today') }}" class="btn btn-light">
+{{-- <a href="{{ route('appointments.today') }}" class="btn btn-light">
     <i class="mdi mdi-arrow-left me-1"></i> Queue
-</a>
+</a> --}}
 @endsection
 
 @section('content')
@@ -55,7 +55,7 @@
                 <a href="{{ route('patients.show', $appointment->patient->id) }}" class="btn btn-outline-primary w-100 mt-4">
                     <i class="mdi mdi-eye me-1"></i> View Full Profile
                 </a>
-               
+
                 @endif
 
                 <div class="mt-4 p-3 bg-light rounded border text-center">
@@ -115,7 +115,7 @@
                         </div>
 
                         <div class="col-md-3">
-                            <label class="form-label">Diabetes</label>
+                            <label class="form-label">Blood Glucose</label>
 
                             <input type="number"
                                 name="sugar"
@@ -125,7 +125,7 @@
                         </div>
 
                         <div class="col-md-3">
-                            <label class="form-label">Pulse</label>
+                            <label class="form-label">Pulse Rate</label>
 
                             <input type="number"
                                 name="pulse"
@@ -243,7 +243,7 @@
                     </div>
 
                     <div class="col-md-3">
-                        <strong>Sugar</strong><br>
+                        <strong>Blood Glucose</strong><br>
                         {{ $latestVital->sugar ?? '-' }}
                     </div>
 
@@ -310,20 +310,6 @@
                         <div class="col-md-12">
 
                             <label class="form-label">
-                                Diagnosis
-                            </label>
-
-                            <textarea name="diagnosis"
-                                rows="3"
-                                class="form-control"
-                                placeholder="Enter diagnosis"></textarea>
-
-                        </div>
-
-
-                        <div class="col-md-12">
-
-                            <label class="form-label">
                                 Symptoms
                             </label>
 
@@ -336,6 +322,30 @@
 
                         </div>
 
+                        <div class="col-md-12">
+
+                            <label class="form-label">
+                                Diagnosis
+                            </label>
+
+                            <textarea name="diagnosis"
+                                rows="3"
+                                class="form-control"
+                                placeholder="Enter diagnosis"></textarea>
+
+                        </div>
+
+                        <div class="col-md-12">
+
+                            <label class="form-label">
+                                Additional Clinical Notes
+                            </label>
+
+                            <textarea name="notes"
+                                rows="2"
+                                class="form-control"></textarea>
+
+                        </div>
 
                         <div class="col-12">
 
@@ -347,11 +357,11 @@
                                 <table class="table table-bordered align-middle mb-2" id="medicineTable">
                                     <thead>
                                         <tr>
-                                            <th style="min-width: 260px;">Medicine</th>
-                                            <th style="min-width: 160px;">Dosage</th>
-                                            <th style="min-width: 160px;">Duration</th>
-                                            <th style="min-width: 140px;">Time Slot</th>
-                                            <th style="min-width: 170px;">Food Timing</th>
+                                            <th style="min-width: 280px;">Medicine</th>
+                                            <th style="min-width: 110px;">Dosage</th>
+                                            <th style="min-width: 110px;">Duration</th>
+                                            <th style="min-width: 130px;">Frequency</th>
+                                            <th style="min-width: 150px;">Food Timing</th>
                                             <th style="width: 56px;"></th>
                                         </tr>
                                     </thead>
@@ -374,27 +384,19 @@
                                                 <input type="text" name="prescription_items[0][duration]" class="form-control" placeholder="5 days">
                                             </td>
                                             <td>
-                                                <div class="time-slot-group">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input time-slot-checkbox" type="checkbox" name="prescription_items[0][time_slot][]" value="morning" id="time_slot_0_morning">
-                                                        <label class="form-check-label" for="time_slot_0_morning">Morning</label>
-                                                    </div>
-                                                    <div class="form-check">
-                                                        <input class="form-check-input time-slot-checkbox" type="checkbox" name="prescription_items[0][time_slot][]" value="lunch" id="time_slot_0_lunch">
-                                                        <label class="form-check-label" for="time_slot_0_lunch">Lunch</label>
-                                                    </div>
-                                                    <div class="form-check">
-                                                        <input class="form-check-input time-slot-checkbox" type="checkbox" name="prescription_items[0][time_slot][]" value="night" id="time_slot_0_night">
-                                                        <label class="form-check-label" for="time_slot_0_night">Night</label>
-                                                    </div>
-                                                </div>
-                                                <small class="text-muted">You can select multiple time slots.</small>
+                                                <select name="prescription_items[0][time_slot]" class="form-select time-slot-select">
+                                                    <option value="">Select</option>
+                                                    <option value="OD">OD</option>
+                                                    <option value="BD">BD</option>
+                                                    <option value="TDS">TDS</option>
+                                                    <option value="QDS">QDS</option>
+                                                </select>
                                             </td>
                                             <td>
                                                 <select name="prescription_items[0][food_timing]" class="form-select">
                                                     <option value="">Select</option>
-                                                    <option value="before_food">Before Food</option>
-                                                    <option value="after_food">After Food</option>
+                                                    <option value="AC">AC</option>
+                                                    <option value="PC">PC</option>
                                                 </select>
                                             </td>
                                             <td class="text-center">
@@ -415,17 +417,7 @@
 
                         </div>
 
-                        <div class="col-md-12">
 
-                            <label class="form-label">
-                                Additional Notes
-                            </label>
-
-                            <textarea name="notes"
-                                rows="2"
-                                class="form-control"></textarea>
-
-                        </div>
 
                     </div>
 
@@ -532,7 +524,7 @@
                             <th>Date</th>
                             <th>BP</th>
                             <th>Temp</th>
-                            <th>Sugar</th>
+                            <th>Glucose</th>
                             <th>Pulse</th>
                             <th>Weight</th>
                             <th>Height</th>
@@ -653,24 +645,14 @@
             const medicineSelect = row.querySelector('.medicine-select');
             const dosageInput = row.querySelector('input[name*="[dosage]"]');
             const durationInput = row.querySelector('input[name*="[duration]"]');
-            const timeSlotInputs = row.querySelectorAll('input.time-slot-checkbox');
+            const timeSlotSelect = row.querySelector('select[name*="[time_slot]"]');
             const foodTimingInput = row.querySelector('select[name*="[food_timing]"]');
             const removeButton = row.querySelector('.js-remove-medicine-row');
 
             if (medicineSelect) medicineSelect.name = `prescription_items[${index}][medicine_id]`;
             if (dosageInput) dosageInput.name = `prescription_items[${index}][dosage]`;
             if (durationInput) durationInput.name = `prescription_items[${index}][duration]`;
-            if (timeSlotInputs.length) {
-                timeSlotInputs.forEach(function(input) {
-                    const slot = input.value;
-                    input.name = `prescription_items[${index}][time_slot][]`;
-                    input.id = `time_slot_${index}_${slot}`;
-                    const label = input.closest('.form-check')?.querySelector('label');
-                    if (label) {
-                        label.setAttribute('for', input.id);
-                    }
-                });
-            }
+            if (timeSlotSelect) timeSlotSelect.name = `prescription_items[${index}][time_slot]`;
             if (foodTimingInput) foodTimingInput.name = `prescription_items[${index}][food_timing]`;
             if (removeButton) removeButton.disabled = index === 0;
 
@@ -699,27 +681,19 @@
                 <input type="text" name="prescription_items[${rowCount}][duration]" class="form-control" placeholder="5 days">
             </td>
             <td>
-                <div class="time-slot-group">
-                    <div class="form-check">
-                        <input class="form-check-input time-slot-checkbox" type="checkbox" name="prescription_items[${rowCount}][time_slot][]" value="morning" id="time_slot_${rowCount}_morning">
-                        <label class="form-check-label" for="time_slot_${rowCount}_morning">Morning</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input time-slot-checkbox" type="checkbox" name="prescription_items[${rowCount}][time_slot][]" value="lunch" id="time_slot_${rowCount}_lunch">
-                        <label class="form-check-label" for="time_slot_${rowCount}_lunch">Lunch</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input time-slot-checkbox" type="checkbox" name="prescription_items[${rowCount}][time_slot][]" value="night" id="time_slot_${rowCount}_night">
-                        <label class="form-check-label" for="time_slot_${rowCount}_night">Night</label>
-                    </div>
-                </div>
-                <small class="text-muted">You can select multiple time slots.</small>
+                <select name="prescription_items[${rowCount}][time_slot]" class="form-select time-slot-select">
+                    <option value="">Select</option>
+                    <option value="OD">OD</option>
+                    <option value="BD">BD</option>
+                    <option value="TDS">TDS</option>
+                    <option value="QDS">QDS</option>
+                </select>
             </td>
             <td>
                 <select name="prescription_items[${rowCount}][food_timing]" class="form-select">
                     <option value="">Select</option>
-                    <option value="before_food">Before Food</option>
-                    <option value="after_food">After Food</option>
+                    <option value="AC">AC</option>
+                    <option value="PC">PC</option>
                 </select>
             </td>
             <td class="text-center">
@@ -778,7 +752,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
-                
+
 
                 <!-- Section 2: Medical Consultations & Prescription History -->
                 <div>
@@ -833,7 +807,15 @@
                                                                 <span class="badge bg-white text-info border ms-1">{{ implode(', ', array_map('ucfirst', $slots)) }}</span>
                                                             @endif
                                                             @if(!empty($pItem['food_timing']))
-                                                                <span class="badge bg-white text-primary border ms-1">{{ str_replace('_', ' ', ucfirst($pItem['food_timing'])) }}</span>
+                                                                @php
+                                                                    $ftRaw = trim((string) $pItem['food_timing']);
+                                                                    $ftDisplay = match(strtolower($ftRaw)) {
+                                                                        'before_food', 'before food', 'ac' => 'AC',
+                                                                        'after_food', 'after food', 'pc' => 'PC',
+                                                                        default => strtoupper(str_replace('_', ' ', $ftRaw)),
+                                                                    };
+                                                                @endphp
+                                                                <span class="badge bg-white text-primary border ms-1">{{ $ftDisplay }}</span>
                                                             @endif
                                                         </div>
                                                     @endforeach

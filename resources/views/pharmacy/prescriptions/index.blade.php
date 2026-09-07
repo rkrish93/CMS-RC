@@ -128,10 +128,10 @@
                         <label class="form-label small text-muted fw-semibold mb-1">Search Keywords</label>
                         <div class="input-group input-group-sm">
                             <span class="input-group-text bg-light text-muted border-end-0"><i class="mdi mdi-magnify"></i></span>
-                            <input type="text" 
-                                   name="search" 
-                                   class="form-control form-control-sm border-start-0 ps-0" 
-                                   placeholder="Patient Name, Code, Phone, Doctor, Medicine..." 
+                            <input type="text"
+                                   name="search"
+                                   class="form-control form-control-sm border-start-0 ps-0"
+                                   placeholder="Patient Name, Code, Phone, Doctor, Medicine..."
                                    value="{{ $search }}">
                         </div>
                     </div>
@@ -244,26 +244,72 @@
                                         ];
                                     }
 
-                                    $duration = trim((string) ($prescriptionRow['duration'] ?? ''));
-                                    $days = 1;
-                                    if ($duration !== '' && preg_match('/(\d+)/', $duration, $m)) {
-                                        $days = max((int) $m[1], 1);
-                                    }
+                                     $durationStr = strtolower(trim((string) ($prescriptionRow['duration'] ?? '')));
+                                     $dosageStr = strtolower(trim((string) ($prescriptionRow['dosage'] ?? '')));
+                                     $medNameStr = strtolower(trim((string) ($prescriptionRow['medicine_name'] ?? '')));
 
-                                    $timeSlots = $prescriptionRow['time_slot'] ?? [];
-                                    if (!is_array($timeSlots)) {
-                                        $timeSlots = array_filter([(string) $timeSlots]);
-                                    } else {
-                                        $timeSlots = array_filter($timeSlots);
-                                    }
-                                    $slotCount = max(count($timeSlots), 1);
+                                     $days = 1;
+                                     if ($durationStr !== '' && preg_match('/(\d+)/', $durationStr, $m)) {
+                                         $days = max((int) $m[1], 1);
+                                     }
 
-                                    $calcQty = $days * $slotCount;
-                                    $itemsByKey[$key]['prescribed'] += $calcQty;
+                                     $liquidOrTopicalUnits = ['syrup', 'drop', 'drops', 'gel', 'cream', 'ointment', 'solution', 'powder', 'spray', 'lotion', 'injection', 'elixir', 'emulsion', 'suspension', 'enema', 'aerosol', 'bottle', 'tube', 'vial'];
+                                     $isLiquidOrTopical = false;
+                                     foreach ($liquidOrTopicalUnits as $unit) {
+                                         if (str_contains($dosageStr, $unit) || str_contains($medNameStr, $unit)) {
+                                             $isLiquidOrTopical = true;
+                                             break;
+                                         }
+                                     }
+
+                                     $timeSlots = $prescriptionRow['time_slot'] ?? [];
+                                     if (!is_array($timeSlots)) {
+                                         $timeSlots = array_filter([(string) $timeSlots]);
+                                     } else {
+                                         $timeSlots = array_filter($timeSlots);
+                                     }
+
+                                     if ($isLiquidOrTopical) {
+                                         $calcQty = 1;
+                                     } else {
+                                         $slotCount = 0;
+                                         foreach ($timeSlots as $ts) {
+                                             $tsUpper = strtoupper(trim((string) $ts));
+                                             if ($tsUpper === 'OD') {
+                                                 $slotCount += 1;
+                                             } elseif ($tsUpper === 'BD') {
+                                                 $slotCount += 2;
+                                             } elseif ($tsUpper === 'TDS') {
+                                                 $slotCount += 3;
+                                             } elseif (in_array($tsUpper, ['QDS', 'QID'], true)) {
+                                                 $slotCount += 4;
+                                             } else {
+                                                 $slotCount += 1;
+                                             }
+                                         }
+                                         $slotCount = max($slotCount, 1);
+
+                                         $dosageMultiplier = 1.0;
+                                         if ($dosageStr !== '') {
+                                             if (preg_match('/^(\d+(?:\.\d+)?)\s*(?:tab|tablet|tablets|cap|capsule|capsules|pill|pills|sachet|sachets|patch|patches|ampoule|suppository)?$/i', $dosageStr, $dm)) {
+                                                 $dosageMultiplier = max((float) $dm[1], 0.1);
+                                             } elseif (preg_match('/^(\d+)\/(\d+)/', $dosageStr, $dfm)) {
+                                                 $denom = (int) $dfm[2];
+                                                 if ($denom > 0) {
+                                                     $dosageMultiplier = (float) $dfm[1] / $denom;
+                                                 }
+                                             }
+                                         }
+
+                                         $calcQty = (int) max(round($days * $slotCount * $dosageMultiplier), 1);
+                                     }
+
+                                     $itemsByKey[$key]['prescribed'] += $calcQty;
 
                                     $dosage = trim((string) ($prescriptionRow['dosage'] ?? ''));
                                     if ($dosage !== '') $itemsByKey[$key]['dosage_list'][$dosage] = true;
 
+                                    $duration = trim((string) ($prescriptionRow['duration'] ?? ''));
                                     if ($duration !== '') $itemsByKey[$key]['duration_list'][$duration] = true;
 
                                     foreach ($timeSlots as $timeSlot) {
@@ -340,7 +386,7 @@
                         @endphp
 
                         <tr>
-                         
+
                             <td>
                                 <span class="fw-bold text-dark font-monospace">#-{{ $item->id }}</span>
                                 <div class="small text-muted" style="font-size: 11px;">
@@ -429,16 +475,16 @@
                             <!-- Action -->
                             <td class="text-center">
                                 @if(!$isDispensed && !$item->is_locked)
-                                    <button type="button" 
-                                            class="btn btn-primary btn-sm px-3 fw-semibold d-inline-flex align-items-center gap-1 shadow-xs" 
-                                            data-bs-toggle="modal" 
+                                    <button type="button"
+                                            class="btn btn-primary btn-sm px-3 fw-semibold d-inline-flex align-items-center gap-1 shadow-xs"
+                                            data-bs-toggle="modal"
                                             data-bs-target="#dispenseModal{{ $item->id }}">
                                         <i class="mdi mdi-pill"></i> Dispense
                                     </button>
                                 @else
-                                    <button type="button" 
-                                            class="btn btn-outline-success btn-sm px-3 fw-semibold d-inline-flex align-items-center gap-1" 
-                                            data-bs-toggle="modal" 
+                                    <button type="button"
+                                            class="btn btn-outline-success btn-sm px-3 fw-semibold d-inline-flex align-items-center gap-1"
+                                            data-bs-toggle="modal"
                                             data-bs-target="#dispenseModal{{ $item->id }}">
                                         <i class="mdi mdi-eye-outline"></i> View Details
                                     </button>
@@ -465,8 +511,8 @@
                                                     </span>
                                                 </div>
                                                 <div class="small text-muted mt-0.5">
-                                                    <i class="mdi mdi-stethoscope me-1 text-secondary"></i>Dr. {{ trim((optional($item->doctor)->fname ?? '') . ' ' . (optional($item->doctor)->lname ?? '')) ?: 'N/A' }} &bull; 
-                                                    <i class="mdi mdi-file-document-outline me-1 text-secondary"></i>Rx #{{ $item->id }} 
+                                                    <i class="mdi mdi-stethoscope me-1 text-secondary"></i>Dr. {{ trim((optional($item->doctor)->fname ?? '') . ' ' . (optional($item->doctor)->lname ?? '')) ?: 'N/A' }} &bull;
+                                                    <i class="mdi mdi-file-document-outline me-1 text-secondary"></i> #{{ $item->id }}
                                                     <span class="text-muted">({{ $item->created_at->format('d M Y, h:i A') }})</span>
                                                 </div>
                                             </div>
@@ -514,7 +560,9 @@
                                                                         <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
                                                                             <span class="fw-bold text-dark fs-6">{{ $med['name'] }}</span>
                                                                             <span class="badge bg-white text-dark border font-monospace small px-2.5 py-1 shadow-2xs">
-                                                                                Prescribed: <strong class="text-dark">{{ $med['prescribed'] }}</strong> | Given: <strong class="text-dark">{{ $med['given'] }}</strong> | Rem: <strong class="text-dark">{{ $med['remaining'] }}</strong>
+                                                                                Prescribed: <strong class="text-dark">{{ $med['prescribed'] }}</strong>
+                                                                                {{-- | Given: <strong class="text-dark">{{ $med['given'] }}</strong>
+                                                                                | Rem: <strong class="text-dark">{{ $med['remaining'] }}</strong> --}}
                                                                             </span>
                                                                         </div>
 
@@ -540,7 +588,15 @@
                                                                                     <span class="badge bg-white text-dark border px-2.5 py-1.5 rounded-2 small fw-semibold shadow-2xs"><i class="mdi mdi-clock-outline me-1 text-secondary"></i>Time: {{ str_replace('_', ' ', $med['time_slot']) }}</span>
                                                                                 @endif
                                                                                 @if(!empty($med['food_timing']))
-                                                                                    <span class="badge bg-white text-dark border px-2.5 py-1.5 rounded-2 small fw-semibold shadow-2xs"><i class="mdi mdi-food-apple-outline me-1 text-secondary"></i>Food: {{ str_replace('_', ' ', $med['food_timing']) }}</span>
+                                                                                    @php
+                                                                                        $ftRaw = trim((string) $med['food_timing']);
+                                                                                        $ftDisplay = match(strtolower($ftRaw)) {
+                                                                                            'before_food', 'before food', 'ac' => 'AC',
+                                                                                            'after_food', 'after food', 'pc' => 'PC',
+                                                                                            default => strtoupper(str_replace('_', ' ', $ftRaw)),
+                                                                                        };
+                                                                                    @endphp
+                                                                                    <span class="badge bg-white text-dark border px-2.5 py-1.5 rounded-2 small fw-semibold shadow-2xs"><i class="mdi mdi-food-apple-outline me-1 text-secondary"></i>Food: {{ $ftDisplay }}</span>
                                                                                 @endif
                                                                             </div>
                                                                         @endif
@@ -603,17 +659,17 @@
                                                                             </div>
 
                                                                             <input type="hidden" name="medicines[{{ $idx }}][medicine_name]" value="{{ $med['name'] }}">
-                                                                            
+
                                                                             @if($canGiveItem)
                                                                                 <div class="d-flex align-items-center gap-2 mt-3 pt-2 border-top">
                                                                                     <label class="small fw-bold text-dark mb-0 me-1">Dispense Qty:</label>
-                                                                                    <input type="number" 
-                                                                                           name="medicines[{{ $idx }}][dispense_quantity]" 
-                                                                                           class="form-control form-control-sm text-center fw-bold text-dark fs-6 js-qty-input border" 
-                                                                                           value="{{ $maxGive }}" 
-                                                                                           min="0" 
-                                                                                           max="{{ $maxGive }}" 
-                                                                                           placeholder="0" 
+                                                                                    <input type="number"
+                                                                                           name="medicines[{{ $idx }}][dispense_quantity]"
+                                                                                           class="form-control form-control-sm text-center fw-bold text-dark fs-6 js-qty-input border"
+                                                                                           value="{{ $maxGive }}"
+                                                                                           min="0"
+                                                                                           max="{{ $maxGive }}"
+                                                                                           placeholder="0"
                                                                                            style="width: 110px;"
                                                                                            @disabled($isLocked)>
                                                                                 </div>
@@ -653,7 +709,7 @@
 
                                             <div class="modal-footer bg-white py-3 px-4 border-top d-flex justify-content-end align-items-center gap-2">
                                                 <button type="button" class="btn btn-light rounded-pill px-4 py-2 fw-semibold text-secondary border" data-bs-dismiss="modal">Close</button>
-                                                
+
                                                 @can('pharmacy-prescriptions-dispense')
                                                     @php
                                                         $canGiveAnyItem = false;
@@ -667,13 +723,13 @@
 
                                                     @if($hasStockShortage)
                                                         <button type="button" class="btn btn-outline-warning text-dark fw-semibold rounded-pill px-3.5 py-2 fs-13 shadow-xs d-inline-flex align-items-center gap-1.5 js-trigger-sms" data-action="{{ route('pharmacy.prescriptions.send-sms', $item->id) }}" @disabled($isLocked)>
-                                                            <i class="mdi mdi-cellphone-message text-warning fs-5"></i> Send SMS
+                                                            <i class="mdi mdi-cellphone-message text-warning fs-5"></i> Dispence & Shortage SMS
                                                         </button>
                                                     @endif
 
                                                     @if($canGiveAnyItem)
                                                         <button type="submit" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold fs-13 shadow-sm d-inline-flex align-items-center gap-1.5 js-submit-dispense-btn" @disabled($isLocked)>
-                                                            <i class="mdi mdi-check-all fs-5"></i> {{ $isPartial ? 'Save Medicine' : 'Save Medicine' }}
+                                                            <i class="mdi mdi-check-all fs-5"></i> {{ $isPartial ? 'Dispence Medicine' : 'Dispence Medicine' }}
                                                         </button>
                                                     @endif
                                                 @endcan

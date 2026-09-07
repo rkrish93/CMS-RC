@@ -51,7 +51,7 @@
                         </span>
                     @endif
 
-                    @if(auth()->user()?->can('consultations-create') || auth()->user()?->hasAnyRole(['Doctor', 'Admin']))
+                    @if(!auth()->user()?->hasAnyRole(['Nurse', 'Mid wife', 'Midwife']) && (auth()->user()?->can('consultations-create') || auth()->user()?->hasAnyRole(['Doctor', 'Admin'])))
                         <a href="{{ route('consultations.create', ['appointment' => $appointment->id, 'screen' => 'doctor']) }}" class="btn btn-primary {{ (!$vitalsDone || $doctorDone) ? 'disabled' : '' }}"
                            @if(!$vitalsDone || $doctorDone) aria-disabled="true" tabindex="-1" @endif>
                             <i class="mdi mdi-stethoscope me-1"></i> Consultation Start
@@ -65,7 +65,7 @@
                         <a href="{{ $enablePharmacy ? route('pharmacy.prescriptions.index', ['consultation_id' => $consultationForPharmacy->id]) : '#' }}"
                            class="btn {{ $enablePharmacy ? 'btn-success' : 'btn-outline-secondary disabled' }}"
                            @if(!$enablePharmacy) aria-disabled="true" tabindex="-1" @endif>
-                            <i class="mdi mdi-pill me-1"></i> Open Pharmacy Screen
+                            <i class="mdi mdi-pill me-1"></i> Pharmacy Dispensing
                         </a>
                         <span class="badge {{ $pharmacyDispensed ? 'bg-success' : ($enablePharmacy ? 'bg-info text-white' : 'bg-secondary') }}">
                             Pharmacy Status: {{ $pharmacyDispensed ? 'Dispensed' : ($enablePharmacy ? 'Prescription Ready' : 'Waiting for Doctor Prescription') }}
@@ -89,7 +89,7 @@
                                 <th>Date</th>
                                 <th>BP</th>
                                 <th>Temp</th>
-                                <th>Sugar</th>
+                                <th>Blood Glucose</th>
                                 <th>Pulse</th>
                             </tr>
                         </thead>

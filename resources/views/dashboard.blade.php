@@ -177,6 +177,9 @@
                 <a href="{{ route('permissions.index') }}" class="action-btn-pill action-btn-purple">
                     <i class="mdi mdi-lock-pattern"></i> Manage Permissions
                 </a>
+                <a href="{{ route('settings.index') }}" class="action-btn-pill action-btn-info">
+                    <i class="mdi mdi-clock-cog-outline"></i> Clinic Settings
+                </a>
             </div>
         </div>
 
@@ -196,7 +199,7 @@
                     </a>
                 @endcan
                 @can('appointments-view')
-                    <a href="{{ route('appointments.today') }}" class="action-btn-pill action-btn-success">
+                    <a href="{{ route('patient.flow.scanner') }}" class="action-btn-pill action-btn-success">
                         <i class="mdi mdi-calendar-today"></i> Open Today's Queue
                     </a>
                 @endcan
@@ -255,7 +258,7 @@
                             <th>Temp (°C)</th>
                             <th>Pulse</th>
                             <th>SpO₂ (%)</th>
-                            <th>Sugar (mg/dL)</th>
+                            <th>Glucose (mg/dL)</th>
                             <th>Wt / Ht / BMI</th>
                             <th>Resp Rate</th>
                             <th>Recorded Time</th>
@@ -585,7 +588,7 @@
                             <h5 class="fw-bold mb-1 text-dark">Today's Appointment Queue</h5>
                             <p class="text-muted fs-14 mb-0">Live flow of patient appointments today.</p>
                         </div>
-                        <a href="{{ route('appointments.today') }}" class="btn btn-sm btn-outline-dark rounded-pill px-3">
+                        <a href="{{ route('patient.flow.scanner') }}" class="btn btn-sm btn-outline-dark rounded-pill px-3">
                             Open Queue <i class="mdi mdi-arrow-right ms-1"></i>
                         </a>
                     </div>

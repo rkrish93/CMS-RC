@@ -550,6 +550,67 @@ class PharmacyStockController extends Controller
         return $items;
     }
 
+    private function calculatePrescribedQuantity(array $row): int
+    {
+        $dosageStr = strtolower(trim((string) ($row['dosage'] ?? '')));
+        $durationStr = strtolower(trim((string) ($row['duration'] ?? '')));
+        $medicineName = strtolower(trim((string) ($row['medicine_name'] ?? '')));
+
+        // 1. Duration in days
+        $days = 1;
+        if ($durationStr !== '' && preg_match('/(\d+)/', $durationStr, $m)) {
+            $days = max((int) $m[1], 1);
+        }
+
+        // 2. Check for Liquid / Cream / Topical / Containers (dispense 1 container)
+        $liquidOrTopicalUnits = ['syrup', 'drop', 'drops', 'gel', 'cream', 'ointment', 'solution', 'powder', 'spray', 'lotion', 'injection', 'elixir', 'emulsion', 'suspension', 'enema', 'aerosol', 'bottle', 'tube', 'vial'];
+        foreach ($liquidOrTopicalUnits as $unit) {
+            if (str_contains($dosageStr, $unit) || str_contains($medicineName, $unit)) {
+                return 1;
+            }
+        }
+
+        // 3. Frequency multiplier (OD=1, BD=2, TDS=3, QDS/QID=4)
+        $timeSlots = $row['time_slot'] ?? [];
+        if (! is_array($timeSlots)) {
+            $timeSlots = array_filter([(string) $timeSlots]);
+        } else {
+            $timeSlots = array_filter($timeSlots);
+        }
+
+        $slotCount = 0;
+        foreach ($timeSlots as $ts) {
+            $tsUpper = strtoupper(trim((string) $ts));
+            if ($tsUpper === 'OD') {
+                $slotCount += 1;
+            } elseif ($tsUpper === 'BD') {
+                $slotCount += 2;
+            } elseif ($tsUpper === 'TDS') {
+                $slotCount += 3;
+            } elseif (in_array($tsUpper, ['QDS', 'QID'], true)) {
+                $slotCount += 4;
+            } else {
+                $slotCount += 1;
+            }
+        }
+        $slotCount = max($slotCount, 1);
+
+        // 4. Dosage count multiplier (e.g., "2 tablets", "2 tabs", "0.5", "1/2")
+        $dosageMultiplier = 1.0;
+        if ($dosageStr !== '') {
+            if (preg_match('/^(\d+(?:\.\d+)?)\s*(?:tab|tablet|tablets|cap|capsule|capsules|pill|pills|sachet|sachets|patch|patches|ampoule|suppository)?$/i', $dosageStr, $dm)) {
+                $dosageMultiplier = max((float) $dm[1], 0.1);
+            } elseif (preg_match('/^(\d+)\/(\d+)/', $dosageStr, $dfm)) {
+                $denom = (int) $dfm[2];
+                if ($denom > 0) {
+                    $dosageMultiplier = (float) $dfm[1] / $denom;
+                }
+            }
+        }
+
+        return (int) max(round($days * $slotCount * $dosageMultiplier), 1);
+    }
+
     private function getPrescriptionItemsWithNames(Consultation $record): array
     {
         $prescriptionRows = is_array($record->prescription_items ?? null) ? $record->prescription_items : [];
@@ -562,21 +623,7 @@ class PharmacyStockController extends Controller
                     continue;
                 }
 
-                $duration = trim((string) ($row['duration'] ?? ''));
-                $days = 1;
-                if ($duration !== '' && preg_match('/(\d+)/', $duration, $m)) {
-                    $days = max((int) $m[1], 1);
-                }
-
-                $timeSlots = $row['time_slot'] ?? [];
-                if (! is_array($timeSlots)) {
-                    $timeSlots = array_filter([(string) $timeSlots]);
-                } else {
-                    $timeSlots = array_filter($timeSlots);
-                }
-                $slotCount = max(count($timeSlots), 1);
-
-                $calcQty = $days * $slotCount;
+                $calcQty = $this->calculatePrescribedQuantity($row);
 
                 $normalized = $this->normalizeMedicineName($name);
                 $items[$normalized] = [
@@ -591,85 +638,85 @@ class PharmacyStockController extends Controller
         return $this->parsePrescriptionItemsWithNames((string) ($record->prescription ?? ''));
     }
 
-    private function sendShortageSummarySms(Consultation $record): bool
-    {
-        $phone = $this->resolvePatientPhone($record);
-        if ($phone === '') {
-            return false;
-        }
+    // private function sendShortageSummarySms(Consultation $record): bool
+    // {
+    //     $phone = $this->resolvePatientPhone($record);
+    //     if ($phone === '') {
+    //         return false;
+    //     }
 
-        $items = $this->getPrescriptionItemsWithNames($record);
-        $metaByMedicine = $this->getPrescriptionMetaByMedicine($record);
-        $dispensed = is_array($record->dispensed_breakdown) ? $record->dispensed_breakdown : [];
-        $stockMap = $this->buildStockMap();
+    //     $items = $this->getPrescriptionItemsWithNames($record);
+    //     $metaByMedicine = $this->getPrescriptionMetaByMedicine($record);
+    //     $dispensed = is_array($record->dispensed_breakdown) ? $record->dispensed_breakdown : [];
+    //     $stockMap = $this->buildStockMap();
 
-        $hasAnyShortage = false;
-        $parts = [];
+    //     $hasAnyShortage = false;
+    //     $parts = [];
 
-        foreach ($items as $normalized => $itemData) {
-            $prescribedQty = (int) ($itemData['qty'] ?? 0);
-            $displayName = (string) ($itemData['name'] ?? $normalized);
+    //     foreach ($items as $normalized => $itemData) {
+    //         $prescribedQty = (int) ($itemData['qty'] ?? 0);
+    //         $displayName = (string) ($itemData['name'] ?? $normalized);
 
-            $given = (int) ($dispensed[$normalized] ?? 0);
-            $remaining = max($prescribedQty - $given, 0);
+    //         $given = (int) ($dispensed[$normalized] ?? 0);
+    //         $remaining = max($prescribedQty - $given, 0);
 
-            $stock = (int) ($stockMap[$normalized] ?? 0);
-            $detailSuffix = $this->formatDoseDurationDetails($metaByMedicine[$normalized] ?? []);
+    //         $stock = (int) ($stockMap[$normalized] ?? 0);
+    //         $detailSuffix = $this->formatDoseDurationDetails($metaByMedicine[$normalized] ?? []);
 
-            if ($remaining <= 0) {
-                $parts[] = "{$displayName}{$detailSuffix}: Given";
-            } elseif ($stock <= 0) {
-                $hasAnyShortage = true;
-                $parts[] = "{$displayName}{$detailSuffix}: OUT OF STOCK (Need {$remaining})";
-            } elseif ($stock < $remaining) {
-                $hasAnyShortage = true;
-                $parts[] = "{$displayName}{$detailSuffix}: Shortage (Available {$stock}, Need {$remaining})";
-            } else {
-                $parts[] = "{$displayName}{$detailSuffix}: Available ({$stock} in stock)";
-            }
-        }
+    //         if ($remaining <= 0) {
+    //             $parts[] = "{$displayName}{$detailSuffix}: Given";
+    //         } elseif ($stock <= 0) {
+    //             $hasAnyShortage = true;
+    //             $parts[] = "{$displayName}{$detailSuffix}: OUT OF STOCK (Need {$remaining})";
+    //         } elseif ($stock < $remaining) {
+    //             $hasAnyShortage = true;
+    //             $parts[] = "{$displayName}{$detailSuffix}: Shortage (Available {$stock}, Need {$remaining})";
+    //         } else {
+    //             $parts[] = "{$displayName}{$detailSuffix}: Available ({$stock} in stock)";
+    //         }
+    //     }
 
-        if (! $hasAnyShortage || empty($parts)) {
-            return false;
-        }
+    //     if (! $hasAnyShortage || empty($parts)) {
+    //         return false;
+    //     }
 
-        $patientName = trim((optional($record->patient)->first_name ?? '') . ' ' . (optional($record->patient)->last_name ?? ''));
-        $patientStr = $patientName !== '' ? " for {$patientName}" : '';
+    //     $patientName = trim((optional($record->patient)->first_name ?? '') . ' ' . (optional($record->patient)->last_name ?? ''));
+    //     $patientStr = $patientName !== '' ? " for {$patientName}" : '';
 
-        $message = "CMS-RC Pharmacy Notice{$patientStr}: Prescription details - "
-            . implode('; ', $parts)
-            . '. Please contact pharmacy.';
+    //     $message = "CMS-RC Pharmacy Notice{$patientStr}: Prescription details - "
+    //         . implode('; ', $parts)
+    //         . '. Please contact pharmacy.';
 
-        return $this->dispatchSms($phone, $message);
-    }
+    //     return $this->dispatchSms($phone, $message);
+    // }
 
     private function normalizeMedicineName(string $name): string
     {
         return strtolower(preg_replace('/\s+/', '', trim($name)));
     }
 
-    private function sendShortageSms(
-        Consultation $record,
-        string $medicineName,
-        int $requested,
-        int $givenNow,
-        int $remaining,
-        int $availableStock
-    ): bool
-    {
-        $phone = $this->resolvePatientPhone($record);
-        if ($phone === '') {
-            return false;
-        }
+    // private function sendShortageSms(
+    //     Consultation $record,
+    //     string $medicineName,
+    //     int $requested,
+    //     int $givenNow,
+    //     int $remaining,
+    //     int $availableStock
+    // ): bool
+    // {
+    //     $phone = $this->resolvePatientPhone($record);
+    //     if ($phone === '') {
+    //         return false;
+    //     }
 
-        $normalizedMedicine = $this->normalizeMedicineName($medicineName);
-        $metaByMedicine = $this->getPrescriptionMetaByMedicine($record);
-        $detailSuffix = $this->formatDoseDurationDetails($metaByMedicine[$normalizedMedicine] ?? []);
+    //     $normalizedMedicine = $this->normalizeMedicineName($medicineName);
+    //     $metaByMedicine = $this->getPrescriptionMetaByMedicine($record);
+    //     $detailSuffix = $this->formatDoseDurationDetails($metaByMedicine[$normalizedMedicine] ?? []);
 
-        $message = "CMS-RC Pharmacy update: {$medicineName}{$detailSuffix}. Requested {$requested} tablets, available {$availableStock}, given {$givenNow}, remaining {$remaining}. Please contact pharmacy.";
+    //     $message = "CMS-RC Pharmacy update: {$medicineName}{$detailSuffix}. Requested {$requested} tablets, available {$availableStock}, given {$givenNow}, remaining {$remaining}. Please contact pharmacy.";
 
-        return $this->dispatchSms($phone, $message);
-    }
+    //     return $this->dispatchSms($phone, $message);
+    // }
 
     private function getPrescriptionMetaByMedicine(Consultation $record): array
     {

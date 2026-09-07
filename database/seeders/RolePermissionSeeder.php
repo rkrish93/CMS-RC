@@ -228,7 +228,6 @@ class RolePermissionSeeder extends Seeder
             'appointments-view',
             'appointments-edit',
             'consultations-view',
-            'consultations-create',
             'consultations-edit',
             'reports-view',
         ])->get();

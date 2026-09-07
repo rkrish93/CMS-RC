@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UnitController;
 use App\Http\Controllers\Admin\UserReportController;
+use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\ConsultationController;
@@ -142,6 +143,8 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('permission-groups',PermissionGroupController::class);
         Route::resource('permissions',PermissionController::class);
         Route::resource('roles',RoleController::class);
+        Route::get('settings', [SettingController::class, 'index'])->name('settings.index');
+        Route::post('settings', [SettingController::class, 'update'])->name('settings.update');
         Route::resource('pharmacy-stocks', PharmacyStockController::class)
             ->except(['show', 'create']);
         Route::get('pharmacy-prescriptions', [PharmacyStockController::class, 'prescriptions'])
@@ -162,7 +165,7 @@ Route::post('/vitals/store', [ConsultationController::class, 'storeVitals'])
     ->name('vitals.store');
     });
     Route::get('/vitals', [ConsultationController::class, 'indexVitals'])->name('vitals.index');
-        Route::get('/doctor/queue', [AppointmentController::class, 'todayQueue'])
+        Route::get('/today_queue', [AppointmentController::class, 'todayQueue'])
             ->name('appointments.today');
 
 

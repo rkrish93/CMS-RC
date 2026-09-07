@@ -121,7 +121,7 @@
                     <th>BP</th>
                     <th>Temp</th>
                     <th>Pulse</th>
-                    <th>Sugar</th>
+                    <th>Glucose</th>
                     <th>BMI</th>
                 </tr>
             </thead>

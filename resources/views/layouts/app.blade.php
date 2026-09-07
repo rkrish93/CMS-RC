@@ -610,7 +610,7 @@
 
             <div class="ms-auto d-flex align-items-center gap-2">
                 @can('menu-appointments')
-                    <a class="btn icon-button notification-link" href="{{ route('appointments.today') }}" aria-label="Today appointments">
+                    <a class="btn icon-button notification-link" href="{{ route('patient.flow.scanner') }}" aria-label="Today appointments">
                         <i class="mdi mdi-bell-outline"></i>
                         @if(($todayAppointments ?? 0) > 0)
                             <span class="notification-count">{{ $todayAppointments }}</span>
@@ -730,7 +730,7 @@
                                     <li class="nav-item"><a class="nav-link {{ request()->routeIs('appointments.create') ? 'active' : '' }}" href="{{ route('appointments.create') }}">Add Appointment</a></li>
                                     @endcan
                                     <li class="nav-item"><a class="nav-link {{ request()->routeIs('appointments.index') ? 'active' : '' }}" href="{{ route('appointments.index') }}">All Appointments</a></li>
-                                     <li class="nav-item"><a class="nav-link {{ request()->routeIs('appointments.today') ? 'active' : '' }}" href="{{ route('appointments.today') }}">Today Queue</a></li>
+                                     <li class="nav-item"><a class="nav-link {{ request()->routeIs('patient.flow.scanner') ? 'active' : '' }}" href="{{ route('patient.flow.scanner') }}">Today Queue</a></li>
                                 </ul>
                             </div>
                         </li>
@@ -855,6 +855,7 @@
                                 </a>
                                 <div class="collapse {{ $settingsActive ? 'show' : '' }}" id="settingsMenu">
                                     <ul class="nav sub-menu">
+                                        <li class="nav-item"><a class="nav-link {{ request()->routeIs('settings.*') ? 'active' : '' }}" href="{{ route('settings.index') }}">Clinic Hours Settings</a></li>
                                         <li class="nav-item"><a class="nav-link {{ request()->routeIs('roles.*') ? 'active' : '' }}" href="{{ route('roles.index') }}">Roles</a></li>
                                         <li class="nav-item"><a class="nav-link {{ request()->routeIs('permissions.*') ? 'active' : '' }}" href="{{ route('permissions.index') }}">Permissions</a></li>
                                         <li class="nav-item"><a class="nav-link {{ request()->routeIs('permission-groups.*') ? 'active' : '' }}" href="{{ route('permission-groups.index') }}">Permission Groups</a></li>
