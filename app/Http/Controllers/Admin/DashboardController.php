@@ -69,6 +69,16 @@ class DashboardController extends Controller
                 ];
             });
 
+        $expiringStocks = PharmacyStock::query()
+            ->with('product')
+            ->where('is_active', true)
+            ->whereNotNull('expiry_date')
+            ->whereDate('expiry_date', '>=', today())
+            ->whereDate('expiry_date', '<=', today()->addMonths(3))
+            ->orderBy('expiry_date', 'asc')
+            ->take(5)
+            ->get();
+
         $lowStocks = PharmacyStock::query()
             ->with('product')
             ->join('medicines', 'pharmacy_stocks.product_id', '=', 'medicines.id')
@@ -143,6 +153,12 @@ class DashboardController extends Controller
             'latestVitals' => $latestVitals,
             'pharmacySummary' => [
                 'total_items' => PharmacyStock::count(),
+                'expiring_soon' => PharmacyStock::query()
+                    ->where('is_active', true)
+                    ->whereNotNull('expiry_date')
+                    ->whereDate('expiry_date', '>=', today())
+                    ->whereDate('expiry_date', '<=', today()->addMonths(3))
+                    ->count(),
                 'low_stock' => PharmacyStock::query()
                     ->join('medicines', 'pharmacy_stocks.product_id', '=', 'medicines.id')
                     ->whereColumn('pharmacy_stocks.quantity', '<=', 'medicines.reorder_level')
@@ -154,6 +170,7 @@ class DashboardController extends Controller
                     ->whereDate('created_at', today())
                     ->count(),
             ],
+            'expiringStocks' => $expiringStocks,
             'lowStocks' => $lowStocks,
             'pendingPrescriptions' => $pendingPrescriptions,
             'newPrescriptionNotificationCount' => $newPrescriptionNotificationCount,

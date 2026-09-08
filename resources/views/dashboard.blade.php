@@ -387,7 +387,7 @@
 
                 <!-- Pharmacy KPI Summary -->
                 <div class="row g-3 mb-4">
-                    <div class="col-md-4">
+                    <div class="col-sm-6 col-xl-3">
                         <div class="p-3 rounded-3 bg-light border border-light-subtle d-flex align-items-center justify-content-between">
                             <div>
                                 <span class="text-muted fs-13 d-block mb-1 fw-semibold">Total Stock Items</span>
@@ -398,7 +398,18 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-sm-6 col-xl-3">
+                        <div class="p-3 rounded-3 bg-light border border-light-subtle d-flex align-items-center justify-content-between">
+                            <div>
+                                <span class="text-muted fs-13 d-block mb-1 fw-semibold">Expiring (3 Months)</span>
+                                <span class="fs-3 fw-bold text-warning-emphasis">{{ number_format($pharmacySummary['expiring_soon'] ?? 0) }}</span>
+                            </div>
+                            <div class="p-3 rounded-3 bg-warning-subtle text-warning-emphasis fs-4">
+                                <i class="mdi mdi-clock-alert-outline"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-xl-3">
                         <div class="p-3 rounded-3 bg-light border border-light-subtle d-flex align-items-center justify-content-between">
                             <div>
                                 <span class="text-muted fs-13 d-block mb-1 fw-semibold">Low Stock Items</span>
@@ -409,7 +420,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-sm-6 col-xl-3">
                         <div class="p-3 rounded-3 bg-light border border-light-subtle d-flex align-items-center justify-content-between">
                             <div>
                                 <span class="text-muted fs-13 d-block mb-1 fw-semibold">Today Prescriptions</span>
@@ -422,9 +433,52 @@
                     </div>
                 </div>
 
-                <!-- Low Stock & Latest Prescriptions Split -->
+                <!-- Expiring Soon, Low Stock & Latest Prescriptions Split -->
                 <div class="row g-4">
                     <div class="col-lg-5">
+                        <!-- Expiring Soon (3 Months) Medicines -->
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h6 class="fw-bold mb-0 text-dark fs-15">
+                                <i class="mdi mdi-clock-alert text-warning me-1"></i> Expiring Soon (Within 3 Months)
+                            </h6>
+                            <span class="badge bg-warning-subtle text-warning-emphasis rounded-pill px-2 py-1 fs-12">Expiry Alert</span>
+                        </div>
+                        <div class="table-responsive rounded-3 border mb-4">
+                            <table class="table custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Medicine Name</th>
+                                        <th class="text-center">Batch</th>
+                                        <th class="text-center">Expiry Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($expiringStocks ?? [] as $expStock)
+                                        <tr>
+                                            <td class="fw-semibold text-dark">
+                                                {{ $expStock->medicine_name }}
+                                                <small class="text-muted d-block">Qty: {{ $expStock->quantity }}</small>
+                                            </td>
+                                            <td class="text-center text-muted font-monospace fs-13">{{ $expStock->batch_no }}</td>
+                                            <td class="text-center">
+                                                <span class="badge bg-warning-subtle text-warning-emphasis fw-bold px-2 py-1">
+                                                    {{ $expStock->expiry_date ? \Carbon\Carbon::parse($expStock->expiry_date)->format('Y-m-d') : 'N/A' }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="3" class="text-center text-muted py-3">
+                                                <i class="mdi mdi-check-circle-outline text-success fs-4 d-block mb-1"></i>
+                                                No medicines expiring in the next 3 months.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Low Stock Medicines -->
                         <div class="d-flex align-items-center justify-content-between mb-3">
                             <h6 class="fw-bold mb-0 text-dark fs-15">
                                 <i class="mdi mdi-alert-circle text-danger me-1"></i> Low Stock Medicines
